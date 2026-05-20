@@ -51,10 +51,11 @@ function Onboarding() {
     try {
       await supabase.from("profiles").update({
         ...data,
+        main_goal: data.main_goal.join(", "),
         onboarding_complete: true,
       }).eq("user_id", user.id);
       const read = await baselineFn({ data: {
-        name: data.name, main_goal: data.main_goal,
+        name: data.name, main_goal: data.main_goal.join(", "),
         insecurity: data.biggest_insecurity, social: data.social_challenge, dating: data.dating_challenge,
         tone: data.tone_preference,
       }});
