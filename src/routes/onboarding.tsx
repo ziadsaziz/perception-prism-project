@@ -33,7 +33,7 @@ function Onboarding() {
 
   const [step, setStep] = useState(0);
   const [data, setData] = useState({
-    main_goal: "", comfort_level: "", tone_preference: "Direct",
+    main_goal: [] as string[], comfort_level: "", tone_preference: "Direct",
     name: "", age_range: "", gender: "",
     biggest_insecurity: "", social_challenge: "", dating_challenge: "",
   });
@@ -51,10 +51,11 @@ function Onboarding() {
     try {
       await supabase.from("profiles").update({
         ...data,
+        main_goal: data.main_goal.join(", "),
         onboarding_complete: true,
       }).eq("user_id", user.id);
       const read = await baselineFn({ data: {
-        name: data.name, main_goal: data.main_goal,
+        name: data.name, main_goal: data.main_goal.join(", "),
         insecurity: data.biggest_insecurity, social: data.social_challenge, dating: data.dating_challenge,
         tone: data.tone_preference,
       }});
@@ -93,13 +94,17 @@ function Onboarding() {
         {step === 1 && (
           <Step eyebrow="Mirror · 02">
             <h1 className="mt-4 font-display text-3xl text-gradient leading-tight">What do you want Mirror to sharpen?</h1>
+            <p className="mt-2 text-xs text-muted-foreground">Select all that apply.</p>
             <div className="mt-6 flex flex-wrap gap-2">
-              {GOALS.map(g => (
-                <button key={g} onClick={() => setData({...data, main_goal: g})}
-                  className={`rounded-full px-4 py-2.5 text-xs tracking-wide ring-hairline transition-colors ${data.main_goal === g ? "bg-foreground text-background" : "bg-glass text-foreground/80"}`}>
-                  {g}
-                </button>
-              ))}
+              {GOALS.map(g => {
+                const selected = data.main_goal.includes(g);
+                return (
+                  <button key={g} onClick={() => setData({...data, main_goal: selected ? data.main_goal.filter(x => x !== g) : [...data.main_goal, g]})}
+                    className={`rounded-full px-4 py-2.5 text-xs tracking-wide ring-hairline transition-colors ${selected ? "bg-foreground text-background" : "bg-glass text-foreground/80"}`}>
+                    {g}
+                  </button>
+                );
+              })}
             </div>
           </Step>
         )}
@@ -184,7 +189,7 @@ function Onboarding() {
 
       {step < 5 && (
         <button onClick={next}
-          disabled={(step === 1 && !data.main_goal) || (step === 2 && !data.comfort_level)}
+          disabled={(step === 1 && data.main_goal.length === 0) || (step === 2 && !data.comfort_level)}
           className="rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] flex items-center justify-center gap-2 disabled:opacity-40 glow-gold">
           Continue <ArrowRight className="h-4 w-4" />
         </button>
