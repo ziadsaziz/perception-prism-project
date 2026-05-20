@@ -189,7 +189,7 @@ function Onboarding() {
 
       {step < 5 && (
         <button onClick={next}
-          disabled={(step === 1 && !data.main_goal) || (step === 2 && !data.comfort_level)}
+          disabled={(step === 1 && data.main_goal.length === 0) || (step === 2 && !data.comfort_level)}
           className="rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] flex items-center justify-center gap-2 disabled:opacity-40 glow-gold">
           Continue <ArrowRight className="h-4 w-4" />
         </button>
