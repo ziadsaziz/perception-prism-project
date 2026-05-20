@@ -60,7 +60,7 @@ function Home() {
       </header>
 
       <GlassPanel glow className="p-6">
-        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Today's Read</p>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read · today</p>
         {loadingRead || !daily ? (
           <div className="mt-3 h-16 rounded-md animate-shimmer" />
         ) : (
@@ -68,10 +68,13 @@ function Home() {
             <p className="mt-3 font-display text-[22px] leading-snug text-gradient">{daily.read}</p>
             <div className="mt-5 flex items-center justify-between pt-4 border-t border-border/40">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Today's mission</p>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">The move</p>
                 <p className="text-sm text-foreground/90 mt-1">{daily.mission}</p>
               </div>
             </div>
+            {daily.early && (
+              <p className="mt-4 text-[10px] uppercase tracking-[0.24em] text-muted-foreground/70">Early read · Mirror gets sharper as it sees more</p>
+            )}
           </>
         )}
       </GlassPanel>
