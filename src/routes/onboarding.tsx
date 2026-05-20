@@ -1,26 +1,71 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { generateBaselineRead } from "@/lib/ai.functions";
+import { generateBaselineFromSignals } from "@/lib/ai.functions";
 import { toast } from "sonner";
-import { ArrowRight, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
 
-const GOALS = ["Dating", "Confidence", "Social presence", "Texting", "Attraction", "Career presence", "Content & social media", "Emotional clarity"];
-const COMFORT = [
-  { id: "manual", title: "Manual uploads only", desc: "You decide what Mirror sees. Nothing more." },
-  { id: "optional", title: "Optional connected insights", desc: "Add signals when it's worth it." },
-  { id: "full", title: "Full Mirror mode", desc: "Deepest reads. Maximum perception." },
-];
-const TONES = ["Gentle", "Direct", "Brutally honest", "Strategic"];
+type Phase = "entry" | "q1" | "q2" | "q3" | "q4" | "processing" | "flash" | "read";
 
-function Step({ children, eyebrow }: { children: React.ReactNode; eyebrow?: string }) {
+const QUESTIONS = [
+  {
+    key: "q1" as const,
+    label: "SIGNAL 01",
+    question: "What do you most want people to feel when they're around you?",
+    sub: null,
+    placeholder: "Be honest. Mirror doesn't judge — it observes.",
+    cta: "Continue",
+  },
+  {
+    key: "q2" as const,
+    label: "SIGNAL 02",
+    question: "What reaction do you get from people that you don't fully understand?",
+    sub: null,
+    placeholder: "The thing that keeps happening, even when you don't mean it to.",
+    cta: "Continue",
+  },
+  {
+    key: "q3" as const,
+    label: "SIGNAL 03",
+    question: "Who do you tend to lose — and when?",
+    sub: "Friends. Partners. Rooms. Moments. Any of it.",
+    placeholder: "Don't overthink it.",
+    cta: "Continue",
+  },
+  {
+    key: "q4" as const,
+    label: "SIGNAL 04",
+    question: "What do you never say out loud but always wonder about yourself?",
+    sub: "This one stays between you and Mirror.",
+    placeholder: "The question you ask yourself at 2am.",
+    cta: "Let Mirror read you",
+  },
+];
+
+const PROCESSING_LINES = [
+  "Reading your signals…",
+  "Detecting pressure points…",
+  "Finding the pattern beneath the pattern…",
+  "Separating what you do from who you are…",
+  "Building your baseline…",
+];
+
+function Wordmark() {
   return (
-    <div className="animate-fade-up">
-      {eyebrow && <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">{eyebrow}</p>}
+    <div className="absolute top-6 left-0 right-0 flex justify-center pointer-events-none">
+      <span className="text-[10px] tracking-[0.5em] text-white/40 uppercase">Mirror</span>
+    </div>
+  );
+}
+
+function Fade({ show, children, duration = 600 }: { show: boolean; children: React.ReactNode; duration?: number }) {
+  return (
+    <div
+      className="transition-opacity ease-in-out"
+      style={{ opacity: show ? 1 : 0, transitionDuration: `${duration}ms` }}
+    >
       {children}
     </div>
   );
@@ -29,210 +74,229 @@ function Step({ children, eyebrow }: { children: React.ReactNode; eyebrow?: stri
 function Onboarding() {
   const { user, loading } = useAuth();
   const nav = useNavigate();
-  const baselineFn = useServerFn(generateBaselineRead);
+  const baselineFn = useServerFn(generateBaselineFromSignals);
 
-  const [step, setStep] = useState(0);
-  const [data, setData] = useState({
-    main_goal: [] as string[], comfort_level: "", tone_preference: "Direct",
-    name: "", age_range: "", gender: "",
-    biggest_insecurity: "", social_challenge: "", dating_challenge: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [baseline, setBaseline] = useState<{ headline: string; read?: string; truth: string; blind_spot: string; first_move: string; early_read?: boolean } | null>(null);
+  const [phase, setPhase] = useState<Phase>("entry");
+  const [visible, setVisible] = useState(true);
+  const [answers, setAnswers] = useState({ signal_01: "", signal_02: "", signal_03: "", signal_04: "" });
+  const [draft, setDraft] = useState("");
+  const [processIdx, setProcessIdx] = useState(0);
+  const [baseline, setBaseline] = useState<{ read: string; truth: string; blind_spot: string; first_move: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
 
-  const next = () => setStep(s => s + 1);
-  const back = () => setStep(s => Math.max(0, s - 1));
+  // Entry auto-advance
+  useEffect(() => {
+    if (phase !== "entry") return;
+    const t = setTimeout(() => transition("q1"), 2500);
+    return () => clearTimeout(t);
+  }, [phase]);
 
-  const finish = async () => {
-    if (!user) return;
-    setSubmitting(true);
-    try {
-      await supabase.from("profiles").update({
-        ...data,
-        main_goal: data.main_goal.join(", "),
-        onboarding_complete: true,
-      }).eq("user_id", user.id);
-      const read = await baselineFn({ data: {
-        name: data.name, main_goal: data.main_goal.join(", "),
-        insecurity: data.biggest_insecurity, social: data.social_challenge, dating: data.dating_challenge,
-        tone: data.tone_preference,
-      }});
-      await supabase.from("profiles").update({ baseline_read: read.truth }).eq("user_id", user.id);
-      setBaseline(read);
-      setStep(6);
-    } catch (e: any) {
-      toast.error(e.message ?? "Mirror could not build your baseline.");
-    } finally { setSubmitting(false); }
-  };
+  // Focus input when entering a question
+  useEffect(() => {
+    if (["q1", "q2", "q3", "q4"].includes(phase)) {
+      setDraft("");
+      const t = setTimeout(() => inputRef.current?.focus(), 650);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
+
+  // Processing line cycler
+  useEffect(() => {
+    if (phase !== "processing") return;
+    setProcessIdx(0);
+    let i = 0;
+    const id = setInterval(() => {
+      i += 1;
+      if (i >= PROCESSING_LINES.length) {
+        clearInterval(id);
+        transition("flash");
+      } else {
+        setProcessIdx(i);
+      }
+    }, 1800);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  // Flash wordmark then show baseline (only after read is ready)
+  useEffect(() => {
+    if (phase !== "flash") return;
+    const t = setTimeout(() => { if (baseline) transition("read"); }, 1000);
+    return () => clearTimeout(t);
+  }, [phase, baseline]);
+
+  function transition(next: Phase) {
+    setVisible(false);
+    setTimeout(() => {
+      setPhase(next);
+      setVisible(true);
+    }, 600);
+  }
+
+  async function submitAnswer(phaseKey: "q1" | "q2" | "q3" | "q4") {
+    const value = draft.trim();
+    if (!value) return;
+    const key = `signal_0${phaseKey[1]}` as keyof typeof answers;
+    const updated = { ...answers, [key]: value };
+    setAnswers(updated);
+
+    if (phaseKey === "q4") {
+      transition("processing");
+      try {
+        const result = await baselineFn({ data: updated });
+        setBaseline(result);
+      } catch (e: any) {
+        toast.error(e?.message ?? "Mirror could not build your baseline.");
+        transition("q4");
+      }
+    } else {
+      const nextKey = `q${Number(phaseKey[1]) + 1}` as Phase;
+      transition(nextKey);
+    }
+  }
 
   return (
-    <main className="relative min-h-screen px-6 pt-12 pb-10 flex flex-col">
-      <div className="flex items-center justify-between">
-        <button onClick={back} disabled={step === 0 || step === 6} className="text-muted-foreground disabled:opacity-30">
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <div className="flex gap-1.5">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <span key={i} className={`h-1 w-6 rounded-full transition-colors ${i <= step ? "bg-foreground" : "bg-muted"}`} />
-          ))}
+    <main className="relative min-h-screen bg-black text-white overflow-hidden">
+      <Wordmark />
+
+      {/* ENTRY */}
+      {phase === "entry" && (
+        <Fade show={visible}>
+          <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+            <h1 className="font-display text-[30px] leading-tight max-w-[420px] tracking-tight">
+              Before Mirror reads you, it needs to calibrate.
+            </h1>
+            <p className="mt-5 text-[14px] text-[#888]">
+              Four questions. No right answers. Mirror is already listening.
+            </p>
+          </div>
+        </Fade>
+      )}
+
+      {/* QUESTIONS */}
+      {(["q1", "q2", "q3", "q4"] as const).map((q) => {
+        if (phase !== q) return null;
+        const meta = QUESTIONS.find(x => x.key === q)!;
+        const isFinal = q === "q4";
+        return (
+          <Fade key={q} show={visible}>
+            <div className="min-h-screen flex flex-col items-center px-6 pt-28 pb-12">
+              <div className="flex-1 flex flex-col items-center justify-center w-full text-center">
+                <p className="text-[11px] tracking-[0.42em] text-white/50 uppercase">{meta.label}</p>
+                <h2 className="mt-8 font-display text-[28px] sm:text-[32px] leading-[1.2] tracking-tight max-w-[480px]">
+                  {meta.question}
+                </h2>
+                {meta.sub && <p className="mt-3 text-[14px] text-[#888] max-w-[420px]">{meta.sub}</p>}
+
+                <div className="mt-10 w-full max-w-[460px]">
+                  <input
+                    ref={inputRef}
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") submitAnswer(q); }}
+                    placeholder={meta.placeholder}
+                    className="w-full bg-white/[0.03] backdrop-blur-sm border border-white/[0.08] rounded-2xl px-5 py-4 text-[15px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => submitAnswer(q)}
+                disabled={!draft.trim()}
+                className={`text-[13px] tracking-[0.32em] uppercase transition-opacity ${
+                  isFinal ? "text-[#C9A84C] text-[15px]" : "text-[#C9A84C]"
+                } disabled:opacity-25`}
+              >
+                {meta.cta}
+              </button>
+            </div>
+          </Fade>
+        );
+      })}
+
+      {/* PROCESSING */}
+      {phase === "processing" && (
+        <div className="min-h-screen flex items-center justify-center px-6">
+          <div className="relative h-12 w-full max-w-[420px] text-center">
+            {PROCESSING_LINES.map((line, i) => (
+              <p
+                key={i}
+                className="absolute inset-0 flex items-center justify-center text-[16px] text-white/80 tracking-wide transition-opacity duration-700"
+                style={{ opacity: processIdx === i ? 1 : 0 }}
+              >
+                {line}
+              </p>
+            ))}
+          </div>
         </div>
-        <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">{Math.min(step + 1, 6)} / 6</span>
-      </div>
-
-      <div className="flex-1 flex flex-col justify-center my-10">
-        {step === 0 && (
-          <Step eyebrow="Mirror · 01">
-            <h1 className="mt-4 font-display text-[36px] leading-[1.05] tracking-tight text-gradient">
-              Most people never know how they actually come across.
-            </h1>
-            <p className="mt-6 text-sm text-muted-foreground leading-relaxed">Mirror studies the signals people feel — but rarely say out loud.</p>
-          </Step>
-        )}
-
-        {step === 1 && (
-          <Step eyebrow="Mirror · 02">
-            <h1 className="mt-4 font-display text-3xl text-gradient leading-tight">What do you want Mirror to sharpen?</h1>
-            <p className="mt-2 text-xs text-muted-foreground">Select all that apply.</p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {GOALS.map(g => {
-                const selected = data.main_goal.includes(g);
-                return (
-                  <button key={g} onClick={() => setData({...data, main_goal: selected ? data.main_goal.filter(x => x !== g) : [...data.main_goal, g]})}
-                    className={`rounded-full px-4 py-2.5 text-xs tracking-wide ring-hairline transition-colors ${selected ? "bg-foreground text-background" : "bg-glass text-foreground/80"}`}>
-                    {g}
-                  </button>
-                );
-              })}
-            </div>
-          </Step>
-        )}
-
-        {step === 2 && (
-          <Step eyebrow="Mirror · 03">
-            <h1 className="mt-4 font-display text-3xl text-gradient leading-tight">How much do you want Mirror to see?</h1>
-            <div className="mt-6 space-y-3">
-              {COMFORT.map(c => (
-                <button key={c.id} onClick={() => setData({...data, comfort_level: c.id})}
-                  className={`w-full text-left rounded-2xl p-4 ring-hairline transition-colors ${data.comfort_level === c.id ? "bg-foreground text-background" : "bg-glass"}`}>
-                  <div className="text-sm font-medium">{c.title}</div>
-                  <div className={`mt-1 text-xs ${data.comfort_level === c.id ? "text-background/70" : "text-muted-foreground"}`}>{c.desc}</div>
-                </button>
-              ))}
-            </div>
-          </Step>
-        )}
-
-        {step === 3 && (
-          <Step eyebrow="Mirror · 04">
-            <h1 className="mt-4 font-display text-3xl text-gradient leading-tight">Calibrate Mirror's voice.</h1>
-            <p className="mt-2 text-xs text-muted-foreground">You can change this anytime.</p>
-            <div className="mt-6 grid grid-cols-2 gap-2">
-              {TONES.map(t => (
-                <button key={t} onClick={() => setData({...data, tone_preference: t})}
-                  className={`rounded-2xl py-4 px-3 text-sm ring-hairline transition-colors ${data.tone_preference === t ? "bg-foreground text-background" : "bg-glass"}`}>
-                  {t}
-                </button>
-              ))}
-            </div>
-          </Step>
-        )}
-
-        {step === 4 && (
-          <Step eyebrow="Mirror · 05">
-            <h1 className="mt-4 font-display text-3xl text-gradient leading-tight">Build the baseline.</h1>
-            <div className="mt-5 space-y-3">
-              <Field label="Name" value={data.name} onChange={v => setData({...data, name: v})} />
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Age range" placeholder="25-32" value={data.age_range} onChange={v => setData({...data, age_range: v})} />
-                <Field label="Gender (optional)" value={data.gender} onChange={v => setData({...data, gender: v})} />
-              </div>
-            </div>
-          </Step>
-        )}
-
-        {step === 5 && (
-          <Step eyebrow="Mirror · 06">
-            <h1 className="mt-4 font-display text-3xl text-gradient leading-tight">Tell Mirror the truth.</h1>
-            <p className="mt-2 text-xs text-muted-foreground">The sharper the input, the sharper the read.</p>
-            <div className="mt-5 space-y-3">
-              <Field label="Your biggest insecurity right now" textarea value={data.biggest_insecurity} onChange={v => setData({...data, biggest_insecurity: v})} />
-              <Field label="Current social challenge" textarea value={data.social_challenge} onChange={v => setData({...data, social_challenge: v})} />
-              <Field label="Current dating or communication challenge" textarea value={data.dating_challenge} onChange={v => setData({...data, dating_challenge: v})} />
-            </div>
-          </Step>
-        )}
-
-        {step === 6 && baseline && (
-          <Step eyebrow="Your first read">
-            <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-accent/80">
-              {data.tone_preference === "Brutally honest" ? "Sharp. Direct. No comfort padding." :
-               data.tone_preference === "Gentle" ? "Honest, but held with care." :
-               data.tone_preference === "Strategic" ? "Leverage aware. Outcome focused." :
-               "Clear. Balanced. No fluff."}
-            </p>
-            <h1 className="mt-3 font-display text-[30px] leading-[1.15] tracking-tight text-gradient whitespace-pre-line">
-              {baseline.read ?? baseline.headline}
-            </h1>
-
-            <div className="mt-6 bg-glass ring-hairline rounded-2xl p-5">
-              <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">The truth</p>
-              <p className="mt-3 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{baseline.truth}</p>
-            </div>
-            {baseline.blind_spot && (
-              <div className="mt-3 bg-glass ring-hairline rounded-2xl p-5">
-                <p className="text-[10px] uppercase tracking-[0.32em] text-crimson/80">The blind spot</p>
-                <p className="mt-3 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{baseline.blind_spot}</p>
-              </div>
-            )}
-            {baseline.first_move && (
-              <div className="mt-3 bg-glass ring-hairline rounded-2xl p-5">
-                <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The first move</p>
-                <p className="mt-3 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{baseline.first_move}</p>
-              </div>
-            )}
-            <p className="mt-5 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
-              {baseline.early_read ? "Early read · Mirror gets sharper as it sees more" : "Mirror reads patterns, not destiny"}
-            </p>
-          </Step>
-        )}
-      </div>
-
-      {step < 5 && (
-        <button onClick={next}
-          disabled={(step === 1 && data.main_goal.length === 0) || (step === 2 && !data.comfort_level)}
-          className="rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] flex items-center justify-center gap-2 disabled:opacity-40 glow-gold">
-          Continue <ArrowRight className="h-4 w-4" />
-        </button>
       )}
-      {step === 5 && (
-        <button onClick={finish} disabled={submitting}
-          className="rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] flex items-center justify-center gap-2 disabled:opacity-40 glow-gold">
-          {submitting ? "Reading you…" : <>Build my Mirror <ArrowRight className="h-4 w-4" /></>}
-        </button>
+
+      {/* FLASH */}
+      {phase === "flash" && (
+        <Fade show={visible}>
+          <div className="min-h-screen flex items-center justify-center">
+            <span className="text-[24px] tracking-[0.6em] text-white uppercase">Mirror</span>
+          </div>
+        </Fade>
       )}
-      {step === 6 && (
-        <button onClick={() => nav({ to: "/home" })}
-          className="rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] flex items-center justify-center gap-2 glow-gold">
-          Enter Mirror <ArrowRight className="h-4 w-4" />
-        </button>
+
+      {/* BASELINE READ */}
+      {phase === "read" && baseline && (
+        <Fade show={visible}>
+          <div className="min-h-screen pt-20 pb-12 px-6">
+            <div className="mx-auto max-w-[520px] rounded-2xl bg-[#0D0D0D] border-t-2 border-t-[#C9A84C] border-x border-b border-white/[0.04] px-6 py-8">
+              <p className="text-[10px] tracking-[0.42em] uppercase text-white/40">Your baseline read</p>
+              <p className="mt-2 text-[12px] text-[#666]">Based on your signals. Mirror gets sharper as it learns more.</p>
+
+              <Section label="The read" tone="white">
+                <p className="text-[18px] leading-[1.4] font-display tracking-tight text-white whitespace-pre-line">{baseline.read}</p>
+              </Section>
+
+              <Section label="The truth" tone="muted">
+                <p className="text-[14px] leading-[1.7] text-white/85 whitespace-pre-line">{baseline.truth}</p>
+              </Section>
+
+              {baseline.blind_spot && (
+                <Section label="The blind spot" tone="muted">
+                  <p className="text-[14px] leading-[1.7] text-white/85 whitespace-pre-line">{baseline.blind_spot}</p>
+                </Section>
+              )}
+
+              {baseline.first_move && (
+                <Section label="The first move" tone="gold">
+                  <p className="text-[14px] leading-[1.7] text-white/85 whitespace-pre-line">{baseline.first_move}</p>
+                </Section>
+              )}
+
+              <div className="mt-10 space-y-3">
+                <button
+                  onClick={() => nav({ to: "/scan" })}
+                  className="w-full rounded-full bg-black border border-[#C9A84C]/50 text-[#C9A84C] py-4 text-[12px] tracking-[0.32em] uppercase hover:bg-[#C9A84C]/5 transition-colors"
+                >
+                  Start your first scan
+                </button>
+                <button
+                  onClick={() => nav({ to: "/home" })}
+                  className="w-full py-3 text-[12px] tracking-[0.32em] uppercase text-white/60 hover:text-white/90 transition-colors"
+                >
+                  Save this read
+                </button>
+              </div>
+            </div>
+          </div>
+        </Fade>
       )}
     </main>
   );
 }
 
-function Field({ label, value, onChange, textarea, placeholder }: { label: string; value: string; onChange: (v: string) => void; textarea?: boolean; placeholder?: string }) {
+function Section({ label, tone, children }: { label: string; tone: "white" | "muted" | "gold"; children: React.ReactNode }) {
+  const color = tone === "gold" ? "text-[#C9A84C]" : tone === "white" ? "text-white/70" : "text-white/40";
   return (
-    <div>
-      <label className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">{label}</label>
-      {textarea ? (
-        <textarea value={value} onChange={e => onChange(e.target.value)} rows={2} placeholder={placeholder}
-          className="mt-2 w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-foreground/30" />
-      ) : (
-        <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-          className="mt-2 w-full bg-glass ring-hairline rounded-2xl px-4 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30" />
-      )}
+    <div className="mt-7">
+      <p className={`text-[10px] tracking-[0.42em] uppercase ${color}`}>{label}</p>
+      <div className="mt-3">{children}</div>
     </div>
   );
 }
