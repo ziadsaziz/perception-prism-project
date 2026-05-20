@@ -145,7 +145,7 @@ export const generateDailyRead = createServerFn({ method: "POST" })
     const isEarly = (scans?.length ?? 0) < 2;
 
     const content = await callAI(
-      voiceFor(profile?.tone_preference ?? undefined),
+      voiceFor(profile?.tone_preference ?? "Direct"),
       `Write today's Mirror Read for this user. Use what Mirror has been watching — do not invent new history.
 
 Return STRICT JSON:
@@ -178,7 +178,7 @@ export const analyzeTextConversation = createServerFn({ method: "POST" })
     const { data: prevScores } = await supabase.from("perception_scores").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     const content = await callAI(
-      voiceFor(profile?.tone_preference ?? undefined),
+      voiceFor(profile?.tone_preference ?? "Direct"),
       `Analyze this conversation. The user is one party (lines starting with "Me:" or first-person voice). Return STRICT JSON:
 
 {
@@ -250,7 +250,7 @@ export const askMirror = createServerFn({ method: "POST" })
     const patternMemory = (patterns ?? []).map(p => `- ${p.pattern_name}: ${p.pattern_description}`).join("\n") || "(none yet)";
     const memoryThin = (recentScans?.length ?? 0) < 2;
 
-    const system = `${voiceFor(profile?.tone_preference ?? undefined)}
+    const system = `${voiceFor(profile?.tone_preference ?? "Direct")}
 
 User goal: ${profile?.main_goal ?? "—"}
 What Mirror has noticed (scans):\n${scanMemory}
