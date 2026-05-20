@@ -10,10 +10,12 @@ import { ArrowUp } from "lucide-react";
 export const Route = createFileRoute("/_app/advisor")({ component: Advisor });
 
 const PROMPTS = [
-  "What is my biggest blind spot right now?",
-  "How am I coming across lately?",
-  "What would a higher-status version of me do?",
-  "Why am I overthinking this?",
+  "How am I coming across here?",
+  "What am I not seeing?",
+  "Should I send this?",
+  "What did they likely felt?",
+  "What is the strongest move?",
+  "Am I reacting or reading this correctly?",
 ];
 
 function Advisor() {
