@@ -1,0 +1,66 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { GlassPanel } from "@/components/GlassPanel";
+
+export const Route = createFileRoute("/_app/patterns")({ component: Patterns });
+
+function Patterns() {
+  const { user } = useAuth();
+  const [patterns, setPatterns] = useState<any[]>([]);
+  const [scans, setScans] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([
+      supabase.from("patterns").select("*").eq("user_id", user.id).order("frequency", { ascending: false }),
+      supabase.from("scans").select("scan_type, ai_summary, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(8),
+    ]).then(([p, s]) => { setPatterns(p.data ?? []); setScans(s.data ?? []); });
+  }, [user]);
+
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-5">
+      <header>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">Mirror Memory</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">Patterns.</h1>
+        <p className="mt-2 text-sm text-muted-foreground">The things you repeat without knowing.</p>
+      </header>
+
+      {patterns.length === 0 ? (
+        <GlassPanel className="p-6">
+          <p className="font-display text-lg text-gradient">Mirror is still learning you.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Patterns emerge after 3–5 scans. The more Mirror sees, the sharper the memory.</p>
+        </GlassPanel>
+      ) : (
+        <div className="space-y-2.5">
+          {patterns.map(p => (
+            <GlassPanel key={p.id} className="p-5">
+              <div className="flex items-center justify-between">
+                <p className="font-display text-lg text-gradient">{p.pattern_name}</p>
+                <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">×{p.frequency}</span>
+              </div>
+              <p className="mt-2 text-sm text-foreground/85 leading-relaxed">{p.pattern_description}</p>
+              {p.impact && <p className="mt-3 text-xs text-crimson/80"><span className="uppercase tracking-[0.2em] mr-2">Impact</span>{p.impact}</p>}
+              {p.fix && <p className="mt-1 text-xs text-accent"><span className="uppercase tracking-[0.2em] mr-2">Fix</span>{p.fix}</p>}
+            </GlassPanel>
+          ))}
+        </div>
+      )}
+
+      {scans.length > 0 && (
+        <section>
+          <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">Recent reads</p>
+          <div className="mt-2 space-y-2">
+            {scans.map((s, i) => (
+              <div key={i} className="bg-glass ring-hairline rounded-2xl p-4">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-accent">{s.scan_type.replace("_", " ")}</p>
+                <p className="mt-1.5 text-sm text-foreground/85 leading-relaxed">{s.ai_summary ?? "—"}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </main>
+  );
+}
