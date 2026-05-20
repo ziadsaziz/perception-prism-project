@@ -10,10 +10,12 @@ import { ArrowUp } from "lucide-react";
 export const Route = createFileRoute("/_app/advisor")({ component: Advisor });
 
 const PROMPTS = [
-  "What is my biggest blind spot right now?",
-  "How am I coming across lately?",
-  "What would a higher-status version of me do?",
-  "Why am I overthinking this?",
+  "How am I coming across here?",
+  "What am I not seeing?",
+  "Should I send this?",
+  "What did they likely felt?",
+  "What is the strongest move?",
+  "Am I reacting or reading this correctly?",
 ];
 
 function Advisor() {
@@ -57,7 +59,7 @@ function Advisor() {
         {msgs.length === 0 && (
           <div className="bg-glass ring-hairline rounded-2xl p-5">
             <p className="font-display text-lg text-gradient">No filler. No disclaimers.</p>
-            <p className="mt-2 text-sm text-muted-foreground">Just the truth Mirror reads from you.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Just the read Mirror sees from your patterns.</p>
             <div className="mt-4 space-y-1.5">
               {PROMPTS.map(p => (
                 <button key={p} onClick={() => send(p)} className="block w-full text-left text-xs text-foreground/80 bg-secondary/40 rounded-full px-4 py-2.5 hover:bg-secondary/70">
@@ -86,7 +88,7 @@ function Advisor() {
         <div className="mx-auto max-w-md pointer-events-auto">
           <form onSubmit={e => { e.preventDefault(); send(); }}
             className="bg-glass ring-hairline rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-2 shadow-glass">
-            <input value={input} onChange={e => setInput(e.target.value)} placeholder="Tell Mirror what's on your mind…"
+            <input value={input} onChange={e => setInput(e.target.value)} placeholder="What do you want Mirror to read?"
               className="flex-1 bg-transparent text-sm focus:outline-none py-2" />
             <button type="submit" disabled={!input.trim() || busy}
               className="h-9 w-9 rounded-full bg-foreground text-background flex items-center justify-center disabled:opacity-40 active:scale-95">

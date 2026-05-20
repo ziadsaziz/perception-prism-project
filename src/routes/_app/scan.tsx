@@ -23,7 +23,7 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass },
 ];
 
-const STAGES = ["Reading tone…", "Detecting emotional imbalance…", "Finding perception shifts…", "Building your Mirror read…"];
+const STAGES = ["Reading tone…", "Detecting pressure points…", "Finding the pattern…", "Separating behavior from emotion…", "Building your Mirror read…"];
 
 function Scan() {
   const { type } = Route.useSearch();
@@ -119,38 +119,31 @@ function TextScan() {
 }
 
 function TextResult({ result, onReset }: { result: any; onReset: () => void }) {
-  const [tab, setTab] = useState<"soft" | "confident" | "direct">("confident");
   return (
     <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
       <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
         <ArrowLeft className="h-3 w-3" /> New scan
       </button>
-      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The truth</p>
-      <h1 className="font-display text-[28px] leading-tight text-gradient">{result.truth}</h1>
+      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
+      <h1 className="font-display text-[28px] leading-tight text-gradient whitespace-pre-line">{result.read ?? result.truth}</h1>
 
       <div className="grid grid-cols-1 gap-2.5 mt-2">
-        <Insight label="Power dynamic" body={result.power_dynamic} />
-        <Insight label="What they felt" body={result.what_they_felt} />
-        <Insight label="What you did right" body={result.what_you_did_right} accent="ok" />
-        <Insight label="Where you lost leverage" body={result.where_you_lost_leverage} accent="warn" />
-        <Insight label="Blind spot" body={result.blind_spot} accent="warn" />
-        <Insight label="Next move" body={result.next_move} accent="ok" />
+        <Insight label="What shifted" body={result.what_shifted ?? result.power_dynamic} />
+        <Insight label="What they likely felt" body={result.what_they_likely_felt ?? result.what_they_felt} />
+        <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
+        <Insight label="The move" body={result.move ?? result.next_move} accent="ok" />
       </div>
 
-      {result.responses && (
-        <GlassPanel className="p-4">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Best replies</p>
-          <div className="mt-3 flex gap-1 bg-surface-2/60 rounded-full p-1">
-            {(["soft","confident","direct"] as const).map(k => (
-              <button key={k} onClick={() => setTab(k)}
-                className={`flex-1 py-2 text-[10px] uppercase tracking-[0.24em] rounded-full transition-colors ${tab === k ? "bg-foreground text-background" : "text-muted-foreground"}`}>
-                {k}
-              </button>
-            ))}
-          </div>
-          <p className="mt-4 text-sm leading-relaxed text-foreground/90">{result.responses[tab]}</p>
+      {result.optional_response && (
+        <GlassPanel className="p-5">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">Optional response</p>
+          <p className="mt-3 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{result.optional_response}</p>
         </GlassPanel>
       )}
+
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
+        Mirror reads patterns, not destiny
+      </p>
     </main>
   );
 }

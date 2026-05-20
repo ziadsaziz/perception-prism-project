@@ -38,7 +38,7 @@ function Onboarding() {
     biggest_insecurity: "", social_challenge: "", dating_challenge: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [baseline, setBaseline] = useState<{ headline: string; truth: string; blind_spot: string; first_move: string } | null>(null);
+  const [baseline, setBaseline] = useState<{ headline: string; read?: string; truth: string; blind_spot: string; first_move: string; early_read?: boolean } | null>(null);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
 
@@ -166,23 +166,35 @@ function Onboarding() {
 
         {step === 6 && baseline && (
           <Step eyebrow="Your first read">
-            <h1 className="mt-4 font-display text-[32px] leading-tight text-gradient">{baseline.headline}</h1>
+            <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-accent/80">
+              {data.tone_preference === "Brutally honest" ? "Sharp. Direct. No comfort padding." :
+               data.tone_preference === "Gentle" ? "Honest, but held with care." :
+               data.tone_preference === "Strategic" ? "Leverage aware. Outcome focused." :
+               "Clear. Balanced. No fluff."}
+            </p>
+            <h1 className="mt-3 font-display text-[30px] leading-[1.15] tracking-tight text-gradient whitespace-pre-line">
+              {baseline.read ?? baseline.headline}
+            </h1>
+
             <div className="mt-6 bg-glass ring-hairline rounded-2xl p-5">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">The truth</p>
-              <p className="mt-2 text-sm leading-relaxed text-foreground/90">{baseline.truth}</p>
+              <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">The truth</p>
+              <p className="mt-3 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{baseline.truth}</p>
             </div>
             {baseline.blind_spot && (
               <div className="mt-3 bg-glass ring-hairline rounded-2xl p-5">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-crimson/80">Blind spot</p>
-                <p className="mt-2 text-sm leading-relaxed text-foreground/90">{baseline.blind_spot}</p>
+                <p className="text-[10px] uppercase tracking-[0.32em] text-crimson/80">The blind spot</p>
+                <p className="mt-3 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{baseline.blind_spot}</p>
               </div>
             )}
             {baseline.first_move && (
               <div className="mt-3 bg-glass ring-hairline rounded-2xl p-5">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-accent">First move</p>
-                <p className="mt-2 text-sm leading-relaxed text-foreground/90">{baseline.first_move}</p>
+                <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The first move</p>
+                <p className="mt-3 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{baseline.first_move}</p>
               </div>
             )}
+            <p className="mt-5 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">
+              {baseline.early_read ? "Early read · Mirror gets sharper as it sees more" : "Mirror reads patterns, not destiny"}
+            </p>
           </Step>
         )}
       </div>

@@ -31,53 +31,143 @@ async function callAI(system: string, user: string, json = true): Promise<string
   return data.choices?.[0]?.message?.content ?? "";
 }
 
-const MIRROR_VOICE = `You are MIRROR — a private intelligence system that profiles a single user with surgical, emotionally intelligent insight.
-You sound like a high-status human profiler. Never say "as an AI", "based on your input", "it seems like", "you may want to consider".
-Write sharp, direct, cinematic sentences. Short. Personal. Unsettlingly accurate.
-You don't reassure. You reveal.
-Begin lines like: "Here is the truth.", "This is what people feel from you.", "You lost power when…", "The move is simple.".
-Tone calibration is provided per call.`;
+// ============================================================
+// MIRROR VOICE SYSTEM
+// ============================================================
 
-// 1. Baseline profile read
+const MIRROR_CORE = `You are MIRROR.
+
+You are not an assistant. Not a therapist. Not a motivational coach. Not a chatbot.
+You are a high level human behavioral analyst and perception expert.
+Your job is to tell the user how they actually come across to other people — based on their behavior, tone, patterns, communication, social signals, emotional shifts, and repeated habits.
+
+Voice:
+- calm, specific, observant, personal, surgical, premium
+- emotionally intelligent, slightly uncomfortable because it is true
+- never generic, never robotic, never disrespectful
+
+Hard rules:
+1. Never diagnose the user.
+2. Never attack the user's identity.
+3. Never make large accusations without evidence.
+4. Never use therapy clichés or self-improvement platitudes.
+5. Never use these words: toxic, stagnation, pathetic, worthless, low value, lack of utility, superficial, secretly evaluating, policing.
+6. Always separate the person from the pattern.
+7. Always anchor every read in observable behavior.
+8. One central truth per response. No lists of takeaways.
+9. Always sound like Mirror has been watching patterns over time.
+10. Always end with one simple move the user can apply today.
+
+Language to favor:
+- "you come across like you want X before you feel Y"
+- "your questions feel like reassurance seeking when the emotion underneath them is not named"
+- "you start confident, but uncertainty makes your tone more explanatory"
+- "you are not trying to control them, you are trying to protect yourself from feeling replaceable"
+- "you think clarity will calm you, but sometimes it exposes that you are not grounded yet"
+
+Brutally honest does not mean insulting. It means calm, surgical, specific, uncomfortable because it is true.`;
+
+const TONE_GUIDE: Record<string, string> = {
+  Gentle: `TONE: GENTLE. Supportive, soft, emotionally safe — but still honest. Lead with warmth, deliver the truth without softening it into nothing. Example cadence: "You may be coming across more guarded than you realize. It does not mean you are cold. It means your need to feel safe is showing before your warmth does."`,
+  Direct: `TONE: DIRECT. Clear, balanced, confident, no fluff. Example cadence: "You come across guarded when you do not feel fully secure. People are not only hearing your words. They are feeling the pressure underneath them."`,
+  "Brutally honest": `TONE: BRUTALLY HONEST. Sharp, stripped of comfort, uncomfortable — never insulting, never name-calling. Example cadence: "You say you want clarity, but sometimes you are using questions to manage your own anxiety. That pressure is easier to feel than you think."`,
+  Strategic: `TONE: STRATEGIC. Outcome focused, power aware, leverage and perception aware. Example cadence: "If your goal is trust and attraction, your current move is costing you leverage. The stronger play is to ask once, then measure behavior instead of chasing reassurance."`,
+};
+
+function voiceFor(tone?: string) {
+  const t = TONE_GUIDE[tone ?? "Direct"] ?? TONE_GUIDE.Direct;
+  return `${MIRROR_CORE}\n\n${t}`;
+}
+
+function hasContext(...fields: (string | undefined | null)[]) {
+  const filled = fields.filter(f => (f ?? "").trim().length > 6).length;
+  return filled >= 2;
+}
+
+// ============================================================
+// 1. Baseline first read (onboarding)
+// ============================================================
 export const generateBaselineRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { name?: string; main_goal?: string; insecurity?: string; social?: string; dating?: string; tone?: string }) => d)
   .handler(async ({ data }) => {
+    const rich = hasContext(data.insecurity, data.social, data.dating);
     const content = await callAI(
-      `${MIRROR_VOICE}\nTone: ${data.tone ?? "direct"}.`,
-      `Build the FIRST baseline read for this user. Return JSON with keys: headline (one cinematic sentence about how the world likely reads them right now), truth (3-4 sentences, brutally specific), blind_spot (one sentence), first_move (one short sentence).
-Profile:
-- Name: ${data.name ?? "Unknown"}
-- Main goal: ${data.main_goal ?? "—"}
+      voiceFor(data.tone),
+      `Build the FIRST READ for this user. They have just onboarded — Mirror has seen ONLY what is below, nothing else.
+
+Return STRICT JSON:
+{
+  "read": "ONE sharp personal line, max two short lines, written in second person. No grand accusations. Anchored in observable behavior the user just described.",
+  "truth": "4 to 6 short lines, each on its own line separated by \\n. Grounded in behavior. No generic psychology. No overreach. Separate the person from the pattern.",
+  "blind_spot": "2 to 3 short lines separated by \\n. Reveal the hidden pattern underneath what they think the problem is.",
+  "first_move": "1 to 2 short lines. Clear, powerful, actionable today.",
+  "early_read": ${rich ? "false" : "true"}
+}
+
+${rich ? "" : "CONTEXT IS LIMITED. Reduce intensity. Avoid specific claims about their history. Frame this as an early read."}
+
+What Mirror has been told:
+- Goal: ${data.main_goal ?? "—"}
 - Biggest insecurity: ${data.insecurity ?? "—"}
 - Social challenge: ${data.social ?? "—"}
-- Dating/communication challenge: ${data.dating ?? "—"}`
+- Dating / communication challenge: ${data.dating ?? "—"}`
     );
-    try { return JSON.parse(content) as { headline: string; truth: string; blind_spot: string; first_move: string }; }
-    catch { return { headline: content.slice(0, 140), truth: content, blind_spot: "", first_move: "" }; }
+    try {
+      const p = JSON.parse(content);
+      return {
+        headline: p.read ?? "",
+        read: p.read ?? "",
+        truth: p.truth ?? "",
+        blind_spot: p.blind_spot ?? "",
+        first_move: p.first_move ?? "",
+        early_read: !!p.early_read,
+      };
+    } catch {
+      return { headline: content.slice(0, 140), read: content.slice(0, 140), truth: content, blind_spot: "", first_move: "", early_read: !rich };
+    }
   });
 
+// ============================================================
 // 2. Daily read
+// ============================================================
 export const generateDailyRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const [{ data: profile }, { data: scans }] = await Promise.all([
+    const [{ data: profile }, { data: scans }, { data: patterns }] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("scans").select("scan_type, ai_summary").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+      supabase.from("patterns").select("pattern_name, pattern_description").eq("user_id", userId).order("frequency", { ascending: false }).limit(3),
     ]);
-    const summary = (scans ?? []).map(s => `- [${s.scan_type}] ${s.ai_summary ?? ""}`).join("\n") || "(no scans yet)";
+    const scanLines = (scans ?? []).map(s => `- [${s.scan_type}] ${s.ai_summary ?? ""}`).join("\n") || "(no scans yet)";
+    const patternLines = (patterns ?? []).map(p => `- ${p.pattern_name}: ${p.pattern_description}`).join("\n") || "(none observed yet)";
+    const isEarly = (scans?.length ?? 0) < 2;
+
     const content = await callAI(
-      `${MIRROR_VOICE}\nTone: ${profile?.tone_preference ?? "direct"}.`,
-      `Write today's Mirror Read. Return JSON: { "read": "ONE cinematic, emotionally sharp sentence under 22 words.", "mission": "One short action under 14 words." }
-User goal: ${profile?.main_goal ?? "—"}.
-Recent scan signals:\n${summary}`
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `Write today's Mirror Read for this user. Use what Mirror has been watching — do not invent new history.
+
+Return STRICT JSON:
+{
+  "read": "ONE personal line, max 22 words, anchored in behavior Mirror has observed. No clichés.",
+  "mission": "One short move under 14 words. Specific. Applicable today.",
+  "early": ${isEarly}
+}
+
+${isEarly ? "Mirror has limited context. Keep claims small. Frame as an early signal." : ""}
+
+User goal: ${profile?.main_goal ?? "—"}
+Recent scans:\n${scanLines}
+Repeated patterns:\n${patternLines}`
     );
-    try { return JSON.parse(content) as { read: string; mission: string }; }
-    catch { return { read: content.slice(0, 140), mission: "Say less today." }; }
+    try { return JSON.parse(content) as { read: string; mission: string; early?: boolean }; }
+    catch { return { read: content.slice(0, 140), mission: "Say less today. Watch more.", early: isEarly }; }
   });
 
+// ============================================================
 // 3. Text conversation scan
+// ============================================================
 export const analyzeTextConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { conversation: string; context_note?: string }) =>
@@ -85,22 +175,31 @@ export const analyzeTextConversation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: profile } = await supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle();
+    const { data: prevScores } = await supabase.from("perception_scores").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     const content = await callAI(
-      `${MIRROR_VOICE}\nTone: ${profile?.tone_preference ?? "direct"}.`,
-      `Analyze this conversation. The user is one party. Return strict JSON with these keys:
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `Analyze this conversation. The user is one party (lines starting with "Me:" or first-person voice). Return STRICT JSON:
+
 {
-  "truth": "one-line cinematic truth, under 24 words",
-  "power_dynamic": "one short sentence on who held leverage",
-  "what_they_felt": "one short sentence",
-  "what_you_did_right": "one short sentence",
-  "where_you_lost_leverage": "one short sentence",
-  "next_move": "one short sentence",
-  "blind_spot": "one short sentence",
-  "responses": { "soft": "1-2 sentences", "confident": "1-2 sentences", "direct": "1-2 sentences" },
+  "read": "ONE sharp truth, max 22 words. Anchored in behavior visible in the messages.",
+  "what_shifted": "One short line: where the dynamic actually changed inside this conversation.",
+  "what_they_likely_felt": "One short line: what the other side most likely felt — not what they said.",
+  "blind_spot": "One short line: the pattern the user is repeating without noticing.",
+  "move": "One short line: the next move today.",
+  "optional_response": "1-2 sentences — a reply the user could send that reflects the stronger version of themselves.",
+  "score_reasons": {
+    "confidence": "short reason for the confidence score, anchored in what was said",
+    "approachability": "short reason",
+    "authority": "short reason"
+  },
   "scores": { "perception": 0-100, "confidence": 0-100, "attraction": 0-100, "authority": 0-100, "authenticity": 0-100 },
   "summary": "8-12 words for memory"
 }
+
+Previous scores (for continuity, do not invent drift): ${prevScores ? JSON.stringify({ perception: prevScores.perception_score, confidence: prevScores.confidence_score, attraction: prevScores.attraction_score, authority: prevScores.authority_score, authenticity: prevScores.authenticity_score }) : "none"}
+
+User goal: ${profile?.main_goal ?? "—"}
 Context: ${data.context_note ?? "none"}
 Conversation:
 """
@@ -108,19 +207,17 @@ ${data.conversation}
 """`
     );
     let parsed: any;
-    try { parsed = JSON.parse(content); } catch { parsed = { truth: content.slice(0, 200), summary: "scan", scores: {} }; }
+    try { parsed = JSON.parse(content); } catch { parsed = { read: content.slice(0, 200), summary: "scan", scores: {} }; }
 
-    // Persist scan
     const { data: scan } = await supabase.from("scans").insert({
       user_id: userId,
       scan_type: "text_conversation",
       input_text: data.conversation.slice(0, 4000),
-      ai_summary: parsed.summary ?? parsed.truth ?? null,
+      ai_summary: parsed.summary ?? parsed.read ?? null,
       result_json: parsed,
       score_json: parsed.scores ?? null,
     }).select().single();
 
-    // Record perception snapshot
     if (parsed.scores) {
       await supabase.from("perception_scores").insert({
         user_id: userId,
@@ -134,21 +231,38 @@ ${data.conversation}
     return { scan, result: parsed };
   });
 
-// 4. Ask Mirror — conversational advisor
+// ============================================================
+// 4. Ask Mirror — advisor
+// ============================================================
 export const askMirror = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { message: string }) => z.object({ message: z.string().min(1).max(2000) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const [{ data: profile }, { data: history }, { data: recentScans }] = await Promise.all([
+    const [{ data: profile }, { data: history }, { data: recentScans }, { data: patterns }] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("advisor_messages").select("role, content").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
       supabase.from("scans").select("scan_type, ai_summary").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+      supabase.from("patterns").select("pattern_name, pattern_description").eq("user_id", userId).order("frequency", { ascending: false }).limit(3),
     ]);
 
-    const memory = (recentScans ?? []).map(s => `- ${s.scan_type}: ${s.ai_summary ?? ""}`).join("\n") || "(none)";
+    const scanMemory = (recentScans ?? []).map(s => `- ${s.scan_type}: ${s.ai_summary ?? ""}`).join("\n") || "(none yet)";
+    const patternMemory = (patterns ?? []).map(p => `- ${p.pattern_name}: ${p.pattern_description}`).join("\n") || "(none yet)";
+    const memoryThin = (recentScans?.length ?? 0) < 2;
+
+    const system = `${voiceFor(profile?.tone_preference ?? "Direct")}
+
+User goal: ${profile?.main_goal ?? "—"}
+What Mirror has noticed (scans):\n${scanMemory}
+Repeated patterns:\n${patternMemory}
+
+Reply in 2 to 5 short, sharp lines. No filler. No disclaimers. No lists.
+Anchor every observation in something the user has actually shown Mirror.
+End with one clear move.
+${memoryThin ? "Mirror has limited context on this user. Keep claims small. If they ask something big, say it is an early read and ask them to share more." : ""}`;
+
     const messages = [
-      { role: "system" as const, content: `${MIRROR_VOICE}\nTone: ${profile?.tone_preference ?? "direct"}.\nUser goal: ${profile?.main_goal ?? "—"}.\nKnown patterns:\n${memory}\n\nReply in 2-5 short sharp lines. No filler. No disclaimers. No bullet lists unless they ask. End with one clear move.` },
+      { role: "system" as const, content: system },
       ...((history ?? []).reverse().map(h => ({ role: h.role as "user" | "assistant", content: h.content }))),
       { role: "user" as const, content: data.message },
     ];
@@ -163,7 +277,7 @@ export const askMirror = createServerFn({ method: "POST" })
       throw new Error("Mirror could not respond.");
     }
     const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const reply = out.choices?.[0]?.message?.content ?? "Say less. Listen more.";
+    const reply = out.choices?.[0]?.message?.content ?? "Say less. Watch more.";
 
     await supabase.from("advisor_messages").insert([
       { user_id: userId, role: "user", content: data.message },
