@@ -59,7 +59,7 @@ function Advisor() {
         {msgs.length === 0 && (
           <div className="bg-glass ring-hairline rounded-2xl p-5">
             <p className="font-display text-lg text-gradient">No filler. No disclaimers.</p>
-            <p className="mt-2 text-sm text-muted-foreground">Just the truth Mirror reads from you.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Just the read Mirror sees from your patterns.</p>
             <div className="mt-4 space-y-1.5">
               {PROMPTS.map(p => (
                 <button key={p} onClick={() => send(p)} className="block w-full text-left text-xs text-foreground/80 bg-secondary/40 rounded-full px-4 py-2.5 hover:bg-secondary/70">
