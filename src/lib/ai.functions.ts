@@ -129,6 +129,73 @@ What Mirror has been told:
   });
 
 // ============================================================
+// 1b. Baseline from 4 signals (new onboarding flow)
+// ============================================================
+export const generateBaselineFromSignals = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { signal_01: string; signal_02: string; signal_03: string; signal_04: string }) =>
+    z.object({
+      signal_01: z.string().min(1).max(1000),
+      signal_02: z.string().min(1).max(1000),
+      signal_03: z.string().min(1).max(1000),
+      signal_04: z.string().min(1).max(1000),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const system = `You are MIRROR. A high-level behavioral analyst and perception engine. You are not a therapist, not a chatbot, not a coach.
+
+The user has just completed onboarding and answered 4 calibration questions. Generate their Baseline Read using their exact answers as your only evidence.
+
+Rules:
+- Never diagnose. Never attack identity.
+- Always separate the person from the pattern.
+- Anchor every insight in what they actually wrote — reference their specific words or themes.
+- Brutally honest means calm, surgical, and specific — not insulting.
+- Never use generic self-help language. No "journey," "growth," "healing," "trauma."
+- One central truth per read.
+- End with a simple, concrete move.
+
+Return STRICT JSON only — no prose, no markdown:
+{
+  "read": "One sharp line. Maximum two sentences. This is the line they would screenshot.",
+  "truth": "4 to 6 short lines separated by \\n. Grounded entirely in what they wrote. Reference their specific words or themes.",
+  "blind_spot": "2 to 3 short lines separated by \\n. The thing they didn't say but implied. The tension between Signal 01 and Signal 02.",
+  "first_move": "1 to 2 short lines. Concrete action they can do today — not a mindset shift."
+}`;
+
+    const user = `Signal 01 (what they want people to feel around them): ${data.signal_01}
+Signal 02 (reaction they get that they don't fully understand): ${data.signal_02}
+Signal 03 (who they tend to lose and when): ${data.signal_03}
+Signal 04 (what they never say out loud but always wonder): ${data.signal_04}`;
+
+    const content = await callAI(system, user);
+    let parsed: { read: string; truth: string; blind_spot: string; first_move: string };
+    try {
+      const p = JSON.parse(content);
+      parsed = { read: p.read ?? "", truth: p.truth ?? "", blind_spot: p.blind_spot ?? "", first_move: p.first_move ?? "" };
+    } catch {
+      parsed = { read: content.slice(0, 180), truth: content, blind_spot: "", first_move: "" };
+    }
+
+    // Persist signals to mirror_memory + mark profile complete + save baseline
+    const memoryRows = [
+      { user_id: userId, memory_type: "onboarding_signal_01", memory_text: data.signal_01 },
+      { user_id: userId, memory_type: "onboarding_signal_02", memory_text: data.signal_02 },
+      { user_id: userId, memory_type: "onboarding_signal_03", memory_text: data.signal_03 },
+      { user_id: userId, memory_type: "onboarding_signal_04", memory_text: data.signal_04 },
+      { user_id: userId, memory_type: "baseline_read", memory_text: `${parsed.read}\n\n${parsed.truth}\n\n${parsed.blind_spot}\n\n${parsed.first_move}` },
+    ];
+    await supabase.from("mirror_memory").insert(memoryRows);
+    await supabase.from("profiles").update({
+      onboarding_complete: true,
+      baseline_read: parsed.read,
+    }).eq("user_id", userId);
+
+    return parsed;
+  });
+
+// ============================================================
 // 2. Daily read
 // ============================================================
 export const generateDailyRead = createServerFn({ method: "POST" })
