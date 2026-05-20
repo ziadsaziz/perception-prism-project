@@ -38,7 +38,7 @@ function Onboarding() {
     biggest_insecurity: "", social_challenge: "", dating_challenge: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [baseline, setBaseline] = useState<{ headline: string; truth: string; blind_spot: string; first_move: string } | null>(null);
+  const [baseline, setBaseline] = useState<{ headline: string; read?: string; truth: string; blind_spot: string; first_move: string; early_read?: boolean } | null>(null);
 
   useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
 
