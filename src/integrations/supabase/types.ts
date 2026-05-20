@@ -14,7 +14,294 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      advisor_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_checkins: {
+        Row: {
+          ai_reflection: string | null
+          confidence_level: number | null
+          created_at: string
+          id: string
+          mood: string | null
+          social_energy: number | null
+          user_id: string
+          what_happened: string | null
+        }
+        Insert: {
+          ai_reflection?: string | null
+          confidence_level?: number | null
+          created_at?: string
+          id?: string
+          mood?: string | null
+          social_energy?: number | null
+          user_id: string
+          what_happened?: string | null
+        }
+        Update: {
+          ai_reflection?: string | null
+          confidence_level?: number | null
+          created_at?: string
+          id?: string
+          mood?: string | null
+          social_energy?: number | null
+          user_id?: string
+          what_happened?: string | null
+        }
+        Relationships: []
+      }
+      mirror_memory: {
+        Row: {
+          created_at: string
+          id: string
+          memory_text: string
+          memory_type: string | null
+          strength: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          memory_text: string
+          memory_type?: string | null
+          strength?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          memory_text?: string
+          memory_type?: string | null
+          strength?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      patterns: {
+        Row: {
+          created_at: string
+          evidence: string | null
+          fix: string | null
+          frequency: number | null
+          id: string
+          impact: string | null
+          last_seen: string | null
+          pattern_description: string | null
+          pattern_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence?: string | null
+          fix?: string | null
+          frequency?: number | null
+          id?: string
+          impact?: string | null
+          last_seen?: string | null
+          pattern_description?: string | null
+          pattern_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence?: string | null
+          fix?: string | null
+          frequency?: number | null
+          id?: string
+          impact?: string | null
+          last_seen?: string | null
+          pattern_description?: string | null
+          pattern_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      perception_scores: {
+        Row: {
+          approachability_score: number | null
+          attraction_score: number | null
+          authenticity_score: number | null
+          authority_score: number | null
+          confidence_score: number | null
+          created_at: string
+          emotional_control_score: number | null
+          id: string
+          mystery_score: number | null
+          perception_score: number | null
+          user_id: string
+        }
+        Insert: {
+          approachability_score?: number | null
+          attraction_score?: number | null
+          authenticity_score?: number | null
+          authority_score?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          emotional_control_score?: number | null
+          id?: string
+          mystery_score?: number | null
+          perception_score?: number | null
+          user_id: string
+        }
+        Update: {
+          approachability_score?: number | null
+          attraction_score?: number | null
+          authenticity_score?: number | null
+          authority_score?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          emotional_control_score?: number | null
+          id?: string
+          mystery_score?: number | null
+          perception_score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          age_range: string | null
+          baseline_read: string | null
+          biggest_insecurity: string | null
+          comfort_level: string | null
+          created_at: string
+          dating_challenge: string | null
+          gender: string | null
+          id: string
+          main_goal: string | null
+          name: string | null
+          onboarding_complete: boolean | null
+          social_challenge: string | null
+          tone_preference: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age_range?: string | null
+          baseline_read?: string | null
+          biggest_insecurity?: string | null
+          comfort_level?: string | null
+          created_at?: string
+          dating_challenge?: string | null
+          gender?: string | null
+          id?: string
+          main_goal?: string | null
+          name?: string | null
+          onboarding_complete?: boolean | null
+          social_challenge?: string | null
+          tone_preference?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age_range?: string | null
+          baseline_read?: string | null
+          biggest_insecurity?: string | null
+          comfort_level?: string | null
+          created_at?: string
+          dating_challenge?: string | null
+          gender?: string | null
+          id?: string
+          main_goal?: string | null
+          name?: string | null
+          onboarding_complete?: boolean | null
+          social_challenge?: string | null
+          tone_preference?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scans: {
+        Row: {
+          ai_summary: string | null
+          created_at: string
+          file_url: string | null
+          id: string
+          input_text: string | null
+          result_json: Json | null
+          scan_type: string
+          score_json: Json | null
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          input_text?: string | null
+          result_json?: Json | null
+          scan_type: string
+          score_json?: Json | null
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          input_text?: string | null
+          result_json?: Json | null
+          scan_type?: string
+          score_json?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          plan: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
