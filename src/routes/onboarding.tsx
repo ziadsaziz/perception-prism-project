@@ -93,13 +93,17 @@ function Onboarding() {
         {step === 1 && (
           <Step eyebrow="Mirror · 02">
             <h1 className="mt-4 font-display text-3xl text-gradient leading-tight">What do you want Mirror to sharpen?</h1>
+            <p className="mt-2 text-xs text-muted-foreground">Select all that apply.</p>
             <div className="mt-6 flex flex-wrap gap-2">
-              {GOALS.map(g => (
-                <button key={g} onClick={() => setData({...data, main_goal: g})}
-                  className={`rounded-full px-4 py-2.5 text-xs tracking-wide ring-hairline transition-colors ${data.main_goal === g ? "bg-foreground text-background" : "bg-glass text-foreground/80"}`}>
-                  {g}
-                </button>
-              ))}
+              {GOALS.map(g => {
+                const selected = data.main_goal.includes(g);
+                return (
+                  <button key={g} onClick={() => setData({...data, main_goal: selected ? data.main_goal.filter(x => x !== g) : [...data.main_goal, g]})}
+                    className={`rounded-full px-4 py-2.5 text-xs tracking-wide ring-hairline transition-colors ${selected ? "bg-foreground text-background" : "bg-glass text-foreground/80"}`}>
+                    {g}
+                  </button>
+                );
+              })}
             </div>
           </Step>
         )}
