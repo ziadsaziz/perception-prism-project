@@ -88,7 +88,7 @@ function Advisor() {
         <div className="mx-auto max-w-md pointer-events-auto">
           <form onSubmit={e => { e.preventDefault(); send(); }}
             className="bg-glass ring-hairline rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-2 shadow-glass">
-            <input value={input} onChange={e => setInput(e.target.value)} placeholder="Tell Mirror what's on your mind…"
+            <input value={input} onChange={e => setInput(e.target.value)} placeholder="What do you want Mirror to read?"
               className="flex-1 bg-transparent text-sm focus:outline-none py-2" />
             <button type="submit" disabled={!input.trim() || busy}
               className="h-9 w-9 rounded-full bg-foreground text-background flex items-center justify-center disabled:opacity-40 active:scale-95">
