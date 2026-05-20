@@ -33,7 +33,7 @@ function Onboarding() {
 
   const [step, setStep] = useState(0);
   const [data, setData] = useState({
-    main_goal: "", comfort_level: "", tone_preference: "Direct",
+    main_goal: [] as string[], comfort_level: "", tone_preference: "Direct",
     name: "", age_range: "", gender: "",
     biggest_insecurity: "", social_challenge: "", dating_challenge: "",
   });
