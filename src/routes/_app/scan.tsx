@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/scan")({
   component: Scan,
 });
 
-const SCAN_TYPES = [
+const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; active?: boolean }> = [
   { id: "text", title: "Text Conversation", desc: "Paste or upload a chat. See what they really felt.", icon: ScanLine, active: true },
   { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon },
   { id: "voice", title: "Voice & Energy", desc: "How you sound to others. Charisma map.", icon: Mic },
@@ -21,7 +21,7 @@ const SCAN_TYPES = [
   { id: "dating", title: "Dating Dynamic", desc: "Interest, leverage, attachment, next move.", icon: Heart },
   { id: "emotion", title: "Emotional Pattern", desc: "Detect projection, fear, hidden need.", icon: Brain },
   { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass },
-] as const;
+];
 
 const STAGES = ["Reading tone…", "Detecting emotional imbalance…", "Finding perception shifts…", "Building your Mirror read…"];
 

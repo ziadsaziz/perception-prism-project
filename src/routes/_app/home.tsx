@@ -33,7 +33,7 @@ function Home() {
         supabase.from("perception_scores").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("patterns").select("*").eq("user_id", user.id).order("last_seen", { ascending: false }).limit(1).maybeSingle(),
       ]);
-      setProfile(p.data); setScores(s.data); setPattern(pat.data);
+      setProfile(p.data); setScores(s.data as any); setPattern(pat.data);
     })();
   }, [user]);
 
