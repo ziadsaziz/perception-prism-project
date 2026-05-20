@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "anthropic/claude-sonnet-4";
+const MODEL = "openai/gpt-5";
 
 async function callAI(system: string, user: string, json = true): Promise<string> {
   const res = await fetch(GATEWAY, {
