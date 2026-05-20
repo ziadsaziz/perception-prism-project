@@ -23,7 +23,7 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass },
 ];
 
-const STAGES = ["Reading tone…", "Detecting emotional imbalance…", "Finding perception shifts…", "Building your Mirror read…"];
+const STAGES = ["Reading tone…", "Detecting pressure points…", "Finding the pattern…", "Separating behavior from emotion…", "Building your Mirror read…"];
 
 function Scan() {
   const { type } = Route.useSearch();
