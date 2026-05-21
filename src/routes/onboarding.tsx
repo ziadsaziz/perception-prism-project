@@ -242,6 +242,56 @@ function Onboarding() {
         );
       })}
 
+      {phase === "tone" && (
+        <Fade show={visible}>
+          <div className="fixed inset-0 bg-black flex flex-col justify-center px-6">
+            <Wordmark />
+            <div className="space-y-8 max-w-[460px] mx-auto w-full">
+              <div className="space-y-3">
+                <p className="text-[10px] uppercase tracking-[0.48em] text-[#C9A84C]">One last thing</p>
+                <h2 className="font-display text-[32px] leading-tight text-white">
+                  How hard should Mirror hit?
+                </h2>
+                <p className="text-[13px] text-white/50 leading-relaxed">
+                  You can change this anytime. Mirror adjusts its tone — not its honesty.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  { key: "Gentle", label: "Gentle", desc: "Honest but warm. Mirror leads with care, then the truth." },
+                  { key: "Direct", label: "Direct", desc: "Clear and balanced. No fluff, no cruelty. The default." },
+                  { key: "Brutally honest", label: "Brutally Honest", desc: "Sharp, stripped of comfort. Uncomfortable because it's true." },
+                  { key: "Strategic", label: "Strategic", desc: "Leverage and outcome focused. Power-aware. No sentiment." },
+                ].map(t => (
+                  <button
+                    key={t.key}
+                    onClick={() => setTone(t.key)}
+                    className={`w-full text-left rounded-2xl px-5 py-4 transition-colors ${
+                      tone === t.key
+                        ? "bg-[#C9A84C]/15 border border-[#C9A84C]/50"
+                        : "bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    <p className={`text-[14px] font-medium ${tone === t.key ? "text-white" : "text-white/70"}`}>
+                      {t.label}
+                    </p>
+                    <p className="text-[12px] text-white/40 mt-0.5 leading-snug">{t.desc}</p>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={runBaseline}
+                className="w-full rounded-full bg-[#C9A84C] text-black py-4 text-[11px] uppercase tracking-[0.32em] font-medium"
+              >
+                Let Mirror read you
+              </button>
+            </div>
+          </div>
+        </Fade>
+      )}
+
       {/* PROCESSING */}
       {phase === "processing" && (
         <div className="min-h-screen flex items-center justify-center px-6">
