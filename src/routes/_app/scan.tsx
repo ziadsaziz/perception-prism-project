@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision } from "@/lib/ai.functions";
+import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision, analyzeSocialProfile } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -19,7 +19,7 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "text", title: "Text Conversation", desc: "Paste or upload a chat. See what they really felt.", icon: ScanLine, active: true },
   { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon },
   { id: "voice", title: "Voice & Energy", desc: "How you sound to others. Charisma map.", icon: Mic },
-  { id: "social", title: "Social Profile", desc: "How your profile lands. Status read.", icon: Globe },
+  { id: "social", title: "Social Profile", desc: "How your profile lands. Status read.", icon: Globe, active: true },
   { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText, active: true },
   { id: "dating", title: "Dating Dynamic", desc: "Interest, leverage, attachment, next move.", icon: Heart, active: true },
   { id: "emotion", title: "Emotional Pattern", desc: "Detect projection, fear, hidden need.", icon: Brain, active: true },
@@ -36,7 +36,8 @@ function Scan() {
   if (type === "emotion") return <EmotionScan />;
   if (type === "dating") return <DatingScan />;
   if (type === "decision") return <DecisionScan />;
-  if (type && !["text", "post", "emotion", "dating", "decision"].includes(type)) return <ComingSoon type={type} />;
+  if (type === "social") return <SocialScan />;
+  if (type && !["text", "post", "emotion", "dating", "decision", "social"].includes(type)) return <ComingSoon type={type} />;
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
@@ -910,6 +911,222 @@ function DecisionResult({ result, onReset, onShare }: { result: any; onReset: ()
 
       <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
         Mirror reads perception, not outcome
+      </p>
+    </main>
+  );
+}
+
+const SOCIAL_PLATFORMS = ["Instagram", "LinkedIn", "X / Twitter", "TikTok", "Dating app", "Other"];
+
+const PROFILE_VERDICT_COLOR: Record<string, string> = {
+  Magnetic: "text-[#C9A84C]",
+  Credible: "text-blue-400",
+  Generic: "text-white/40",
+  "Trying too hard": "text-orange-400",
+  Underplaying: "text-white/60",
+  Confusing: "text-red-400",
+};
+
+function SocialScan() {
+  const { canScan, plan } = useSubscription();
+  const fn = useServerFn(analyzeSocialProfile);
+  const [platform, setPlatform] = useState("Instagram");
+  const [username, setUsername] = useState("");
+  const [followerCount, setFollowerCount] = useState("");
+  const [bio, setBio] = useState("");
+  const [postDescription, setPostDescription] = useState("");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [result, setResult] = useState<any>(null);
+  const [showCard, setShowCard] = useState(false);
+  const [cardScore, setCardScore] = useState(0);
+
+  const run = async () => {
+    if (bio.trim().length < 1) { toast.error("Paste your bio first."); return; }
+    setLoading(true); setResult(null); setStage(0);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    try {
+      const r = await fn({ data: { bio, platform, username, follower_count: followerCount, post_description: postDescription, context_note: note } });
+      setResult(r.result);
+      if (r.result?.scores?.perception) {
+        setCardScore(r.result.scores.perception);
+        setTimeout(() => setShowCard(true), 800);
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Scan failed.");
+    } finally { clearInterval(t); setLoading(false); }
+  };
+
+  if (result) return (
+    <>
+      <SocialResult result={result} onReset={() => { setResult(null); setBio(""); setShowCard(false); }} onShare={() => setShowCard(true)} />
+      {showCard && result.read && (
+        <MirrorCard
+          read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
+          score={cardScore}
+          onClose={() => setShowCard(false)}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4">
+      <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <ArrowLeft className="h-3 w-3" /> All scans
+      </Link>
+      <header>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Social · Profile</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">How does your profile land?</h1>
+        <p className="mt-2 text-xs text-muted-foreground">Paste your bio and describe your profile. Mirror reads the first impression a stranger gets.</p>
+      </header>
+
+      {loading ? (
+        <GlassPanel glow className="p-8 text-center">
+          <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
+        </GlassPanel>
+      ) : (
+        <>
+          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
+          {canScan && (
+            <>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">Platform</p>
+                <div className="flex flex-wrap gap-2">
+                  {SOCIAL_PLATFORMS.map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPlatform(p)}
+                      className={`rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                        platform === p
+                          ? "bg-[#C9A84C] text-black"
+                          : "bg-glass ring-hairline text-muted-foreground"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  maxLength={100}
+                  placeholder="@username (optional)"
+                  className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+                />
+                <input
+                  value={followerCount}
+                  onChange={e => setFollowerCount(e.target.value)}
+                  maxLength={50}
+                  placeholder="Followers (optional)"
+                  className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+                />
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">Your bio</p>
+                <textarea
+                  value={bio}
+                  onChange={e => setBio(e.target.value)}
+                  rows={4}
+                  maxLength={2000}
+                  placeholder="Paste your bio exactly as it appears on your profile…"
+                  className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+                />
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">What are your posts like?</p>
+                <textarea
+                  value={postDescription}
+                  onChange={e => setPostDescription(e.target.value)}
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="Describe your content style, aesthetic, what you post about, tone, how often you post…"
+                  className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+                />
+              </div>
+
+              <input
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                maxLength={500}
+                placeholder="What are you trying to achieve with this profile? (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+              />
+
+              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
+                Read my profile
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
+
+function SocialResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      <div className="flex items-center justify-between">
+        <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> New scan
+        </button>
+        {onShare && (
+          <button onClick={onShare} className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">
+            Share read ↑
+          </button>
+        )}
+      </div>
+
+      {result.profile_verdict && (
+        <div className="flex items-center gap-3">
+          <span className={`font-display text-[32px] leading-none ${PROFILE_VERDICT_COLOR[result.profile_verdict] ?? "text-white"}`}>
+            {result.profile_verdict}
+          </span>
+          {result.verdict_reason && (
+            <p className="text-[12px] text-white/50 leading-snug max-w-[200px]">{result.verdict_reason}</p>
+          )}
+        </div>
+      )}
+
+      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
+      <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
+
+      <div className="space-y-2.5">
+        <Insight label="First impression" body={result.first_impression} />
+        <Insight label="What it signals" body={result.what_it_signals} />
+        <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
+      </div>
+
+      {(result.strongest_element || result.weakest_element) && (
+        <div className="grid grid-cols-2 gap-2">
+          {result.strongest_element && (
+            <div className="bg-black/40 border border-[#C9A84C]/20 rounded-2xl px-4 py-3">
+              <p className="text-[9px] uppercase tracking-[0.28em] text-[#C9A84C] mb-1">Strongest</p>
+              <p className="text-[12px] text-white/80 leading-snug">{result.strongest_element}</p>
+            </div>
+          )}
+          {result.weakest_element && (
+            <div className="bg-black/40 border border-red-900/30 rounded-2xl px-4 py-3">
+              <p className="text-[9px] uppercase tracking-[0.28em] text-red-400/70 mb-1">Weakest</p>
+              <p className="text-[12px] text-white/80 leading-snug">{result.weakest_element}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <Insight label="The move" body={result.the_move} accent="ok" />
+
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
+        Mirror reads signals, not follower counts
       </p>
     </main>
   );
