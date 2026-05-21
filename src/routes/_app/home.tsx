@@ -26,6 +26,7 @@ function Home() {
   const [pattern, setPattern] = useState<any>(null);
   const [loadingRead, setLoadingRead] = useState(false);
   const [scanCount, setScanCount] = useState<number>(0);
+  const [showSetup, setShowSetup] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -40,6 +41,10 @@ function Home() {
       setScores(s.data as any);
       setPattern(pat.data);
       setScanCount(sc.count ?? 0);
+      // Show setup if name is missing
+      if (!p.data?.name || p.data.name === p.data?.user_id?.slice(0, 8)) {
+        setShowSetup(true);
+      }
     })();
   }, [user]);
 
