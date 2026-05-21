@@ -822,6 +822,7 @@ ${data.situation}
         authenticity_score: 50,
         emotional_control_score: 50,
         mystery_score: parsed.scores.mystery ?? 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
