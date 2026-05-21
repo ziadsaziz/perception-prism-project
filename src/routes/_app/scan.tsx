@@ -1331,6 +1331,297 @@ function SelfieResult({ result, preview, onReset, onShare }: { result: any; prev
   );
 }
 
+const ENERGY_VERDICT_COLOR: Record<string, string> = {
+  Commanding: "text-[#C9A84C]",
+  Warm: "text-amber-300",
+  Anxious: "text-red-400",
+  Confident: "text-[#C9A84C]",
+  Hesitant: "text-white/40",
+  Overexplaining: "text-orange-400",
+  Grounded: "text-green-400",
+  Scattered: "text-red-400",
+};
+
+const CONFIDENCE_COLOR: Record<string, string> = {
+  High: "text-[#C9A84C]",
+  Moderate: "text-white/70",
+  Low: "text-red-400",
+  Performed: "text-orange-400",
+};
+
+function VoiceScan() {
+  const { canScan, plan } = useSubscription();
+  const fn = useServerFn(analyzeVoice);
+  const [mode, setMode] = useState<"record" | "type">("record");
+  const [transcript, setTranscript] = useState("");
+  const [vocalDescription, setVocalDescription] = useState("");
+  const [note, setNote] = useState("");
+  const [recording, setRecording] = useState(false);
+  const [recorded, setRecorded] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [result, setResult] = useState<any>(null);
+  const [showCard, setShowCard] = useState(false);
+  const [cardScore, setCardScore] = useState(0);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const chunks: Blob[] = [];
+      const mr = new MediaRecorder(stream);
+      mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        setRecorded(true);
+        setTranscribing(true);
+        const Recognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+        if (Recognition) {
+          const r = new Recognition();
+          r.continuous = true;
+          r.interimResults = false;
+          r.onresult = (event: any) => {
+            const t = Array.from(event.results).map((res: any) => res[0].transcript).join(" ");
+            setTranscript(t);
+          };
+          r.onend = () => setTranscribing(false);
+          r.onerror = () => {
+            setTranscribing(false);
+            toast("Could not auto-transcribe. Type what you said below.");
+          };
+          r.start();
+          setTimeout(() => r.stop(), 500);
+        } else {
+          setTranscribing(false);
+          toast("Auto-transcription not supported. Type what you said below.");
+        }
+      };
+      mr.start();
+      setMediaRecorder(mr);
+      setRecording(true);
+    } catch {
+      toast.error("Microphone access denied.");
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorder?.stop();
+    setRecording(false);
+  };
+
+  const run = async () => {
+    if (transcript.trim().length < 10) { toast.error("Mirror needs to hear what you said."); return; }
+    setLoading(true); setResult(null); setStage(0);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    try {
+      const r = await fn({ data: { transcript, vocal_description: vocalDescription, context_note: note } });
+      setResult(r.result);
+      if (r.result?.scores?.perception) {
+        setCardScore(r.result.scores.perception);
+        setTimeout(() => setShowCard(true), 800);
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Scan failed.");
+    } finally { clearInterval(t); setLoading(false); }
+  };
+
+  if (result) return (
+    <>
+      <VoiceResult
+        result={result}
+        onReset={() => { setResult(null); setTranscript(""); setRecorded(false); setAudioUrl(null); setShowCard(false); }}
+        onShare={() => setShowCard(true)}
+      />
+      {showCard && result.read && (
+        <MirrorCard
+          read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
+          score={cardScore}
+          onClose={() => setShowCard(false)}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4">
+      <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <ArrowLeft className="h-3 w-3" /> All scans
+      </Link>
+      <header>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Voice · Energy</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">How do you sound?</h1>
+        <p className="mt-2 text-xs text-muted-foreground">Record yourself or type what you said. Mirror reads the energy, confidence, and patterns in how you speak.</p>
+      </header>
+
+      {loading ? (
+        <GlassPanel glow className="p-8 text-center">
+          <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading your energy</p>
+        </GlassPanel>
+      ) : (
+        <>
+          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
+          {canScan && (
+            <>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setMode("record")}
+                  className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${mode === "record" ? "bg-foreground text-background" : "bg-glass ring-hairline text-muted-foreground"}`}
+                >
+                  Record
+                </button>
+                <button
+                  onClick={() => setMode("type")}
+                  className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${mode === "type" ? "bg-foreground text-background" : "bg-glass ring-hairline text-muted-foreground"}`}
+                >
+                  Type transcript
+                </button>
+              </div>
+
+              {mode === "record" && (
+                <div className="bg-glass ring-hairline rounded-2xl p-6 flex flex-col items-center gap-3">
+                  {!recorded ? (
+                    <>
+                      <button
+                        onClick={recording ? stopRecording : startRecording}
+                        className={`h-20 w-20 rounded-full flex items-center justify-center transition-colors ${recording ? "bg-red-500/80 animate-pulse" : "bg-foreground/10 hover:bg-foreground/15"}`}
+                      >
+                        <Mic className={`h-8 w-8 ${recording ? "text-white" : "text-accent"}`} />
+                      </button>
+                      <p className="text-sm text-foreground/90">
+                        {recording ? "Recording — tap to stop" : "Tap to start recording"}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Speak naturally. 30–60 seconds is ideal.</p>
+                    </>
+                  ) : (
+                    <>
+                      {audioUrl && <audio src={audioUrl} controls className="w-full" />}
+                      {transcribing ? (
+                        <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground animate-pulse">Transcribing…</p>
+                      ) : (
+                        <p className="text-[11px] uppercase tracking-[0.24em] text-[#C9A84C]">Recording captured</p>
+                      )}
+                      <button
+                        onClick={() => { setRecorded(false); setAudioUrl(null); setTranscript(""); }}
+                        className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground"
+                      >
+                        Record again
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">
+                  {mode === "record" ? "Transcript (auto-filled or edit)" : "What did you say?"}
+                </p>
+                <textarea
+                  value={transcript}
+                  onChange={e => setTranscript(e.target.value)}
+                  rows={6}
+                  maxLength={5000}
+                  placeholder={mode === "record"
+                    ? "Transcript appears here after recording. Edit it if needed, or type it manually…"
+                    : "Type or paste what you said. Include filler words, pauses, repetitions — Mirror needs the raw version, not the cleaned-up one…"
+                  }
+                  className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+                />
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">Describe how you sounded (optional)</p>
+                <input
+                  value={vocalDescription}
+                  onChange={e => setVocalDescription(e.target.value)}
+                  maxLength={500}
+                  placeholder="E.g. I spoke fast, trailed off at the end, kept saying 'like', sounded nervous…"
+                  className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+                />
+              </div>
+
+              <input
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                maxLength={500}
+                placeholder="What was the context? (optional — pitch, date, difficult convo…)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+              />
+
+              <button
+                onClick={run}
+                disabled={transcript.trim().length < 10}
+                className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
+              >
+                Read my energy
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
+
+function VoiceResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      <div className="flex items-center justify-between">
+        <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> New scan
+        </button>
+        {onShare && (
+          <button onClick={onShare} className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">
+            Share read ↑
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {result.energy_verdict && (
+          <div className="bg-black/40 border border-white/[0.06] rounded-2xl px-4 py-3">
+            <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Energy</p>
+            <p className={`mt-1 font-display text-[20px] leading-none ${ENERGY_VERDICT_COLOR[result.energy_verdict] ?? "text-white"}`}>
+              {result.energy_verdict}
+            </p>
+            {result.verdict_reason && (
+              <p className="mt-1 text-[11px] text-white/40 leading-snug">{result.verdict_reason}</p>
+            )}
+          </div>
+        )}
+        {result.confidence_read && (
+          <div className="bg-black/40 border border-white/[0.06] rounded-2xl px-4 py-3">
+            <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Confidence</p>
+            <p className={`mt-1 font-display text-[20px] leading-none ${CONFIDENCE_COLOR[result.confidence_read] ?? "text-white"}`}>
+              {result.confidence_read}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
+      <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
+
+      <div className="space-y-2.5">
+        <Insight label="Energy read" body={result.energy_read} />
+        <Insight label="Vocal patterns" body={result.vocal_patterns} />
+        <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
+        <Insight label="The move" body={result.the_move} accent="ok" />
+      </div>
+
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
+        Mirror reads energy, not just words
+      </p>
+    </main>
+  );
+}
+
 function ComingSoon({ type }: { type: string }) {
   const { canAccessElite } = useSubscription();
 
