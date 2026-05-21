@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern } from "@/lib/ai.functions";
+import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -21,7 +21,7 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "voice", title: "Voice & Energy", desc: "How you sound to others. Charisma map.", icon: Mic },
   { id: "social", title: "Social Profile", desc: "How your profile lands. Status read.", icon: Globe },
   { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText, active: true },
-  { id: "dating", title: "Dating Dynamic", desc: "Interest, leverage, attachment, next move.", icon: Heart },
+  { id: "dating", title: "Dating Dynamic", desc: "Interest, leverage, attachment, next move.", icon: Heart, active: true },
   { id: "emotion", title: "Emotional Pattern", desc: "Detect projection, fear, hidden need.", icon: Brain, active: true },
   { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass },
 ];
@@ -34,7 +34,8 @@ function Scan() {
   if (type === "text") return <TextScan />;
   if (type === "post") return <PostScan />;
   if (type === "emotion") return <EmotionScan />;
-  if (type && !["text", "post", "emotion"].includes(type)) return <ComingSoon type={type} />;
+  if (type === "dating") return <DatingScan />;
+  if (type && !["text", "post", "emotion", "dating"].includes(type)) return <ComingSoon type={type} />;
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
@@ -530,6 +531,205 @@ function EmotionResult({ result, onReset, onShare }: { result: any; onReset: () 
 
       <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
         Mirror reads patterns, not destiny
+      </p>
+    </main>
+  );
+}
+
+const DYNAMIC_TYPES = [
+  "New situationship",
+  "Early dating",
+  "Established relationship",
+  "On a break",
+  "After a fight",
+  "They went cold",
+  "I'm losing interest",
+  "It's complicated",
+];
+
+const LEVERAGE_COLOR: Record<string, string> = {
+  You: "text-[#C9A84C]",
+  Them: "text-red-400",
+  Equal: "text-white/70",
+  Unclear: "text-white/40",
+};
+
+const ATTRACTION_COLOR: Record<string, string> = {
+  High: "text-[#C9A84C]",
+  Moderate: "text-white/70",
+  Low: "text-red-400",
+  Fading: "text-orange-400",
+  Strategic: "text-blue-400",
+};
+
+function DatingScan() {
+  const { canScan, plan } = useSubscription();
+  const fn = useServerFn(analyzeDatingDynamic);
+  const [situation, setSituation] = useState("");
+  const [dynamicType, setDynamicType] = useState("");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [result, setResult] = useState<any>(null);
+  const [showCard, setShowCard] = useState(false);
+  const [cardScore, setCardScore] = useState(0);
+
+  const run = async () => {
+    if (situation.trim().length < 10) { toast.error("Tell Mirror what's happening."); return; }
+    setLoading(true); setResult(null); setStage(0);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    try {
+      const r = await fn({ data: { situation, dynamic_type: dynamicType, context_note: note } });
+      setResult(r.result);
+      if (r.result?.scores?.perception) {
+        setCardScore(r.result.scores.perception);
+        setTimeout(() => setShowCard(true), 800);
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Scan failed.");
+    } finally { clearInterval(t); setLoading(false); }
+  };
+
+  if (result) return (
+    <>
+      <DatingResult result={result} onReset={() => { setResult(null); setSituation(""); setShowCard(false); }} onShare={() => setShowCard(true)} />
+      {showCard && result.read && (
+        <MirrorCard
+          read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
+          score={cardScore}
+          onClose={() => setShowCard(false)}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4">
+      <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <ArrowLeft className="h-3 w-3" /> All scans
+      </Link>
+      <header>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Dating · Dynamic</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">What's really happening?</h1>
+        <p className="mt-2 text-xs text-muted-foreground">Paste the conversation or describe the situation. Mirror reads the dynamic, not the story you're telling yourself.</p>
+      </header>
+
+      {loading ? (
+        <GlassPanel glow className="p-8 text-center">
+          <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
+        </GlassPanel>
+      ) : (
+        <>
+          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
+          {canScan && (
+            <>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">What's the situation?</p>
+                <div className="flex flex-wrap gap-2">
+                  {DYNAMIC_TYPES.map(d => (
+                    <button
+                      key={d}
+                      onClick={() => setDynamicType(dynamicType === d ? "" : d)}
+                      className={`rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                        dynamicType === d
+                          ? "bg-[#C9A84C] text-black"
+                          : "bg-glass ring-hairline text-muted-foreground"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                value={situation}
+                onChange={e => setSituation(e.target.value)}
+                rows={9}
+                maxLength={4000}
+                placeholder={`Paste the conversation — or describe what's happening. Be specific. Include what they said, what you said, how they've been acting lately. The more Mirror sees, the sharper the read.\n\nExample: "We've been talking for 3 weeks. They were super into it then went cold after we hung out. Now they reply but with one word answers…"`}
+                className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+              />
+
+              <input
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                maxLength={500}
+                placeholder="Anything else Mirror should know? (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+              />
+
+              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
+                Read this dynamic
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
+
+function DatingResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      <div className="flex items-center justify-between">
+        <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> New scan
+        </button>
+        {onShare && (
+          <button onClick={onShare} className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">
+            Share read ↑
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {result.who_has_leverage && (
+          <div className="bg-black/40 border border-white/[0.06] rounded-2xl px-4 py-3">
+            <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Leverage</p>
+            <p className={`mt-1 font-display text-[22px] leading-none ${LEVERAGE_COLOR[result.who_has_leverage] ?? "text-white"}`}>
+              {result.who_has_leverage}
+            </p>
+            {result.leverage_reason && (
+              <p className="mt-1 text-[11px] text-white/40 leading-snug">{result.leverage_reason}</p>
+            )}
+          </div>
+        )}
+        {result.attraction_read && (
+          <div className="bg-black/40 border border-white/[0.06] rounded-2xl px-4 py-3">
+            <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Attraction</p>
+            <p className={`mt-1 font-display text-[22px] leading-none ${ATTRACTION_COLOR[result.attraction_read] ?? "text-white"}`}>
+              {result.attraction_read}
+            </p>
+            {result.attraction_reason && (
+              <p className="mt-1 text-[11px] text-white/40 leading-snug">{result.attraction_reason}</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
+      <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
+
+      <div className="space-y-2.5">
+        <Insight label="What they likely feel" body={result.what_they_likely_feel} />
+        <Insight label="What you're signaling" body={result.what_you_are_doing} />
+        <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
+        <Insight label="The move" body={result.the_move} accent="ok" />
+      </div>
+
+      {result.what_not_to_do && (
+        <GlassPanel className="p-4 border border-red-900/30">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-red-400/70 mb-1">Do not do this</p>
+          <p className="text-sm text-foreground/80 leading-relaxed">{result.what_not_to_do}</p>
+        </GlassPanel>
+      )}
+
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
+        Mirror reads dynamics, not destiny
       </p>
     </main>
   );
