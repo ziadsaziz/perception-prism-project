@@ -749,7 +749,7 @@ function DatingScan() {
       {loading ? (
         <GlassPanel glow className="p-8 text-center">
           <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
-          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{(SCAN_STAGES.dating)[stage]}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
         </GlassPanel>
       ) : (
