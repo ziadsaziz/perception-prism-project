@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
 
-type Phase = "entry" | "q1" | "q2" | "q3" | "q4" | "processing" | "flash" | "read";
+type Phase = "entry" | "q1" | "q2" | "q3" | "q4" | "tone" | "processing" | "flash" | "read";
 
 const QUESTIONS = [
   {
