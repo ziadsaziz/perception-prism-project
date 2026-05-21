@@ -49,6 +49,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#000000" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Mirror" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { title: "MIRROR — See yourself the way the world sees you." },
       { name: "description", content: "MIRROR is a private AI perception engine. It studies the signals people feel but rarely say out loud." },
       { property: "og:title", content: "MIRROR — See yourself the way the world sees you." },
@@ -61,6 +65,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/cd6b8fda-6a1a-4956-a07b-8aba533bc83e/id-preview-f9f3135c--bbdad320-a996-4fa8-a34e-c1fd0befcb17.lovable.app-1779316680217.png" },
     ],
     links: [
+      { rel: "manifest", href: manifestUrl },
+      { rel: "apple-touch-icon", href: icon192Url },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -87,6 +93,31 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const isInIframe = (() => {
+      try {
+        return window.self !== window.top;
+      } catch (e) {
+        return true;
+      }
+    })();
+    const isPreviewHost =
+      window.location.hostname.includes("id-preview--") ||
+      window.location.hostname.includes("lovableproject.com");
+    if (isPreviewHost || isInIframe) {
+      navigator.serviceWorker?.getRegistrations().then((registrations) => {
+        registrations.forEach((r) => r.unregister());
+      });
+      return;
+    }
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
