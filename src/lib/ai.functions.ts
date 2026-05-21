@@ -51,6 +51,7 @@ async function createNotification(
   } catch {
     // Non-blocking — never fail a scan because of a notification error
   }
+}
 
 // ============================================================
 // MIRROR VOICE SYSTEM
