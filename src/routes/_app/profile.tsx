@@ -234,3 +234,56 @@ function DailyHistory() {
     </GlassPanel>
   );
 }
+
+function PricingCard({
+  name, price, features, highlight, elite, onSelect,
+}: {
+  name: string;
+  price: string;
+  features: string[];
+  highlight?: boolean;
+  elite?: boolean;
+  onSelect: () => void;
+}) {
+  const accentColor = elite ? "text-[#C9A84C]" : "text-accent";
+  const ringClass = elite
+    ? "ring-1 ring-[#C9A84C]/40"
+    : highlight
+      ? "ring-1 ring-accent/40"
+      : "ring-hairline";
+
+  return (
+    <div className={`rounded-2xl bg-glass ${ringClass} p-5 space-y-4`}>
+      <div className="flex items-baseline justify-between">
+        <div className="flex items-center gap-2">
+          <p className={`text-[10px] uppercase tracking-[0.28em] ${accentColor}`}>Mirror {name}</p>
+          {elite && <Sparkles className="h-3 w-3 text-[#C9A84C]" />}
+        </div>
+        <p className="font-display text-xl text-foreground">
+          {price}
+          <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground ml-1">/mo</span>
+        </p>
+      </div>
+
+      <ul className="space-y-2">
+        {features.map(f => (
+          <li key={f} className="flex items-start gap-2">
+            <Check className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${accentColor}`} strokeWidth={2} />
+            <span className="text-xs text-foreground/90 leading-relaxed">{f}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        onClick={onSelect}
+        className={`w-full rounded-full py-3 text-[10px] uppercase tracking-[0.28em] ${
+          elite
+            ? "bg-[#C9A84C] text-background"
+            : "bg-foreground text-background"
+        }`}
+      >
+        Get {name}
+      </button>
+    </div>
+  );
+}
