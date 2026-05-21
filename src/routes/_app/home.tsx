@@ -32,6 +32,8 @@ function Home() {
   const [moveDone, setMoveDone] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -80,6 +82,16 @@ function Home() {
   useEffect(() => { if (profile) fetchDaily(); /* once */ // eslint-disable-next-line
   }, [profile?.user_id]);
 
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstall(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
   const hasScores = scanCount > 0 && scores !== null;
 
   return (
@@ -111,6 +123,34 @@ function Home() {
         </div>
         <NotificationCenter />
       </header>
+
+      {showInstall && (
+        <div className="flex items-center justify-between bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.28em] text-[#C9A84C]">Add to home screen</p>
+            <p className="text-[12px] text-white/60 mt-0.5">Install Mirror for the full experience</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                if (!installPrompt) return;
+                await installPrompt.prompt();
+                const { outcome } = await installPrompt.userChoice;
+                if (outcome === "accepted") setShowInstall(false);
+              }}
+              className="rounded-full bg-[#C9A84C] text-black px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] font-medium"
+            >
+              Install
+            </button>
+            <button
+              onClick={() => setShowInstall(false)}
+              className="text-white/30 text-[11px]"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       <GlassPanel glow className="p-6">
         <div className="flex items-center justify-between">
