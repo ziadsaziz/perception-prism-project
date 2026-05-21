@@ -10,6 +10,10 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
 import { ScanLine, Image as ImageIcon, Mic, Globe, FileText, Heart, Brain, Compass, Loader2, ArrowLeft } from "lucide-react";
 
+function haptic(pattern: number | number[] = 10) {
+  try { navigator.vibrate?.(pattern); } catch {}
+}
+
 export const Route = createFileRoute("/_app/scan")({
   validateSearch: z.object({ type: z.string().optional() }),
   component: Scan,
@@ -26,7 +30,66 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass, active: true },
 ];
 
-const STAGES = ["Reading tone…", "Detecting pressure points…", "Finding the pattern…", "Separating behavior from emotion…", "Building your Mirror read…"];
+const SCAN_STAGES: Record<string, string[]> = {
+  text: [
+    "Reading the tone…",
+    "Detecting what's underneath the words…",
+    "Finding the pressure points…",
+    "Separating behavior from emotion…",
+    "Building your Mirror read…",
+  ],
+  post: [
+    "Reading the signal this post sends…",
+    "Measuring how it lands on a stranger…",
+    "Detecting what it reveals about you…",
+    "Finding the blind spot…",
+    "Writing your read…",
+  ],
+  emotion: [
+    "Reading the emotional pattern…",
+    "Finding what's underneath the feeling…",
+    "Detecting the root…",
+    "Measuring how this lands on others…",
+    "Building your Mirror read…",
+  ],
+  dating: [
+    "Reading the dynamic…",
+    "Measuring leverage…",
+    "Detecting what's not being said…",
+    "Reading what they likely feel…",
+    "Writing your read…",
+  ],
+  decision: [
+    "Reading how this decision lands…",
+    "Measuring the signal it sends…",
+    "Detecting what it reveals about you…",
+    "Finding the strongest version…",
+    "Writing your read…",
+  ],
+  social: [
+    "Reading your profile as a stranger would…",
+    "Measuring the first impression…",
+    "Detecting what it signals about you…",
+    "Finding what's costing you…",
+    "Writing your read…",
+  ],
+  selfie: [
+    "Reading your presence…",
+    "Measuring confidence signals…",
+    "Detecting what you're projecting…",
+    "Finding the blind spot…",
+    "Writing your read…",
+  ],
+  voice: [
+    "Reading your energy…",
+    "Measuring pace and pressure…",
+    "Detecting hesitation patterns…",
+    "Finding what your delivery signals…",
+    "Writing your read…",
+  ],
+};
+
+const STAGES = SCAN_STAGES.text;
 
 function Scan() {
   const { type } = Route.useSearch();
@@ -49,24 +112,68 @@ function Scan() {
         <p className="mt-2 text-sm text-muted-foreground">Feed Mirror something. It will tell you what the world is reading.</p>
       </header>
 
-      <div className="space-y-2.5">
-        {SCAN_TYPES.map(s => (
-          <Link key={s.id} to="/scan" search={{ type: s.id }}
-            className="block bg-glass ring-hairline rounded-2xl p-4 active:scale-[0.99] transition-transform">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-secondary/60 flex items-center justify-center shrink-0">
-                <s.icon className="h-4 w-4 text-accent" strokeWidth={1.5} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium">{s.title}</h3>
-                  {!s.active && <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted/40">Soon</span>}
+      <div className="space-y-3">
+        {/* Hero scan — text conversation */}
+        {(() => {
+          const hero = SCAN_TYPES.find(s => s.id === "text");
+          if (!hero) return null;
+          return (
+            <Link to="/scan" search={{ type: "text" }}
+              className="block bg-glass ring-hairline rounded-2xl p-5 border border-[#C9A84C]/20 active:scale-[0.99] transition-transform glow-gold">
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-[#C9A84C]/10 flex items-center justify-center shrink-0">
+                  <hero.icon className="h-5 w-5 text-[#C9A84C]" strokeWidth={1.5} />
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-medium">{hero.title}</h3>
+                    <span className="text-[9px] uppercase tracking-[0.2em] text-[#C9A84C] px-1.5 py-0.5 rounded-full border border-[#C9A84C]/30">Most used</span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{hero.desc}</p>
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })()}
+
+        {/* Elite scans — 2 column grid */}
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">Elite scans</p>
+          <div className="grid grid-cols-2 gap-2">
+            {SCAN_TYPES.filter(s => ["selfie", "voice", "social"].includes(s.id)).map(s => (
+              <Link key={s.id} to="/scan" search={{ type: s.id }}
+                className="bg-glass ring-hairline rounded-2xl p-4 active:scale-[0.99] transition-transform">
+                <div className="h-8 w-8 rounded-xl bg-secondary/60 flex items-center justify-center mb-3">
+                  <s.icon className="h-4 w-4 text-accent" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-sm font-medium leading-tight">{s.title}</h3>
+                <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">{s.desc}</p>
+                <span className="mt-2 inline-block text-[9px] uppercase tracking-[0.2em] text-accent/60 border border-accent/20 rounded-full px-1.5 py-0.5">Elite</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Standard scans — list */}
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">All scans</p>
+          <div className="space-y-2">
+            {SCAN_TYPES.filter(s => ["post", "dating", "emotion", "decision"].includes(s.id)).map(s => (
+              <Link key={s.id} to="/scan" search={{ type: s.id }}
+                className="block bg-glass ring-hairline rounded-2xl p-4 active:scale-[0.99] transition-transform">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-secondary/60 flex items-center justify-center shrink-0">
+                    <s.icon className="h-4 w-4 text-accent" strokeWidth={1.5} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium">{s.title}</h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
     </main>
   );
@@ -91,10 +198,11 @@ function TextScan() {
     try {
       const r = await fn({ data: { conversation: text, context_note: note } });
       setResult(r.result);
+      haptic(12);
       // Show mirror card after scan completes
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
-        setTimeout(() => setShowCard(true), 800);
+        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
@@ -142,14 +250,31 @@ function TextScan() {
           {canScan && (
             <>
               <textarea value={text} onChange={e => setText(e.target.value)} rows={10} maxLength={8000}
+                onFocus={e => e.target.placeholder = ""}
                 placeholder={`Me: hey, are we still on for tonight?\nThem: yeah maybe, I'll let you know\nMe: ok lmk asap...`}
                 className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none" />
               <input value={note} onChange={e => setNote(e.target.value)} maxLength={500}
                 placeholder="One line of context (optional)"
                 className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30" />
-              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
-                Read this
-              </button>
+              <div className="space-y-2">
+                {text.length > 0 && text.length < 80 && (
+                  <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                    Mirror reads sharper with more context
+                  </p>
+                )}
+                {text.length > 0 && (
+                  <p className="text-center text-[10px] text-muted-foreground/40">
+                    {text.length} / 8000
+                  </p>
+                )}
+                <button
+                  onClick={run}
+                  disabled={text.trim().length < 10}
+                  className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
+                >
+                  Read this
+                </button>
+              </div>
             </>
           )}
 
@@ -243,9 +368,10 @@ function PostScan() {
     try {
       const r = await fn({ data: { post_text: text, platform, context_note: note } });
       setResult(r.result);
+      haptic(12);
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
-        setTimeout(() => setShowCard(true), 800);
+        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
@@ -279,7 +405,7 @@ function PostScan() {
       {loading ? (
         <GlassPanel glow className="p-8 text-center">
           <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
-          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{(SCAN_STAGES.post)[stage]}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
         </GlassPanel>
       ) : (
@@ -318,9 +444,25 @@ function PostScan() {
                 placeholder="Any context? (optional)"
                 className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
               />
-              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
-                Read this post
-              </button>
+              <div className="space-y-2">
+                {text.length > 0 && text.length < 80 && (
+                  <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                    Mirror reads sharper with more context
+                  </p>
+                )}
+                {text.length > 0 && (
+                  <p className="text-center text-[10px] text-muted-foreground/40">
+                    {text.length} / 3000
+                  </p>
+                )}
+                <button
+                  onClick={run}
+                  disabled={text.trim().length < 10}
+                  className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
+                >
+                  Read this post
+                </button>
+              </div>
             </>
           )}
         </>
@@ -399,9 +541,10 @@ function EmotionScan() {
     try {
       const r = await fn({ data: { situation, feeling, how_often: howOften } });
       setResult(r.result);
+      haptic(12);
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
-        setTimeout(() => setShowCard(true), 800);
+        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
@@ -435,7 +578,7 @@ function EmotionScan() {
       {loading ? (
         <GlassPanel glow className="p-8 text-center">
           <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
-          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{(SCAN_STAGES.emotion)[stage]}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
         </GlassPanel>
       ) : (
@@ -490,9 +633,25 @@ function EmotionScan() {
                 </div>
               </div>
 
-              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
-                Find my pattern
-              </button>
+              <div className="space-y-2">
+                {situation.length > 0 && situation.length < 80 && (
+                  <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                    Mirror reads sharper with more context
+                  </p>
+                )}
+                {situation.length > 0 && (
+                  <p className="text-center text-[10px] text-muted-foreground/40">
+                    {situation.length} / 3000
+                  </p>
+                )}
+                <button
+                  onClick={run}
+                  disabled={situation.trim().length < 10}
+                  className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
+                >
+                  Find my pattern
+                </button>
+              </div>
             </>
           )}
         </>
@@ -585,9 +744,10 @@ function DatingScan() {
     try {
       const r = await fn({ data: { situation, dynamic_type: dynamicType, context_note: note } });
       setResult(r.result);
+      haptic(12);
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
-        setTimeout(() => setShowCard(true), 800);
+        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
@@ -621,7 +781,7 @@ function DatingScan() {
       {loading ? (
         <GlassPanel glow className="p-8 text-center">
           <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
-          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{(SCAN_STAGES.dating)[stage]}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
         </GlassPanel>
       ) : (
@@ -665,9 +825,25 @@ function DatingScan() {
                 className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
               />
 
-              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
-                Read this dynamic
-              </button>
+              <div className="space-y-2">
+                {situation.length > 0 && situation.length < 80 && (
+                  <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                    Mirror reads sharper with more context
+                  </p>
+                )}
+                {situation.length > 0 && (
+                  <p className="text-center text-[10px] text-muted-foreground/40">
+                    {situation.length} / 4000
+                  </p>
+                )}
+                <button
+                  onClick={run}
+                  disabled={situation.trim().length < 10}
+                  className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
+                >
+                  Read this dynamic
+                </button>
+              </div>
             </>
           )}
         </>
@@ -778,9 +954,10 @@ function DecisionScan() {
     try {
       const r = await fn({ data: { decision, decision_type: decisionType, context_note: note } });
       setResult(r.result);
+      haptic(12);
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
-        setTimeout(() => setShowCard(true), 800);
+        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
@@ -814,7 +991,7 @@ function DecisionScan() {
       {loading ? (
         <GlassPanel glow className="p-8 text-center">
           <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
-          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{(SCAN_STAGES.decision)[stage]}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
         </GlassPanel>
       ) : (
@@ -858,9 +1035,25 @@ function DecisionScan() {
                 className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
               />
 
-              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
-                Read this decision
-              </button>
+              <div className="space-y-2">
+                {decision.length > 0 && decision.length < 80 && (
+                  <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                    Mirror reads sharper with more context
+                  </p>
+                )}
+                {decision.length > 0 && (
+                  <p className="text-center text-[10px] text-muted-foreground/40">
+                    {decision.length} / 3000
+                  </p>
+                )}
+                <button
+                  onClick={run}
+                  disabled={decision.trim().length < 10}
+                  className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
+                >
+                  Read this decision
+                </button>
+              </div>
             </>
           )}
         </>
@@ -951,9 +1144,10 @@ function SocialScan() {
     try {
       const r = await fn({ data: { bio, platform, username, follower_count: followerCount, post_description: postDescription, context_note: note } });
       setResult(r.result);
+      haptic(12);
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
-        setTimeout(() => setShowCard(true), 800);
+        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
@@ -987,7 +1181,7 @@ function SocialScan() {
       {loading ? (
         <GlassPanel glow className="p-8 text-center">
           <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
-          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{(SCAN_STAGES.social)[stage]}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
         </GlassPanel>
       ) : (
@@ -1063,9 +1257,25 @@ function SocialScan() {
                 className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
               />
 
-              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
-                Read my profile
-              </button>
+              <div className="space-y-2">
+                {bio.length > 0 && bio.length < 80 && (
+                  <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                    Mirror reads sharper with more context
+                  </p>
+                )}
+                {bio.length > 0 && (
+                  <p className="text-center text-[10px] text-muted-foreground/40">
+                    {bio.length} / 2000
+                  </p>
+                )}
+                <button
+                  onClick={run}
+                  disabled={bio.trim().length < 10}
+                  className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
+                >
+                  Read my profile
+                </button>
+              </div>
             </>
           )}
         </>
@@ -1177,9 +1387,10 @@ function SelfieScan() {
     try {
       const r = await fn({ data: { image_base64: imageBase64, context_note: note } });
       setResult(r.result);
+      haptic(12);
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
-        setTimeout(() => setShowCard(true), 800);
+        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
@@ -1218,7 +1429,7 @@ function SelfieScan() {
       {loading ? (
         <GlassPanel glow className="p-8 text-center">
           <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
-          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{(SCAN_STAGES.selfie)[stage]}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading your presence</p>
         </GlassPanel>
       ) : (
@@ -1629,9 +1840,10 @@ Speech behavior metrics (measured by browser):
 
       const r = await fn({ data: { transcript, vocal_description: fullVocalDescription, context_note: note } });
       setResult(r.result);
+      haptic(12);
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
-        setTimeout(() => setShowCard(true), 800);
+        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
@@ -1678,7 +1890,7 @@ Speech behavior metrics (measured by browser):
       {loading ? (
         <GlassPanel glow className="p-8 text-center">
           <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
-          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{(SCAN_STAGES.voice)[stage]}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading your energy</p>
         </GlassPanel>
       ) : (
@@ -1897,10 +2109,10 @@ function ComingSoon({ type }: { type: string }) {
       <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
         <ArrowLeft className="h-3 w-3" /> All scans
       </Link>
-      <GlassPanel glow className="p-8 text-center mt-10">
-        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Coming Soon · {type}</p>
-        <h1 className="mt-4 font-display text-2xl text-gradient">Mirror is calibrating this read.</h1>
-        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">This scan type is being built now. You'll be the first to know when it's live.</p>
+      <GlassPanel glow className="p-8 text-center mt-10 space-y-3">
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Coming · {type.replace(/_/g, " ")}</p>
+        <h1 className="font-display text-2xl text-gradient">Mirror is calibrating this read.</h1>
+        <p className="text-sm text-muted-foreground leading-relaxed">This scan type is being built now. You'll be the first to know when it's live.</p>
       </GlassPanel>
     </main>
   );

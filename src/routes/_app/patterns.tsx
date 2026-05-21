@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassPanel } from "@/components/GlassPanel";
@@ -28,9 +29,16 @@ function Patterns() {
       </header>
 
       {patterns.length === 0 ? (
-        <GlassPanel className="p-6">
-          <p className="font-display text-lg text-gradient">Mirror is still learning you.</p>
-          <p className="mt-2 text-sm text-muted-foreground">Patterns emerge after 3–5 scans. The more Mirror sees, the sharper the memory.</p>
+        <GlassPanel className="p-6 space-y-3">
+          <p className="font-display text-lg text-gradient">Nothing repeated yet.</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">Patterns emerge after 3–5 scans. Mirror is watching — it just hasn't seen enough to name anything yet.</p>
+          <Link
+            to="/scan"
+            search={{ type: "text" }}
+            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.24em] text-accent"
+          >
+            Start your first scan <ChevronRight className="h-3 w-3" />
+          </Link>
         </GlassPanel>
       ) : (
         <div className="space-y-2.5">

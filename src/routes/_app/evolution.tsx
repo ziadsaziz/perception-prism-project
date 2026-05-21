@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,14 +122,19 @@ function Evolution() {
           ))}
         </div>
       ) : scanCount === 0 ? (
-        <GlassPanel className="p-6 text-center space-y-4">
-          <p className="font-display text-xl text-gradient">No data yet</p>
-          <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-            Evolution starts after your first scan.
+        <GlassPanel glow className="p-8 text-center space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">Nothing to track yet</p>
+          <p className="font-display text-xl text-gradient">Give Mirror something to work with.</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Run your first scan. Mirror starts tracking how you shift — score by score, week by week.
           </p>
-          <p className="text-[11px] text-muted-foreground/50 leading-relaxed max-w-[280px] mx-auto">
-            Run a text scan. Mirror will start tracking how your perception scores shift over time.
-          </p>
+          <Link
+            to="/scan"
+            search={{ type: "text" }}
+            className="inline-block rounded-full border border-[#C9A84C]/50 text-[#C9A84C] px-5 py-2.5 text-[11px] uppercase tracking-[0.28em] hover:bg-[#C9A84C]/5 transition-colors mt-2"
+          >
+            Run first scan
+          </Link>
         </GlassPanel>
       ) : (
         <>
