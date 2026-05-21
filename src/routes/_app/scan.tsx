@@ -869,30 +869,32 @@ function DatingResult({ result, onReset, onShare }: { result: any; onReset: () =
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        {result.who_has_leverage && (
-          <div className="bg-black/40 border border-white/[0.06] rounded-2xl px-4 py-3">
-            <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Leverage</p>
-            <p className={`mt-1 font-display text-[22px] leading-none ${LEVERAGE_COLOR[result.who_has_leverage] ?? "text-white"}`}>
-              {result.who_has_leverage}
-            </p>
-            {result.leverage_reason && (
-              <p className="mt-1 text-[11px] text-white/40 leading-snug">{result.leverage_reason}</p>
-            )}
-          </div>
-        )}
-        {result.attraction_read && (
-          <div className="bg-black/40 border border-white/[0.06] rounded-2xl px-4 py-3">
-            <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Attraction</p>
-            <p className={`mt-1 font-display text-[22px] leading-none ${ATTRACTION_COLOR[result.attraction_read] ?? "text-white"}`}>
-              {result.attraction_read}
-            </p>
-            {result.attraction_reason && (
-              <p className="mt-1 text-[11px] text-white/40 leading-snug">{result.attraction_reason}</p>
-            )}
-          </div>
-        )}
-      </div>
+      {(result.who_has_leverage || result.attraction_read) && (
+        <div className={`grid gap-2 ${result.who_has_leverage && result.attraction_read ? "grid-cols-2" : "grid-cols-1"}`}>
+          {result.who_has_leverage && (
+            <div className="bg-black/40 border border-white/[0.06] rounded-2xl px-4 py-3">
+              <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Leverage</p>
+              <p className={`mt-1 font-display text-[22px] leading-none ${LEVERAGE_COLOR[result.who_has_leverage] ?? "text-white"}`}>
+                {result.who_has_leverage}
+              </p>
+              {result.leverage_reason && (
+                <p className="mt-1 text-[11px] text-white/40 leading-snug">{result.leverage_reason}</p>
+              )}
+            </div>
+          )}
+          {result.attraction_read && (
+            <div className="bg-black/40 border border-white/[0.06] rounded-2xl px-4 py-3">
+              <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Attraction</p>
+              <p className={`mt-1 font-display text-[22px] leading-none ${ATTRACTION_COLOR[result.attraction_read] ?? "text-white"}`}>
+                {result.attraction_read}
+              </p>
+              {result.attraction_reason && (
+                <p className="mt-1 text-[11px] text-white/40 leading-snug">{result.attraction_reason}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
       <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
