@@ -75,8 +75,10 @@ function Home() {
     try { setDaily(await dailyFn({} as any)); } finally { setLoadingRead(false); }
   };
 
-  useEffect(() => { if (profile) fetchDaily(); /* once */ // eslint-disable-next-line
-  }, [profile?.user_id]);
+  useEffect(() => {
+    if (user) fetchDaily();
+    // eslint-disable-next-line
+  }, [user?.id]);
 
   useEffect(() => {
     const handler = (e: any) => {
