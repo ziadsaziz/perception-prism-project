@@ -351,9 +351,10 @@ function PostScan() {
     try {
       const r = await fn({ data: { post_text: text, platform, context_note: note } });
       setResult(r.result);
+      haptic(12);
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
-        setTimeout(() => setShowCard(true), 800);
+        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
