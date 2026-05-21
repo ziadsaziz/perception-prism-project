@@ -259,8 +259,8 @@ export const generateDailyRead = createServerFn({ method: "POST" })
 
 Return STRICT JSON:
 {
-  "read": "ONE sharp personal observation, max 20 words. Must feel different from yesterday. Anchored in their patterns.",
-  "mission": "One move under 12 words. Specific. For today only.",
+  "read": "ONE sharp observation. Maximum 18 words. One idea only — never two clauses joined by a semicolon or comma. Simple sentence structure. Must be immediately understood on first read. No complex phrasing. Uncomfortable because it is true, not because it is hard to parse.",
+  "mission": "One concrete action. Under 10 words. Start with a verb. No explanation.",
   "early": ${isEarly}
 }
 
