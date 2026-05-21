@@ -812,6 +812,7 @@ Return STRICT JSON:
   "the_root": "1-2 lines. The thing beneath the thing. What need or fear is driving this pattern.",
   "how_others_read_it": "1-2 lines. How this pattern lands on the people around them — what they feel or conclude about the user.",
   "blind_spot": "1 line. The one thing the user cannot see from inside this pattern.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "the_pattern_name": "3-5 words. A sharp name for this recurring pattern. E.g. 'Approval loop under pressure' or 'Preemptive emotional retreat'.",
   "the_move": "1-2 lines. The single behavioral shift that interrupts this pattern today.",
   "scores": { "perception": 0-100, "emotional_control": 0-100, "authenticity": 0-100, "confidence": 0-100 },
