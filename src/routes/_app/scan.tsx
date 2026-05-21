@@ -1370,9 +1370,7 @@ function VoiceScan() {
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const speechSegmentsRef = useRef<Array<{ start: number; end: number; text: string; confidence: number }>>([]);
   const pausesRef = useRef<Array<number>>([]);
   const fillerCountRef = useRef<number>(0);
   const wordCountRef = useRef<number>(0);
