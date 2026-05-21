@@ -9,7 +9,7 @@ type Notification = {
   type: string;
   title: string;
   body: string;
-  read: boolean;
+  read: boolean | null;
   created_at: string;
 };
 
