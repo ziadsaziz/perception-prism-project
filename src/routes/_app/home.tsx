@@ -27,6 +27,7 @@ function Home() {
   const [loadingRead, setLoadingRead] = useState(false);
   const [scanCount, setScanCount] = useState<number>(0);
   const [showSetup, setShowSetup] = useState(false);
+  const [profileChecked, setProfileChecked] = useState(false);
 
   useEffect(() => {
     if (!user) return;
