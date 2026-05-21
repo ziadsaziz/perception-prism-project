@@ -314,6 +314,9 @@ function TextResult({ result, onReset, onShare }: { result: any; onReset: () => 
       <div className="grid grid-cols-1 gap-2.5 mt-2">
         <Insight label="What shifted" body={result.what_shifted ?? result.power_dynamic} />
         <Insight label="What they likely felt" body={result.what_they_likely_felt ?? result.what_they_felt} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The move" body={result.move ?? result.next_move} accent="ok" />
       </div>
@@ -504,6 +507,9 @@ function PostResult({ result, onReset, onShare }: { result: any; onReset: () => 
 
       <div className="space-y-2.5">
         <Insight label="What it signals" body={result.what_it_signals} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The move" body={result.the_move} accent="ok" />
       </div>
@@ -691,6 +697,9 @@ function EmotionResult({ result, onReset, onShare }: { result: any; onReset: () 
         <Insight label="What's actually happening" body={result.what_is_actually_happening} />
         <Insight label="The root" body={result.the_root} />
         <Insight label="How others read it" body={result.how_others_read_it} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The move" body={result.the_move} accent="ok" />
       </div>
@@ -902,6 +911,9 @@ function DatingResult({ result, onReset, onShare }: { result: any; onReset: () =
       <div className="space-y-2.5">
         <Insight label="What they likely feel" body={result.what_they_likely_feel} />
         <Insight label="What you're signaling" body={result.what_you_are_doing} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The move" body={result.the_move} accent="ok" />
       </div>
@@ -1098,6 +1110,9 @@ function DecisionResult({ result, onReset, onShare }: { result: any; onReset: ()
       <div className="space-y-2.5">
         <Insight label="How it reads to others" body={result.how_it_reads_to_others} />
         <Insight label="What it reveals" body={result.what_it_reveals} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The strongest version" body={result.the_strongest_version} accent="ok" />
       </div>
@@ -1320,6 +1335,9 @@ function SocialResult({ result, onReset, onShare }: { result: any; onReset: () =
       <div className="space-y-2.5">
         <Insight label="First impression" body={result.first_impression} />
         <Insight label="What it signals" body={result.what_it_signals} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
       </div>
 

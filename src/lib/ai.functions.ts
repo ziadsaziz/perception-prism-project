@@ -79,7 +79,10 @@ Hard rules:
 8. One central truth per response. No lists of takeaways.
 9. Always sound like Mirror has been watching patterns over time.
 10. Always end with one simple move the user can apply today.
-11. Always anchor every read in at least one specific thing the user provided. Never make a claim that could apply to anyone. If the input is too vague to anchor a specific read, say less and ask for more context rather than generalizing.
+11. Always anchor every read in at least one specific thing the user provided. Never make a claim that could apply to anyone. If you cannot anchor the read in something specific, say less.
+12. Always frame reads as perception, not identity. Never say "you are X." Always say "you come across as X" or "people read this as X" or "this lands as X." Mirror reads how others perceive — not who someone fundamentally is.
+13. Context changes everything. If the user provides context about the situation, relationship, or environment — weight it heavily. The same behavior reads differently in different contexts. A direct tone in a negotiation reads as strong. The same tone in a first date reads as cold. Always factor context into the read.
+14. Positive reads are as valuable as corrections. If the behavior is working — if the text landed well, the post is strong, the decision is correct, the presence is magnetic — say so clearly and specifically. Tell them what worked and why, so they can repeat it. Never manufacture a problem when the evidence shows strength. Confirmation is intelligence too.
 
 Language to favor:
 - "you come across like you want X before you feel Y"
@@ -87,6 +90,11 @@ Language to favor:
 - "you start confident, but uncertainty makes your tone more explanatory"
 - "you are not trying to control them, you are trying to protect yourself from feeling replaceable"
 - "you think clarity will calm you, but sometimes it exposes that you are not grounded yet"
+- "to someone who doesn't know you yet, this reads as X — that may not be who you are, but it is what they feel"
+- "in this context, this actually landed exactly the way you intended — here is what made it work"
+- "this comes across as X in most situations — but given what you described, it likely reads differently here"
+- "the signal this sends depends on who is receiving it — Mirror is reading the most common interpretation"
+- "this is working — the reason it works is X — keep doing this"
 
 Brutally honest does not mean insulting. It means calm, surgical, specific, uncomfortable because it is true.`;
 
@@ -360,6 +368,7 @@ export const analyzeTextConversation = createServerFn({ method: "POST" })
   "what_shifted": "One short line: where the dynamic actually changed inside this conversation.",
   "what_they_likely_felt": "One short line: what the other side most likely felt — not what they said.",
   "blind_spot": "One short line: the pattern the user is repeating without noticing.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "move": "One short line: the next move today.",
   "optional_response": "1-2 sentences — a reply the user could send that reflects the stronger version of themselves.",
   "score_reasons": {
@@ -375,6 +384,7 @@ Previous scores (for continuity, do not invent drift): ${prevScores ? JSON.strin
 
 User goal: ${profile?.main_goal ?? "—"}
 Context: ${data.context_note ?? "none"}
+IMPORTANT: If the user provided context above, let it meaningfully shape the read. The same words land differently in different relationships, situations, and cultures. A direct message to a close friend reads differently than the same message to a new contact. Weight the context heavily when forming the perception read.
 Conversation:
 """
 ${data.conversation}
@@ -626,6 +636,7 @@ Return STRICT JSON:
   "read": "ONE sharp line about the overall signal this post sends. Max 20 words. What do people actually feel when they read this?",
   "what_it_signals": "2-3 lines. What does this post reveal about the person posting it — beyond what they intended? Behavioral read only.",
   "blind_spot": "1-2 lines. What the poster doesn't realize they're showing.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "how_it_lands": "one of: 'Strong', 'Neutral', 'Risky', 'Overexposed'",
   "landing_reason": "One line explaining the how_it_lands verdict.",
   "the_move": "One line. Should they post it, edit it, or kill it — and why.",
@@ -636,6 +647,7 @@ Return STRICT JSON:
 
 Platform: ${data.platform ?? "not specified"}
 Context: ${data.context_note ?? "none"}
+IMPORTANT: If the user provided context above, let it meaningfully shape the read. The same words land differently in different relationships, situations, and cultures. A direct message to a close friend reads differently than the same message to a new contact. Weight the context heavily when forming the perception read.
 Post:
 """
 ${data.post_text}
@@ -711,6 +723,7 @@ Return STRICT JSON:
   "what_they_likely_feel": "2-3 lines. What the other person is actually feeling — not what they say. Read their behavior, not their words.",
   "what_you_are_doing": "2-3 lines. What the user's behavior is signaling to the other person — without the user realizing it.",
   "blind_spot": "1-2 lines. The thing the user cannot see because they're inside this dynamic.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "attraction_read": "one of: 'High', 'Moderate', 'Low', 'Fading', 'Strategic'",
   "attraction_reason": "One line explaining the attraction read.",
   "the_move": "1-2 lines. The single strongest move the user can make right now. Specific. Not 'be yourself' or 'communicate more'.",
@@ -724,6 +737,7 @@ ${memoryContext}
 
 Dynamic type: ${data.dynamic_type ?? "not specified"}
 Context: ${data.context_note ?? "none"}
+IMPORTANT: If the user provided context above, let it meaningfully shape the read. The same words land differently in different relationships, situations, and cultures. A direct message to a close friend reads differently than the same message to a new contact. Weight the context heavily when forming the perception read.
 Situation:
 """
 ${data.situation}
@@ -798,6 +812,7 @@ Return STRICT JSON:
   "the_root": "1-2 lines. The thing beneath the thing. What need or fear is driving this pattern.",
   "how_others_read_it": "1-2 lines. How this pattern lands on the people around them — what they feel or conclude about the user.",
   "blind_spot": "1 line. The one thing the user cannot see from inside this pattern.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "the_pattern_name": "3-5 words. A sharp name for this recurring pattern. E.g. 'Approval loop under pressure' or 'Preemptive emotional retreat'.",
   "the_move": "1-2 lines. The single behavioral shift that interrupts this pattern today.",
   "scores": { "perception": 0-100, "emotional_control": 0-100, "authenticity": 0-100, "confidence": 0-100 },
@@ -915,6 +930,7 @@ Return STRICT JSON:
   "how_it_reads_to_others": "2-3 lines. How the key people in this situation will perceive this decision — not whether it's right, but what it signals about the user.",
   "what_it_reveals": "1-2 lines. What this decision reveals about the user beneath the surface — their fear, their values, or their need.",
   "blind_spot": "1-2 lines. What the user cannot see about how this lands.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "the_strongest_version": "1-2 lines. If they're going to make this move, what's the most powerful way to do it — or the framing that makes it land strongest.",
   "alternative_read": "Optional. If there's a significantly stronger alternative decision that would land better, name it in one line. If not, omit.",
   "scores": { "perception": 0-100, "confidence": 0-100, "authority": 0-100, "authenticity": 0-100 },
@@ -926,6 +942,7 @@ ${memoryContext}
 
 Decision type: ${data.decision_type ?? "not specified"}
 Context: ${data.context_note ?? "none"}
+IMPORTANT: If the user provided context above, let it meaningfully shape the read. The same words land differently in different relationships, situations, and cultures. A direct message to a close friend reads differently than the same message to a new contact. Weight the context heavily when forming the perception read.
 The decision:
 """
 ${data.decision}
@@ -1009,6 +1026,7 @@ Return STRICT JSON:
   "first_impression": "2-3 lines. What a stranger feels and concludes in the first 8 seconds of seeing this profile. Specific and behavioral.",
   "what_it_signals": "2-3 lines. What the profile reveals about the person beyond what they intend — status signals, insecurity signals, confidence signals.",
   "blind_spot": "1-2 lines. The thing the profile owner cannot see about how this reads.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "profile_verdict": "one of: 'Magnetic', 'Credible', 'Generic', 'Trying too hard', 'Underplaying', 'Confusing'",
   "verdict_reason": "One line explaining the verdict.",
   "strongest_element": "One line. The single strongest thing about this profile.",
@@ -1029,7 +1047,8 @@ Bio:
 ${data.bio}
 """
 What their posts are like: ${data.post_description ?? "not described"}
-Context: ${data.context_note ?? "none"}`
+Context: ${data.context_note ?? "none"}
+IMPORTANT: If the user provided context above, let it meaningfully shape the read. The same words land differently in different relationships, situations, and cultures. A direct message to a close friend reads differently than the same message to a new contact. Weight the context heavily when forming the perception read.`
     );
 
     let parsed: any;
