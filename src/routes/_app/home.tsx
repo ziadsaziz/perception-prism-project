@@ -198,7 +198,7 @@ function Home() {
         )}
       </GlassPanel>
 
-      <MirrorScore />
+
 
 
 
@@ -283,7 +283,10 @@ function Home() {
         </div>
       </section>
 
+      <MirrorScore />
+
       <section>
+
         <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">Your current pattern</p>
         <GlassPanel className="mt-2 p-5">
           {pattern ? (
