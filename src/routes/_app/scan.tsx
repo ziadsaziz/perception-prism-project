@@ -992,8 +992,8 @@ function SocialScan() {
         </GlassPanel>
       ) : (
         <>
-          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
-          {canScan && (
+          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
+          {canAccessElite && (
             <>
               <div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">Platform</p>
