@@ -1223,8 +1223,8 @@ function SelfieScan() {
         </GlassPanel>
       ) : (
         <>
-          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
-          {canScan && (
+          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
+          {canAccessElite && (
             <>
               <input
                 ref={fileRef}
