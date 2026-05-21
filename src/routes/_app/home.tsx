@@ -198,7 +198,7 @@ function Home() {
         )}
       </GlassPanel>
 
-      <MirrorScore />
+
 
 
 
