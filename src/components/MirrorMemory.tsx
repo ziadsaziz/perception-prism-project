@@ -22,8 +22,9 @@ const TYPE_LABELS: Record<string, string> = {
   scan_insight: "Scan insight",
 };
 
-function formatType(type: string): string {
-  return TYPE_LABELS[type] ?? type.replace(/_/g, " ");
+function formatType(type: string | null): string {
+  const t = type ?? "";
+  return TYPE_LABELS[t] ?? t.replace(/_/g, " ");
 }
 
 export function MirrorMemory() {
@@ -47,8 +48,8 @@ export function MirrorMemory() {
 
   const count = memories.length;
   const baselineEntry = memories.find(m => m.memory_type === "baseline_read");
-  const signals = memories.filter(m => m.memory_type.startsWith("onboarding_signal"));
-  const insights = memories.filter(m => !m.memory_type.startsWith("onboarding") && m.memory_type !== "baseline_read");
+  const signals = memories.filter(m => m.memory_type?.startsWith("onboarding_signal") ?? false);
+  const insights = memories.filter(m => !(m.memory_type?.startsWith("onboarding") ?? false) && m.memory_type !== "baseline_read");
 
   return (
     <section>

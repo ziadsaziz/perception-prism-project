@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { generateDailyRead } from "@/lib/ai.functions";
 import { ScoreRing } from "@/components/ScoreRing";
+import { MirrorMemory } from "@/components/MirrorMemory";
 import { GlassPanel } from "@/components/GlassPanel";
 import { ScanLine, Image as ImageIcon, Mic, Sparkles, ChevronRight } from "lucide-react";
 
@@ -187,6 +188,7 @@ function Home() {
           )}
         </GlassPanel>
       </section>
+      <MirrorMemory />
     </main>
   );
 }

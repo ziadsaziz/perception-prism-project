@@ -285,6 +285,15 @@ ${data.conversation}
       score_json: parsed.scores ?? null,
     }).select().single();
 
+    // Save insight to mirror memory
+    if (parsed.blind_spot) {
+      await supabase.from("mirror_memory").insert({
+        user_id: userId,
+        memory_type: "scan_insight",
+        memory_text: parsed.blind_spot,
+      });
+    }
+
     if (parsed.scores) {
       await supabase.from("perception_scores").insert({
         user_id: userId,
