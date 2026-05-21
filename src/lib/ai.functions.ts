@@ -1026,6 +1026,7 @@ Return STRICT JSON:
   "first_impression": "2-3 lines. What a stranger feels and concludes in the first 8 seconds of seeing this profile. Specific and behavioral.",
   "what_it_signals": "2-3 lines. What the profile reveals about the person beyond what they intend — status signals, insecurity signals, confidence signals.",
   "blind_spot": "1-2 lines. The thing the profile owner cannot see about how this reads.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "profile_verdict": "one of: 'Magnetic', 'Credible', 'Generic', 'Trying too hard', 'Underplaying', 'Confusing'",
   "verdict_reason": "One line explaining the verdict.",
   "strongest_element": "One line. The single strongest thing about this profile.",
