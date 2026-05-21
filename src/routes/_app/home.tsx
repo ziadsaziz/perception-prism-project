@@ -128,11 +128,30 @@ function Home() {
         ) : (
           <>
             <p className="mt-3 font-display text-[22px] leading-snug text-gradient">{daily.read}</p>
-            <div className="mt-5 flex items-center justify-between pt-4 border-t border-border/40">
+            <div className="mt-5 pt-4 border-t border-border/40 space-y-3">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">The move</p>
                 <p className="text-sm text-foreground/90 mt-1">{daily.mission}</p>
               </div>
+              {!moveDone ? (
+                <button
+                  onClick={async () => {
+                    setMoveDone(true);
+                    if (user) {
+                      await supabase.from("daily_checkins").upsert({
+                        user_id: user.id,
+                        date: new Date().toISOString().slice(0, 10),
+                        move_completed: true,
+                      }, { onConflict: "user_id,date" });
+                    }
+                  }}
+                  className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/60 hover:text-accent transition-colors border border-white/[0.08] rounded-full px-4 py-2"
+                >
+                  I did this
+                </button>
+              ) : (
+                <p className="text-[10px] uppercase tracking-[0.28em] text-accent">Mirror noted.</p>
+              )}
             </div>
             {daily.early && (
               <p className="mt-4 text-[10px] uppercase tracking-[0.24em] text-muted-foreground/70">Early read · Mirror gets sharper as it sees more</p>
