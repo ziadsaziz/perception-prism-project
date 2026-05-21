@@ -15,6 +15,7 @@ type ScoreRow = {
   authenticity_score: number | null;
   emotional_control_score: number | null;
   mystery_score: number | null;
+  mirror_score: number | null;
   created_at: string;
 };
 
@@ -83,7 +84,7 @@ function Evolution() {
     Promise.all([
       supabase
         .from("perception_scores")
-        .select("*")
+        .select("perception_score, confidence_score, attraction_score, authority_score, approachability_score, authenticity_score, emotional_control_score, mystery_score, mirror_score, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20),
@@ -143,10 +144,16 @@ function Evolution() {
             <GlassPanel className="p-5 space-y-4">
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                    Overall perception
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">
+                    Mirror Score
                   </p>
-                  <p className="font-display text-4xl text-gradient mt-1">
+                  <p className="font-display text-4xl text-gradient mt-1 tabular-nums">
+                    {latest.mirror_score ?? 0}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mt-3">
+                    Perception
+                  </p>
+                  <p className="font-display text-2xl text-foreground/90 mt-1 tabular-nums">
                     {latest.perception_score}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
