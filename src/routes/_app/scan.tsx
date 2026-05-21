@@ -1324,7 +1324,7 @@ function SocialResult({ result, onReset, onShare }: { result: any; onReset: () =
       </div>
 
       {(result.strongest_element || result.weakest_element) && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className={`grid gap-2 ${result.strongest_element && result.weakest_element ? "grid-cols-2" : "grid-cols-1"}`}>
           {result.strongest_element && (
             <div className="bg-black/40 border border-[#C9A84C]/20 rounded-2xl px-4 py-3">
               <p className="text-[9px] uppercase tracking-[0.28em] text-[#C9A84C] mb-1">Strongest</p>
