@@ -117,7 +117,7 @@ function Landing() {
           <h2 className="font-display text-2xl text-gradient">Eight ways to see yourself.</h2>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {[
             { label: "Text Conversation", desc: "What they actually felt" },
             { label: "Selfie & Presence", desc: "First impression read" },
@@ -128,7 +128,7 @@ function Landing() {
             { label: "Social Profile", desc: "How strangers read you" },
             { label: "Decision Perception", desc: "How this choice lands" },
           ].map((item) => (
-            <div key={item.label} className="bg-glass ring-hairline rounded-2xl p-4">
+            <div key={item.label} className="bg-glass ring-hairline rounded-2xl p-3">
               <p className="text-[12px] font-medium text-white leading-snug">{item.label}</p>
               <p className="mt-1 text-[11px] text-muted-foreground leading-snug">{item.desc}</p>
             </div>
