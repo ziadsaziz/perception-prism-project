@@ -15,7 +15,7 @@ function Patterns() {
     if (!user) return;
     Promise.all([
       supabase.from("patterns").select("*").eq("user_id", user.id).order("frequency", { ascending: false }),
-      supabase.from("scans").select("scan_type, ai_summary, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(8),
+      supabase.from("scans").select("scan_type, ai_summary, result_json, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(8),
     ]).then(([p, s]) => { setPatterns(p.data ?? []); setScans(s.data ?? []); });
   }, [user]);
 
