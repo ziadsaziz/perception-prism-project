@@ -7,11 +7,14 @@ import {
   Scripts,
   Link,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { MirrorBackdrop } from "@/components/MirrorBackdrop";
+import manifestUrl from "../../public/manifest.json?url";
+import icon192Url from "../../public/icon-192.png?url";
 
 function NotFoundComponent() {
   return (
