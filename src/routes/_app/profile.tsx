@@ -6,6 +6,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { supabase } from "@/integrations/supabase/client";
 import { exportMirrorData } from "@/lib/export";
 import { GlassPanel } from "@/components/GlassPanel";
+import { WeeklyReport } from "@/components/WeeklyReport";
 import { toast } from "sonner";
 import { Check, Sparkles } from "lucide-react";
 
@@ -191,6 +192,10 @@ function Profile() {
           />
           <Row label="Delete all scans" sub="Wipe Mirror's memory of you" action="Delete" danger onClick={deleteAllScans} />
         </GlassPanel>
+      </section>
+
+      <section>
+        <WeeklyReport />
       </section>
 
       {/* Daily read history */}

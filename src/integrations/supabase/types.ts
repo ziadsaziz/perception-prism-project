@@ -332,6 +332,45 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_reports: {
+        Row: {
+          blind_spot: string | null
+          created_at: string
+          dominant_pattern: string | null
+          full_report: string
+          id: string
+          perception_shift: string | null
+          score_delta: number | null
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          blind_spot?: string | null
+          created_at?: string
+          dominant_pattern?: string | null
+          full_report: string
+          id?: string
+          perception_shift?: string | null
+          score_delta?: number | null
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          blind_spot?: string | null
+          created_at?: string
+          dominant_pattern?: string | null
+          full_report?: string
+          id?: string
+          perception_shift?: string | null
+          score_delta?: number | null
+          user_id?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
