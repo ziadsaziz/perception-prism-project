@@ -62,7 +62,23 @@ function Profile() {
     <main className="px-5 pt-12 pb-6 space-y-5">
       <header>
         <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">Your Mirror</p>
-        <h1 className="font-display text-3xl text-gradient mt-1">{profile?.name ?? "—"}</h1>
+        <h1 className="font-display text-3xl text-gradient mt-1 inline-flex items-center gap-3">
+          {profile?.name ?? "—"}
+          <button
+            onClick={() => {
+              const n = prompt("Update your name:", profile?.name ?? "");
+              if (n?.trim()) {
+                supabase.from("profiles").update({ name: n.trim() }).eq("user_id", user?.id ?? "").then(() => {
+                  setProfile((p: any) => ({ ...p, name: n.trim() }));
+                  toast.success("Name updated.");
+                });
+              }
+            }}
+            className="text-[10px] uppercase tracking-[0.24em] text-white/30 hover:text-white/60"
+          >
+            Edit
+          </button>
+        </h1>
         <p className="mt-1 text-xs text-muted-foreground">{user?.email}</p>
       </header>
 
@@ -98,7 +114,7 @@ function Profile() {
             <div className="space-y-3 pt-2">
               <PricingCard
                 name="Plus"
-                price="$9"
+                price="$9.99"
                 features={[
                   "Unlimited text scans",
                   "Daily reads & missions",
@@ -110,7 +126,7 @@ function Profile() {
               />
               <PricingCard
                 name="Elite"
-                price="$29"
+                price="$24.99"
                 features={[
                   "Everything in Plus",
                   "Voice, selfie, social, dating scans",
