@@ -47,8 +47,11 @@ export function ScoreRing({ value, label, locked = false, delta }: ScoreRingProp
           </div>
         )}
       </div>
-      <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground text-center leading-tight">
-        {locked ? "——" : label}
+      <span
+        className="text-[9px] uppercase tracking-[0.2em] text-center leading-tight"
+        style={{ color: locked ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.45)" }}
+      >
+        {label}
       </span>
     </div>
   );
