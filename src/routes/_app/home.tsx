@@ -26,6 +26,9 @@ function Home() {
   const [pattern, setPattern] = useState<any>(null);
   const [loadingRead, setLoadingRead] = useState(false);
   const [scanCount, setScanCount] = useState<number>(0);
+  const [lastScanDaysAgo, setLastScanDaysAgo] = useState<number | null>(null);
+  const [recentScans, setRecentScans] = useState<any[]>([]);
+  const [moveDone, setMoveDone] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
 
