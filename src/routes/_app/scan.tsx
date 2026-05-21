@@ -793,9 +793,25 @@ function DatingScan() {
                 className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
               />
 
-              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
-                Read this dynamic
-              </button>
+              <div className="space-y-2">
+                {situation.length > 0 && situation.length < 80 && (
+                  <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                    Mirror reads sharper with more context
+                  </p>
+                )}
+                {situation.length > 0 && (
+                  <p className="text-center text-[10px] text-muted-foreground/40">
+                    {situation.length} / 4000
+                  </p>
+                )}
+                <button
+                  onClick={run}
+                  disabled={situation.trim().length < 10}
+                  className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
+                >
+                  Read this dynamic
+                </button>
+              </div>
             </>
           )}
         </>
