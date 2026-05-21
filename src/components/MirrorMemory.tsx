@@ -134,12 +134,12 @@ export function MirrorMemory() {
                 <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Memory depth</p>
                 <p className="text-[10px] text-muted-foreground/70">
                   {count < 5
-                    ? "Early calibration &mdash; Mirror is still learning you."
+                    ? "Early calibration — Mirror is still learning you."
                     : count < 10
-                    ? "Developing &mdash; patterns are starting to emerge."
+                    ? "Developing — patterns are starting to emerge."
                     : count < 20
-                    ? "Established &mdash; Mirror knows how you move."
-                    : "Deep &mdash; Mirror has a clear picture of who you are."}
+                    ? "Established — Mirror knows how you move."
+                    : "Deep — Mirror has a clear picture of who you are."}
                 </p>
               </div>
               <div className="flex items-center gap-2">

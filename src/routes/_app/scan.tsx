@@ -930,7 +930,7 @@ const PROFILE_VERDICT_COLOR: Record<string, string> = {
 };
 
 function SocialScan() {
-  const { canScan, plan } = useSubscription();
+  const { canScan, plan, canAccessElite } = useSubscription();
   const fn = useServerFn(analyzeSocialProfile);
   const [platform, setPlatform] = useState("Instagram");
   const [username, setUsername] = useState("");
@@ -992,8 +992,8 @@ function SocialScan() {
         </GlassPanel>
       ) : (
         <>
-          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
-          {canScan && (
+          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
+          {canAccessElite && (
             <>
               <div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">Platform</p>
@@ -1370,9 +1370,7 @@ function VoiceScan() {
   const recognitionRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const speechSegmentsRef = useRef<Array<{ start: number; end: number; text: string; confidence: number }>>([]);
   const pausesRef = useRef<Array<number>>([]);
   const fillerCountRef = useRef<number>(0);
   const wordCountRef = useRef<number>(0);
@@ -1414,7 +1412,6 @@ function VoiceScan() {
         const source = audioContext.createMediaStreamSource(stream);
         source.connect(analyser);
         audioContextRef.current = audioContext;
-        analyserRef.current = analyser;
 
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         volumeIntervalRef.current = setInterval(() => {
@@ -1428,7 +1425,6 @@ function VoiceScan() {
         }, 200);
       }
 
-      speechSegmentsRef.current = [];
       pausesRef.current = [];
       fillerCountRef.current = 0;
       wordCountRef.current = 0;
@@ -1470,12 +1466,7 @@ function VoiceScan() {
               }
             }
 
-            speechSegmentsRef.current.push({
-              start: lastSpeechEndRef.current ?? 0,
-              end: now,
-              text: text.trim(),
-              confidence,
-            });
+
 
             lastSpeechEndRef.current = now;
             interimText = "";

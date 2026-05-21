@@ -24,13 +24,37 @@ function Advisor() {
   const [msgs, setMsgs] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("advisor_messages").select("role, content").eq("user_id", user.id).order("created_at", { ascending: true }).limit(40)
-      .then(({ data }) => setMsgs((data as any) ?? []));
+    supabase.from("advisor_messages").select("role, content").eq("user_id", user.id).order("created_at", { ascending: false }).limit(40)
+      .then(({ data }) => {
+        const reversed = ((data as any) ?? []).reverse();
+        setMsgs(reversed);
+        if ((data?.length ?? 0) === 40) setHasMore(true);
+      });
   }, [user]);
+
+  const loadMore = async () => {
+    if (!user || loadingMore) return;
+    setLoadingMore(true);
+    const newOffset = offset + 40;
+    const { data } = await supabase
+      .from("advisor_messages")
+      .select("role, content")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .range(newOffset, newOffset + 39);
+    const older = ((data as any) ?? []).reverse();
+    setMsgs(m => [...older, ...m]);
+    setOffset(newOffset);
+    if ((data?.length ?? 0) < 40) setHasMore(false);
+    setLoadingMore(false);
+  };
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
@@ -56,6 +80,15 @@ function Advisor() {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-3 scrollbar-none">
+        {hasMore && (
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="w-full py-3 text-[10px] uppercase tracking-[0.28em] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {loadingMore ? "Loading…" : "Load earlier messages"}
+          </button>
+        )}
         {msgs.length === 0 && (
           <div className="bg-glass ring-hairline rounded-2xl p-5">
             <p className="font-display text-lg text-gradient">No filler. No disclaimers.</p>
