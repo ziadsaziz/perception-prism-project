@@ -1029,6 +1029,7 @@ ${data.decision}
         authenticity_score: parsed.scores.authenticity ?? 50,
         emotional_control_score: 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
@@ -1131,6 +1132,7 @@ IMPORTANT: If the user provided context above, let it meaningfully shape the rea
         authenticity_score: parsed.scores.authenticity ?? 50,
         emotional_control_score: 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
@@ -1247,6 +1249,7 @@ Context from user: ${data.context_note ?? "none"}`
         authenticity_score: 50,
         emotional_control_score: 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
@@ -1338,6 +1341,7 @@ ${data.transcript}
         authenticity_score: parsed.scores.authenticity ?? 50,
         emotional_control_score: 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
