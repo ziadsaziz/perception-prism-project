@@ -518,7 +518,7 @@ ${memoryContext}`
             .order("created_at", { ascending: false })
             .limit(2);
 
-          if (prevScores && prevScores.length >= 2) {
+          if (prevScores && prevScores.length >= 2 && prevScores[1]?.perception_score != null) {
             const delta = parsed.scores.perception - prevScores[1].perception_score;
             if (Math.abs(delta) >= 5) {
               await createNotification(
