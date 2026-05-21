@@ -697,6 +697,9 @@ function EmotionResult({ result, onReset, onShare }: { result: any; onReset: () 
         <Insight label="What's actually happening" body={result.what_is_actually_happening} />
         <Insight label="The root" body={result.the_root} />
         <Insight label="How others read it" body={result.how_others_read_it} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The move" body={result.the_move} accent="ok" />
       </div>
