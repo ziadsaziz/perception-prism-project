@@ -1358,64 +1358,113 @@ function VoiceScan() {
   const [note, setNote] = useState("");
   const [recording, setRecording] = useState(false);
   const [recorded, setRecorded] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [transcribing, setTranscribing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState(0);
   const [result, setResult] = useState<any>(null);
   const [showCard, setShowCard] = useState(false);
   const [cardScore, setCardScore] = useState(0);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const recognitionRef = useState<any>(null);
+  const timerRef = useState<any>(null);
+  const liveTranscriptRef = useState<string>("");
 
   const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const chunks: Blob[] = [];
-      const mr = new MediaRecorder(stream);
-      mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-      mr.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(chunks, { type: "audio/webm" });
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        setRecorded(true);
-        setTranscribing(true);
-        const Recognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-        if (Recognition) {
-          const r = new Recognition();
-          r.continuous = true;
-          r.interimResults = false;
-          r.onresult = (event: any) => {
-            const t = Array.from(event.results).map((res: any) => res[0].transcript).join(" ");
-            setTranscript(t);
-          };
-          r.onend = () => setTranscribing(false);
-          r.onerror = () => {
-            setTranscribing(false);
-            toast("Could not auto-transcribe. Type what you said below.");
-          };
-          r.start();
-          setTimeout(() => r.stop(), 500);
-        } else {
-          setTranscribing(false);
-          toast("Auto-transcription not supported. Type what you said below.");
-        }
-      };
-      mr.start();
-      setMediaRecorder(mr);
-      setRecording(true);
-    } catch {
-      toast.error("Microphone access denied.");
+    const Recognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+    if (!Recognition) {
+      toast("Your browser doesn't support live transcription. Use 'Type transcript' mode instead.");
+      setMode("type");
+      return;
     }
+
+    try {
+      // Test mic access first
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      toast.error("Microphone access denied. Check your browser settings.");
+      return;
+    }
+
+    // Reset
+    liveTranscriptRef[1]("");
+    setTranscript("");
+    setRecordingSeconds(0);
+
+    // Start live speech recognition
+    const recognition = new Recognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    let finalTranscript = "";
+
+    recognition.onresult = (event: any) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + " ";
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      // Show live transcript as user speaks
+      setTranscript(finalTranscript + interim);
+      liveTranscriptRef[1](finalTranscript + interim);
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event.error === "no-speech") return; // ignore silence gaps
+      if (event.error === "not-allowed") {
+        toast.error("Microphone permission denied.");
+        setRecording(false);
+      }
+    };
+
+    recognition.onend = () => {
+      // If still recording (browser cut off recognition), restart it
+      if (recognitionRef[0]?.active) {
+        recognition.start();
+      }
+    };
+
+    recognition.start();
+    recognitionRef[1](recognition);
+    (recognition as any).active = true;
+
+    setRecording(true);
+    setRecorded(false);
+
+    // Timer
+    let seconds = 0;
+    const timer = setInterval(() => {
+      seconds += 1;
+      setRecordingSeconds(seconds);
+      if (seconds >= 180) { // 3 min max
+        stopRecording();
+      }
+    }, 1000);
+    timerRef[1](timer);
   };
 
   const stopRecording = () => {
-    mediaRecorder?.stop();
+    const recognition = recognitionRef[0];
+    if (recognition) {
+      (recognition as any).active = false;
+      recognition.stop();
+      recognitionRef[1](null);
+    }
+    const timer = timerRef[0];
+    if (timer) {
+      clearInterval(timer);
+      timerRef[1](null);
+    }
     setRecording(false);
+    setRecorded(true);
+    // Use whatever was captured
+    setTranscript(t => t.trim() || liveTranscriptRef[0].trim());
   };
 
   const run = async () => {
-    if (transcript.trim().length < 10) { toast.error("Mirror needs to hear what you said."); return; }
+    if (transcript.trim().length < 10) { toast.error("Mirror needs to hear what you said — type it below if needed."); return; }
     setLoading(true); setResult(null); setStage(0);
     const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
     try {
@@ -1430,13 +1479,18 @@ function VoiceScan() {
     } finally { clearInterval(t); setLoading(false); }
   };
 
+  const reset = () => {
+    setResult(null);
+    setTranscript("");
+    setRecorded(false);
+    setRecordingSeconds(0);
+    setShowCard(false);
+    liveTranscriptRef[1]("");
+  };
+
   if (result) return (
     <>
-      <VoiceResult
-        result={result}
-        onReset={() => { setResult(null); setTranscript(""); setRecorded(false); setAudioUrl(null); setShowCard(false); }}
-        onShare={() => setShowCard(true)}
-      />
+      <VoiceResult result={result} onReset={reset} onShare={() => setShowCard(true)} />
       {showCard && result.read && (
         <MirrorCard
           read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
@@ -1447,6 +1501,8 @@ function VoiceScan() {
     </>
   );
 
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
       <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
@@ -1455,7 +1511,7 @@ function VoiceScan() {
       <header>
         <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Voice · Energy</p>
         <h1 className="font-display text-3xl text-gradient mt-1">How do you sound?</h1>
-        <p className="mt-2 text-xs text-muted-foreground">Record yourself or type what you said. Mirror reads the energy, confidence, and patterns in how you speak.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Speak naturally for 30–60 seconds. Mirror reads the energy, confidence, and patterns in how you speak.</p>
       </header>
 
       {loading ? (
@@ -1466,18 +1522,18 @@ function VoiceScan() {
         </GlassPanel>
       ) : (
         <>
-          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
+          {!canScan && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
           {canScan && (
             <>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setMode("record")}
+                  onClick={() => { setMode("record"); setTranscript(""); setRecorded(false); }}
                   className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${mode === "record" ? "bg-foreground text-background" : "bg-glass ring-hairline text-muted-foreground"}`}
                 >
                   Record
                 </button>
                 <button
-                  onClick={() => setMode("type")}
+                  onClick={() => { setMode("type"); if (recording) stopRecording(); }}
                   className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${mode === "type" ? "bg-foreground text-background" : "bg-glass ring-hairline text-muted-foreground"}`}
                 >
                   Type transcript
@@ -1485,42 +1541,59 @@ function VoiceScan() {
               </div>
 
               {mode === "record" && (
-                <div className="bg-glass ring-hairline rounded-2xl p-6 flex flex-col items-center gap-3">
-                  {!recorded ? (
-                    <>
-                      <button
-                        onClick={recording ? stopRecording : startRecording}
-                        className={`h-20 w-20 rounded-full flex items-center justify-center transition-colors ${recording ? "bg-red-500/80 animate-pulse" : "bg-foreground/10 hover:bg-foreground/15"}`}
-                      >
-                        <Mic className={`h-8 w-8 ${recording ? "text-white" : "text-accent"}`} />
-                      </button>
-                      <p className="text-sm text-foreground/90">
-                        {recording ? "Recording — tap to stop" : "Tap to start recording"}
+                <GlassPanel className="p-6 text-center space-y-4">
+                  <button
+                    onClick={recording ? stopRecording : startRecording}
+                    className={`h-20 w-20 rounded-full mx-auto flex items-center justify-center transition-all ${
+                      recording
+                        ? "bg-red-500 scale-110 shadow-lg shadow-red-500/30"
+                        : "bg-foreground hover:scale-105"
+                    }`}
+                  >
+                    <Mic className={`h-7 w-7 ${recording ? "text-white" : "text-background"}`} strokeWidth={1.5} />
+                  </button>
+
+                  {recording && (
+                    <div className="space-y-1">
+                      <p className="text-[11px] uppercase tracking-[0.28em] text-red-400 animate-pulse">
+                        Recording — {formatTime(recordingSeconds)}
                       </p>
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Speak naturally. 30–60 seconds is ideal.</p>
-                    </>
-                  ) : (
-                    <>
-                      {audioUrl && <audio src={audioUrl} controls className="w-full" />}
-                      {transcribing ? (
-                        <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground animate-pulse">Transcribing…</p>
-                      ) : (
-                        <p className="text-[11px] uppercase tracking-[0.24em] text-[#C9A84C]">Recording captured</p>
-                      )}
+                      <p className="text-[10px] text-muted-foreground/50">Tap to stop</p>
+                    </div>
+                  )}
+
+                  {!recording && !recorded && (
+                    <div className="space-y-1">
+                      <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Tap to start</p>
+                      <p className="text-[10px] text-muted-foreground/40">30–60 seconds is ideal</p>
+                    </div>
+                  )}
+
+                  {recorded && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] uppercase tracking-[0.28em] text-[#C9A84C]">
+                        Captured · {formatTime(recordingSeconds)}
+                      </p>
                       <button
-                        onClick={() => { setRecorded(false); setAudioUrl(null); setTranscript(""); }}
+                        onClick={() => { setRecorded(false); setTranscript(""); setRecordingSeconds(0); liveTranscriptRef[1](""); }}
                         className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground"
                       >
                         Record again
                       </button>
-                    </>
+                    </div>
                   )}
-                </div>
+
+                  {recording && transcript && (
+                    <p className="text-[12px] text-white/40 leading-relaxed text-left px-2 line-clamp-3 italic">
+                      {transcript}
+                    </p>
+                  )}
+                </GlassPanel>
               )}
 
               <div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">
-                  {mode === "record" ? "Transcript (auto-filled or edit)" : "What did you say?"}
+                  {mode === "record" ? "Live transcript — edit if needed" : "Type what you said"}
                 </p>
                 <textarea
                   value={transcript}
@@ -1528,31 +1601,34 @@ function VoiceScan() {
                   rows={6}
                   maxLength={5000}
                   placeholder={mode === "record"
-                    ? "Transcript appears here after recording. Edit it if needed, or type it manually…"
-                    : "Type or paste what you said. Include filler words, pauses, repetitions — Mirror needs the raw version, not the cleaned-up one…"
+                    ? "Your words appear here as you speak. Edit them after recording if anything was missed…"
+                    : "Type or paste what you said. Include filler words, pauses, repetitions — Mirror needs the raw version…"
                   }
                   className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
                 />
               </div>
 
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">Describe how you sounded (optional)</p>
-                <input
-                  value={vocalDescription}
-                  onChange={e => setVocalDescription(e.target.value)}
-                  maxLength={500}
-                  placeholder="E.g. I spoke fast, trailed off at the end, kept saying 'like', sounded nervous…"
-                  className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
-                />
-              </div>
+              <input
+                value={vocalDescription}
+                onChange={e => setVocalDescription(e.target.value)}
+                maxLength={500}
+                placeholder="How did you sound? Fast, slow, nervous, trailing off… (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+              />
 
               <input
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 maxLength={500}
-                placeholder="What was the context? (optional — pitch, date, difficult convo…)"
+                placeholder="Context — pitch, date, difficult conversation… (optional)"
                 className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
               />
+
+              <GlassPanel className="p-4">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground leading-relaxed">
+                  Mirror analyzes the transcript and vocal patterns you describe — not raw audio. Speech recognition runs on-device. Nothing is uploaded.
+                </p>
+              </GlassPanel>
 
               <button
                 onClick={run}
