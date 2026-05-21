@@ -114,7 +114,7 @@ function Profile() {
             <div className="space-y-3 pt-2">
               <PricingCard
                 name="Plus"
-                price="$9"
+                price="$9.99"
                 features={[
                   "Unlimited text scans",
                   "Daily reads & missions",
