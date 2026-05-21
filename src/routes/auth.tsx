@@ -98,9 +98,17 @@ function Auth() {
         {mode === "signup" ? "Already have an account?" : "First time? Create your Mirror"}
       </button>
 
-      <p className="mt-auto pt-8 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-        Private. End-to-end. Yours alone.
-      </p>
+      <div className="mt-auto pt-8 space-y-3 text-center">
+        <p
+          className="text-[12px] text-muted-foreground/70 leading-relaxed italic transition-opacity duration-700"
+          key={lineIndex}
+        >
+          &ldquo;{PSYCH_LINES[lineIndex]}&rdquo;
+        </p>
+        <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/40">
+          Private. End-to-end. Yours alone.
+        </p>
+      </div>
     </main>
   );
 }
