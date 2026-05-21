@@ -6,6 +6,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { supabase } from "@/integrations/supabase/client";
 import { exportMirrorData } from "@/lib/export";
 import { GlassPanel } from "@/components/GlassPanel";
+import { WeeklyReport } from "@/components/WeeklyReport";
 import { toast } from "sonner";
 import { Check, Sparkles } from "lucide-react";
 
