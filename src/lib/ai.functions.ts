@@ -909,6 +909,7 @@ How often this happens: ${data.how_often ?? "not specified"}`
         authenticity_score: parsed.scores.authenticity ?? 50,
         emotional_control_score: parsed.scores.emotional_control ?? 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
