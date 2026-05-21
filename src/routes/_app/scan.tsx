@@ -1364,111 +1364,278 @@ function VoiceScan() {
   const [showCard, setShowCard] = useState(false);
   const [cardScore, setCardScore] = useState(0);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const recognitionRef = useState<any>(null);
-  const timerRef = useState<any>(null);
-  const liveTranscriptRef = useState<string>("");
+  const [speechMetrics, setSpeechMetrics] = useState<any>(null);
+
+  // Refs
+  const recognitionRef = useRef<any>(null);
+  const timerRef = useRef<any>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const speechSegmentsRef = useRef<Array<{ start: number; end: number; text: string; confidence: number }>>([]);
+  const pausesRef = useRef<Array<number>>([]);
+  const fillerCountRef = useRef<number>(0);
+  const wordCountRef = useRef<number>(0);
+  const volumeSamplesRef = useRef<Array<number>>([]);
+  const lastSpeechEndRef = useRef<number | null>(null);
+  const recordingStartRef = useRef<number>(0);
+  const confidenceScoresRef = useRef<Array<number>>([]);
+  const finalTranscriptRef = useRef<string>("");
+  const volumeIntervalRef = useRef<any>(null);
+
+  const FILLER_WORDS = ["um", "uh", "like", "you know", "basically", "literally", "right", "so", "okay", "actually", "i mean", "kind of", "sort of"];
+
+  const countFillers = (text: string): number => {
+    const lower = text.toLowerCase();
+    return FILLER_WORDS.reduce((count, word) => {
+      const regex = new RegExp(`\\b${word}\\b`, "g");
+      return count + (lower.match(regex)?.length ?? 0);
+    }, 0);
+  };
 
   const startRecording = async () => {
     const Recognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
     if (!Recognition) {
-      toast("Your browser doesn't support live transcription. Use 'Type transcript' mode instead.");
+      toast("Your browser doesn't support live transcription. Use 'Type transcript' mode.");
       setMode("type");
       return;
     }
 
     try {
-      // Test mic access first
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      toast.error("Microphone access denied. Check your browser settings.");
-      return;
-    }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-    // Reset
-    liveTranscriptRef[1]("");
-    setTranscript("");
-    setRecordingSeconds(0);
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const audioContext = new AudioCtx();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        audioContextRef.current = audioContext;
+        analyserRef.current = analyser;
 
-    // Start live speech recognition
-    const recognition = new Recognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        volumeIntervalRef.current = setInterval(() => {
+          analyser.getByteTimeDomainData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += Math.abs(dataArray[i] - 128);
+          }
+          const volume = sum / dataArray.length;
+          volumeSamplesRef.current.push(volume);
+        }, 200);
+      }
 
-    let finalTranscript = "";
+      speechSegmentsRef.current = [];
+      pausesRef.current = [];
+      fillerCountRef.current = 0;
+      wordCountRef.current = 0;
+      volumeSamplesRef.current = [];
+      confidenceScoresRef.current = [];
+      finalTranscriptRef.current = "";
+      lastSpeechEndRef.current = null;
+      recordingStartRef.current = Date.now();
 
-    recognition.onresult = (event: any) => {
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + " ";
-        } else {
-          interim += event.results[i][0].transcript;
+      const recognition = new Recognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+      recognitionRef.current = recognition;
+      (recognition as any).active = true;
+
+      let interimText = "";
+
+      recognition.onresult = (event: any) => {
+        const now = Date.now() - recordingStartRef.current;
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const r = event.results[i];
+          const text = r[0].transcript;
+          const confidence = r[0].confidence ?? 0.5;
+
+          if (r.isFinal) {
+            finalTranscriptRef.current += text + " ";
+            confidenceScoresRef.current.push(confidence);
+
+            const words = text.trim().split(/\s+/).filter(Boolean);
+            wordCountRef.current += words.length;
+            fillerCountRef.current += countFillers(text);
+
+            if (lastSpeechEndRef.current !== null) {
+              const pause = now - lastSpeechEndRef.current;
+              if (pause > 800) {
+                pausesRef.current.push(pause);
+              }
+            }
+
+            speechSegmentsRef.current.push({
+              start: lastSpeechEndRef.current ?? 0,
+              end: now,
+              text: text.trim(),
+              confidence,
+            });
+
+            lastSpeechEndRef.current = now;
+            interimText = "";
+          } else {
+            interimText = text;
+          }
+
+          setTranscript(finalTranscriptRef.current + interimText);
         }
-      }
-      // Show live transcript as user speaks
-      setTranscript(finalTranscript + interim);
-      liveTranscriptRef[1](finalTranscript + interim);
-    };
+      };
 
-    recognition.onerror = (event: any) => {
-      if (event.error === "no-speech") return; // ignore silence gaps
-      if (event.error === "not-allowed") {
-        toast.error("Microphone permission denied.");
-        setRecording(false);
-      }
-    };
+      recognition.onerror = (event: any) => {
+        if (event.error === "no-speech") return;
+        if (event.error === "not-allowed") {
+          toast.error("Microphone permission denied.");
+          stopRecording();
+        }
+      };
 
-    recognition.onend = () => {
-      // If still recording (browser cut off recognition), restart it
-      if (recognitionRef[0]?.active) {
-        recognition.start();
-      }
-    };
+      recognition.onend = () => {
+        if ((recognition as any).active) {
+          try { recognition.start(); } catch {}
+        }
+      };
 
-    recognition.start();
-    recognitionRef[1](recognition);
-    (recognition as any).active = true;
+      recognition.start();
+      setRecording(true);
+      setRecorded(false);
 
-    setRecording(true);
-    setRecorded(false);
+      let seconds = 0;
+      timerRef.current = setInterval(() => {
+        seconds += 1;
+        setRecordingSeconds(seconds);
+        if (seconds >= 180) stopRecording();
+      }, 1000);
 
-    // Timer
-    let seconds = 0;
-    const timer = setInterval(() => {
-      seconds += 1;
-      setRecordingSeconds(seconds);
-      if (seconds >= 180) { // 3 min max
-        stopRecording();
-      }
-    }, 1000);
-    timerRef[1](timer);
+    } catch {
+      toast.error("Microphone access denied.");
+    }
   };
 
   const stopRecording = () => {
-    const recognition = recognitionRef[0];
-    if (recognition) {
-      (recognition as any).active = false;
-      recognition.stop();
-      recognitionRef[1](null);
+    if (recognitionRef.current) {
+      (recognitionRef.current as any).active = false;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
     }
-    const timer = timerRef[0];
-    if (timer) {
-      clearInterval(timer);
-      timerRef[1](null);
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
+
+    if (volumeIntervalRef.current) {
+      clearInterval(volumeIntervalRef.current);
+      volumeIntervalRef.current = null;
+    }
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+
+    const totalSeconds = recordingSeconds || 1;
+    const totalWords = wordCountRef.current;
+    const wpm = Math.round((totalWords / totalSeconds) * 60);
+    const pauses = pausesRef.current;
+    const avgPause = pauses.length > 0 ? Math.round(pauses.reduce((a, b) => a + b, 0) / pauses.length) : 0;
+    const longPauses = pauses.filter(p => p > 2000).length;
+    const fillers = fillerCountRef.current;
+    const fillerRate = totalWords > 0 ? Math.round((fillers / totalWords) * 100) : 0;
+    const avgConfidence = confidenceScoresRef.current.length > 0
+      ? confidenceScoresRef.current.reduce((a, b) => a + b, 0) / confidenceScoresRef.current.length
+      : 0.5;
+
+    const samples = volumeSamplesRef.current;
+    let volumeTrend = "stable";
+    if (samples.length > 10) {
+      const firstThird = samples.slice(0, Math.floor(samples.length / 3));
+      const lastThird = samples.slice(Math.floor(samples.length * 2 / 3));
+      const avgFirst = firstThird.reduce((a, b) => a + b, 0) / firstThird.length;
+      const avgLast = lastThird.reduce((a, b) => a + b, 0) / lastThird.length;
+      if (avgLast < avgFirst * 0.6) volumeTrend = "trailing off";
+      else if (avgLast > avgFirst * 1.4) volumeTrend = "building up";
+      else volumeTrend = "stable";
+    }
+
+    const fullText = finalTranscriptRef.current;
+    const sentences = fullText.split(/[.!?]+/).filter(Boolean);
+    const trailingStatements = sentences.filter(s => {
+      const words = s.trim().split(" ");
+      const lastWord = words[words.length - 1]?.toLowerCase() ?? "";
+      return ["right", "okay", "yeah", "no", "though"].includes(lastWord);
+    }).length;
+
+    const metrics = {
+      duration_seconds: totalSeconds,
+      words_per_minute: wpm,
+      total_words: totalWords,
+      pause_count: pauses.length,
+      long_pause_count: longPauses,
+      avg_pause_ms: avgPause,
+      filler_word_count: fillers,
+      filler_rate_percent: fillerRate,
+      speech_confidence_avg: Math.round(avgConfidence * 100),
+      volume_trend: volumeTrend,
+      trailing_statements: trailingStatements,
+      sentence_count: sentences.length,
+    };
+
+    setSpeechMetrics(metrics);
+
+    const autoParts: string[] = [];
+    if (wpm > 160) autoParts.push("spoke very fast");
+    else if (wpm < 100) autoParts.push("spoke slowly");
+    else autoParts.push(`spoke at ${wpm} words per minute`);
+
+    if (longPauses > 3) autoParts.push(`paused ${longPauses} times for over 2 seconds`);
+    else if (pauses.length > 5) autoParts.push(`${pauses.length} noticeable pauses`);
+
+    if (fillerRate > 15) autoParts.push(`heavy filler word use (${fillerRate}% of words)`);
+    else if (fillerRate > 7) autoParts.push(`some filler words (${fillerRate}% of words)`);
+
+    if (volumeTrend === "trailing off") autoParts.push("voice trailed off toward the end of sentences");
+    if (volumeTrend === "building up") autoParts.push("voice grew stronger through the recording");
+
+    if (avgConfidence < 0.5) autoParts.push("speech recognition had low confidence — possible mumbling or hesitation");
+
+    if (trailingStatements > 2) autoParts.push(`${trailingStatements} statements ended with hedging words`);
+
+    setVocalDescription(autoParts.join(", "));
+    setTranscript(finalTranscriptRef.current.trim());
     setRecording(false);
     setRecorded(true);
-    // Use whatever was captured
-    setTranscript(t => t.trim() || liveTranscriptRef[0].trim());
   };
 
   const run = async () => {
-    if (transcript.trim().length < 10) { toast.error("Mirror needs to hear what you said — type it below if needed."); return; }
+    if (transcript.trim().length < 10) { toast.error("Mirror needs more to work with."); return; }
     setLoading(true); setResult(null); setStage(0);
     const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
     try {
-      const r = await fn({ data: { transcript, vocal_description: vocalDescription, context_note: note } });
+      const metricsDescription = speechMetrics ? `
+Speech behavior metrics (measured by browser):
+- Duration: ${speechMetrics.duration_seconds}s
+- Speaking pace: ${speechMetrics.words_per_minute} words per minute (normal is 120-150)
+- Pauses: ${speechMetrics.pause_count} total, ${speechMetrics.long_pause_count} over 2 seconds
+- Average pause length: ${speechMetrics.avg_pause_ms}ms
+- Filler words: ${speechMetrics.filler_word_count} (${speechMetrics.filler_rate_percent}% of total words)
+- Speech recognition confidence: ${speechMetrics.speech_confidence_avg}% (low = mumbled/hesitant)
+- Volume trend: ${speechMetrics.volume_trend}
+- Sentences with hedging endings: ${speechMetrics.trailing_statements}
+- Total sentences: ${speechMetrics.sentence_count}` : "";
+
+      const fullVocalDescription = [vocalDescription, metricsDescription].filter(Boolean).join("\n");
+
+      const r = await fn({ data: { transcript, vocal_description: fullVocalDescription, context_note: note } });
       setResult(r.result);
       if (r.result?.scores?.perception) {
         setCardScore(r.result.scores.perception);
@@ -1484,13 +1651,15 @@ function VoiceScan() {
     setTranscript("");
     setRecorded(false);
     setRecordingSeconds(0);
+    setSpeechMetrics(null);
+    setVocalDescription("");
     setShowCard(false);
-    liveTranscriptRef[1]("");
+    finalTranscriptRef.current = "";
   };
 
   if (result) return (
     <>
-      <VoiceResult result={result} onReset={reset} onShare={() => setShowCard(true)} />
+      <VoiceResult result={result} metrics={speechMetrics} onReset={reset} onShare={() => setShowCard(true)} />
       {showCard && result.read && (
         <MirrorCard
           read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
@@ -1511,7 +1680,7 @@ function VoiceScan() {
       <header>
         <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Voice · Energy</p>
         <h1 className="font-display text-3xl text-gradient mt-1">How do you sound?</h1>
-        <p className="mt-2 text-xs text-muted-foreground">Speak naturally for 30–60 seconds. Mirror reads the energy, confidence, and patterns in how you speak.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Mirror measures your pace, pauses, filler words, and volume patterns — not just what you said.</p>
       </header>
 
       {loading ? (
@@ -1526,107 +1695,103 @@ function VoiceScan() {
           {canScan && (
             <>
               <div className="flex gap-2">
-                <button
-                  onClick={() => { setMode("record"); setTranscript(""); setRecorded(false); }}
-                  className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${mode === "record" ? "bg-foreground text-background" : "bg-glass ring-hairline text-muted-foreground"}`}
-                >
+                <button onClick={() => { setMode("record"); reset(); }}
+                  className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${mode === "record" ? "bg-foreground text-background" : "bg-glass ring-hairline text-muted-foreground"}`}>
                   Record
                 </button>
-                <button
-                  onClick={() => { setMode("type"); if (recording) stopRecording(); }}
-                  className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${mode === "type" ? "bg-foreground text-background" : "bg-glass ring-hairline text-muted-foreground"}`}
-                >
+                <button onClick={() => { setMode("type"); if (recording) stopRecording(); }}
+                  className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${mode === "type" ? "bg-foreground text-background" : "bg-glass ring-hairline text-muted-foreground"}`}>
                   Type transcript
                 </button>
               </div>
 
               {mode === "record" && (
-                <GlassPanel className="p-6 text-center space-y-4">
-                  <button
-                    onClick={recording ? stopRecording : startRecording}
-                    className={`h-20 w-20 rounded-full mx-auto flex items-center justify-center transition-all ${
-                      recording
-                        ? "bg-red-500 scale-110 shadow-lg shadow-red-500/30"
-                        : "bg-foreground hover:scale-105"
-                    }`}
-                  >
-                    <Mic className={`h-7 w-7 ${recording ? "text-white" : "text-background"}`} strokeWidth={1.5} />
-                  </button>
+                <GlassPanel className="p-6 space-y-4">
+                  <div className="flex flex-col items-center space-y-3">
+                    <button
+                      onClick={recording ? stopRecording : startRecording}
+                      className={`h-20 w-20 rounded-full flex items-center justify-center transition-all ${
+                        recording ? "bg-red-500 scale-110" : "bg-foreground hover:scale-105"
+                      }`}
+                    >
+                      <Mic className={`h-7 w-7 ${recording ? "text-white" : "text-background"}`} strokeWidth={1.5} />
+                    </button>
 
-                  {recording && (
-                    <div className="space-y-1">
-                      <p className="text-[11px] uppercase tracking-[0.28em] text-red-400 animate-pulse">
-                        Recording — {formatTime(recordingSeconds)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/50">Tap to stop</p>
-                    </div>
-                  )}
+                    {recording && (
+                      <div className="text-center space-y-1">
+                        <p className="text-[11px] uppercase tracking-[0.28em] text-red-400 animate-pulse">
+                          Recording — {formatTime(recordingSeconds)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/50">Speak naturally. Tap to stop.</p>
+                      </div>
+                    )}
 
-                  {!recording && !recorded && (
-                    <div className="space-y-1">
-                      <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Tap to start</p>
-                      <p className="text-[10px] text-muted-foreground/40">30–60 seconds is ideal</p>
-                    </div>
-                  )}
+                    {!recording && !recorded && (
+                      <div className="text-center space-y-1">
+                        <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Tap to start</p>
+                        <p className="text-[10px] text-muted-foreground/40">30–90 seconds is ideal</p>
+                      </div>
+                    )}
 
-                  {recorded && (
-                    <div className="space-y-2">
-                      <p className="text-[11px] uppercase tracking-[0.28em] text-[#C9A84C]">
-                        Captured · {formatTime(recordingSeconds)}
-                      </p>
-                      <button
-                        onClick={() => { setRecorded(false); setTranscript(""); setRecordingSeconds(0); liveTranscriptRef[1](""); }}
-                        className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground"
-                      >
-                        Record again
-                      </button>
-                    </div>
-                  )}
+                    {recorded && (
+                      <div className="text-center space-y-2">
+                        <p className="text-[11px] uppercase tracking-[0.28em] text-[#C9A84C]">
+                          Captured · {formatTime(recordingSeconds)}
+                        </p>
+                        <button onClick={reset} className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                          Record again
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
                   {recording && transcript && (
-                    <p className="text-[12px] text-white/40 leading-relaxed text-left px-2 line-clamp-3 italic">
+                    <p className="text-[12px] text-white/40 leading-relaxed text-left line-clamp-2 italic border-t border-white/[0.04] pt-3">
                       {transcript}
                     </p>
+                  )}
+
+                  {recorded && speechMetrics && (
+                    <div className="border-t border-white/[0.06] pt-4 grid grid-cols-3 gap-3">
+                      <MetricPill label="Pace" value={`${speechMetrics.words_per_minute} wpm`} flag={speechMetrics.words_per_minute > 170 || speechMetrics.words_per_minute < 90} />
+                      <MetricPill label="Pauses" value={`${speechMetrics.pause_count}`} flag={speechMetrics.long_pause_count > 3} />
+                      <MetricPill label="Fillers" value={`${speechMetrics.filler_rate_percent}%`} flag={speechMetrics.filler_rate_percent > 10} />
+                      <MetricPill label="Volume" value={speechMetrics.volume_trend} flag={speechMetrics.volume_trend === "trailing off"} />
+                      <MetricPill label="Confidence" value={`${speechMetrics.speech_confidence_avg}%`} flag={speechMetrics.speech_confidence_avg < 50} />
+                      <MetricPill label="Duration" value={formatTime(speechMetrics.duration_seconds)} flag={false} />
+                    </div>
                   )}
                 </GlassPanel>
               )}
 
               <div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">
-                  {mode === "record" ? "Live transcript — edit if needed" : "Type what you said"}
+                  {mode === "record" ? "Transcript — edit if anything was missed" : "What did you say?"}
                 </p>
                 <textarea
                   value={transcript}
                   onChange={e => setTranscript(e.target.value)}
-                  rows={6}
+                  rows={5}
                   maxLength={5000}
                   placeholder={mode === "record"
-                    ? "Your words appear here as you speak. Edit them after recording if anything was missed…"
-                    : "Type or paste what you said. Include filler words, pauses, repetitions — Mirror needs the raw version…"
+                    ? "Your words appear here as you speak. Include filler words — don't clean it up…"
+                    : "Type exactly what you said. Include um's, uh's, pauses — Mirror needs the raw version…"
                   }
                   className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
                 />
               </div>
 
               <input
-                value={vocalDescription}
-                onChange={e => setVocalDescription(e.target.value)}
-                maxLength={500}
-                placeholder="How did you sound? Fast, slow, nervous, trailing off… (optional)"
-                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
-              />
-
-              <input
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 maxLength={500}
-                placeholder="Context — pitch, date, difficult conversation… (optional)"
+                placeholder="What was the context? Pitch, date, difficult convo… (optional)"
                 className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
               />
 
               <GlassPanel className="p-4">
                 <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground leading-relaxed">
-                  Mirror analyzes the transcript and vocal patterns you describe — not raw audio. Speech recognition runs on-device. Nothing is uploaded.
+                  Mirror measures pace, pauses, filler words, and volume — not just your words. Everything runs on-device. Nothing is uploaded.
                 </p>
               </GlassPanel>
 
@@ -1645,7 +1810,16 @@ function VoiceScan() {
   );
 }
 
-function VoiceResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
+function MetricPill({ label, value, flag }: { label: string; value: string; flag: boolean }) {
+  return (
+    <div className={`rounded-xl px-3 py-2 text-center ${flag ? "bg-red-950/30 border border-red-900/30" : "bg-white/[0.03] border border-white/[0.06]"}`}>
+      <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+      <p className={`text-[12px] font-medium mt-0.5 ${flag ? "text-red-400" : "text-white/70"}`}>{value}</p>
+    </div>
+  );
+}
+
+function VoiceResult({ result, metrics, onReset, onShare }: { result: any; metrics?: any; onReset: () => void; onShare?: () => void }) {
   return (
     <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
       <div className="flex items-center justify-between">
@@ -1684,6 +1858,20 @@ function VoiceResult({ result, onReset, onShare }: { result: any; onReset: () =>
       <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
       <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
 
+      {metrics && (
+        <GlassPanel className="p-4">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-3">What Mirror measured</p>
+          <div className="grid grid-cols-3 gap-2">
+            <MetricPill label="Pace" value={`${metrics.words_per_minute} wpm`} flag={metrics.words_per_minute > 170 || metrics.words_per_minute < 90} />
+            <MetricPill label="Pauses" value={`${metrics.pause_count}`} flag={metrics.long_pause_count > 3} />
+            <MetricPill label="Fillers" value={`${metrics.filler_rate_percent}%`} flag={metrics.filler_rate_percent > 10} />
+            <MetricPill label="Volume" value={metrics.volume_trend} flag={metrics.volume_trend === "trailing off"} />
+            <MetricPill label="Confidence" value={`${metrics.speech_confidence_avg}%`} flag={metrics.speech_confidence_avg < 50} />
+            <MetricPill label="Duration" value={`${metrics.duration_seconds}s`} flag={false} />
+          </div>
+        </GlassPanel>
+      )}
+
       <div className="space-y-2.5">
         <Insight label="Energy read" body={result.energy_read} />
         <Insight label="Vocal patterns" body={result.vocal_patterns} />
@@ -1692,7 +1880,7 @@ function VoiceResult({ result, onReset, onShare }: { result: any; onReset: () =>
       </div>
 
       <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
-        Mirror reads energy, not just words
+        Mirror reads delivery, not just words
       </p>
     </main>
   );
