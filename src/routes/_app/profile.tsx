@@ -126,7 +126,7 @@ function Profile() {
               />
               <PricingCard
                 name="Elite"
-                price="$29"
+                price="$24.99"
                 features={[
                   "Everything in Plus",
                   "Voice, selfie, social, dating scans",
