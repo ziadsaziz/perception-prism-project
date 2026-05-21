@@ -34,6 +34,24 @@ async function callAI(system: string, user: string, json = true): Promise<string
   return data.choices?.[0]?.message?.content ?? "";
 }
 
+async function createNotification(
+  supabase: any,
+  userId: string,
+  type: string,
+  title: string,
+  body: string
+) {
+  try {
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type,
+      title,
+      body,
+    });
+  } catch {
+    // Non-blocking — never fail a scan because of a notification error
+  }
+
 // ============================================================
 // MIRROR VOICE SYSTEM
 // ============================================================
