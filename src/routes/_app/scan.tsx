@@ -140,7 +140,7 @@ function Scan() {
         <div>
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">Elite scans</p>
           <div className="grid grid-cols-2 gap-2">
-            {SCAN_TYPES.filter(s => ["selfie", "voice", "social"].includes(s.id)).map(s => (
+            {SCAN_TYPES.filter(s => ["selfie", "voice"].includes(s.id)).map(s => (
               <Link key={s.id} to="/scan" search={{ type: s.id }}
                 className="bg-glass ring-hairline rounded-2xl p-4 active:scale-[0.99] transition-transform">
                 <div className="h-8 w-8 rounded-xl bg-secondary/60 flex items-center justify-center mb-3">
