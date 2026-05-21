@@ -1466,12 +1466,7 @@ function VoiceScan() {
               }
             }
 
-            speechSegmentsRef.current.push({
-              start: lastSpeechEndRef.current ?? 0,
-              end: now,
-              text: text.trim(),
-              confidence,
-            });
+
 
             lastSpeechEndRef.current = now;
             interimText = "";
