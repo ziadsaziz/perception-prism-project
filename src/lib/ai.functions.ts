@@ -241,6 +241,18 @@ export const generateDailyRead = createServerFn({ method: "POST" })
     const isEarly = (scans?.length ?? 0) < 2;
     const yesterdayLine = yesterday?.read ? `Yesterday Mirror said: "${yesterday.read}" — do not repeat this observation.` : "";
 
+    const now = new Date();
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayOfWeek = dayNames[now.getDay()];
+    const hour = now.getHours();
+    const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+
+    const { count: weekScanCount } = await supabase
+      .from("scans")
+      .select("id", { count: "exact" })
+      .eq("user_id", userId)
+      .gte("created_at", new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()).toISOString());
+
     const content = await callAI(
       voiceFor(profile?.tone_preference ?? "Direct"),
       `Write today's Mirror daily observation for this user. This appears every morning — it must feel like Mirror noticed something new overnight. Never repeat yesterday's observation.
@@ -252,6 +264,13 @@ Return STRICT JSON:
   "early": ${isEarly}
 }
 
+Temporal context:
+- Today is ${dayOfWeek} ${timeOfDay}
+- The user has run ${weekScanCount ?? 0} scans this week
+- ${dayOfWeek === "Monday" ? "It is the start of the week. The read should feel like a reset — fresh, forward-looking." : ""}
+- ${dayOfWeek === "Friday" || dayOfWeek === "Saturday" ? "It is the end of the week. The read can reflect on what the week surfaced." : ""}
+- ${(weekScanCount ?? 0) === 0 ? "The user has not scanned this week. The read should gently invite them back." : ""}
+- ${(weekScanCount ?? 0) >= 5 ? "The user has been very active this week. The read should acknowledge the pattern building." : ""}
 ${isEarly ? "Mirror has limited context. Keep claims small." : ""}
 ${yesterdayLine}
 
