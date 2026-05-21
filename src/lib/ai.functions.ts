@@ -1117,6 +1117,7 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         model: MODEL,
+        max_tokens: 800,
         messages: [
           { role: "system", content: system },
           {
