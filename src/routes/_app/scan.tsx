@@ -930,7 +930,7 @@ const PROFILE_VERDICT_COLOR: Record<string, string> = {
 };
 
 function SocialScan() {
-  const { canScan, plan } = useSubscription();
+  const { canScan, plan, canAccessElite } = useSubscription();
   const fn = useServerFn(analyzeSocialProfile);
   const [platform, setPlatform] = useState("Instagram");
   const [username, setUsername] = useState("");
