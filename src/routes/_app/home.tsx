@@ -7,7 +7,7 @@ import { generateDailyRead } from "@/lib/ai.functions";
 import { ScoreRing } from "@/components/ScoreRing";
 import { MirrorMemory } from "@/components/MirrorMemory";
 import { GlassPanel } from "@/components/GlassPanel";
-import { ScanLine, Image as ImageIcon, Mic, Sparkles, ChevronRight } from "lucide-react";
+import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 
 export const Route = createFileRoute("/_app/home")({ component: Home });
