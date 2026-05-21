@@ -80,6 +80,15 @@ function Advisor() {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-3 scrollbar-none">
+        {hasMore && (
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="w-full py-3 text-[10px] uppercase tracking-[0.28em] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {loadingMore ? "Loading…" : "Load earlier messages"}
+          </button>
+        )}
         {msgs.length === 0 && (
           <div className="bg-glass ring-hairline rounded-2xl p-5">
             <p className="font-display text-lg text-gradient">No filler. No disclaimers.</p>
