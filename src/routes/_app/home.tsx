@@ -22,7 +22,7 @@ function Home() {
   const dailyFn = useServerFn(generateDailyRead);
   const [profile, setProfile] = useState<any>(null);
   const [scores, setScores] = useState<Scores | null>(null);
-  const [daily, setDaily] = useState<{ read: string; mission: string; early?: boolean } | null>(null);
+  const [daily, setDaily] = useState<{ read: string; mission: string; early?: boolean; isNew?: boolean } | null>(null);
   const [pattern, setPattern] = useState<any>(null);
   const [loadingRead, setLoadingRead] = useState(false);
   const [scanCount, setScanCount] = useState<number>(0);
