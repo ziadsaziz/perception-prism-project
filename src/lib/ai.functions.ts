@@ -506,6 +506,29 @@ Return STRICT JSON only:
         authority_score: parsed.scores.authority ?? 50,
         authenticity_score: parsed.scores.authenticity ?? 50,
       });
+
+      if (parsed.scores?.perception) {
+        const prevScore = (await supabase
+          .from("perception_scores")
+          .select("perception_score")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(2)).data?.[1]?.perception_score;
+
+        if (prevScore !== undefined && prevScore !== null) {
+          const delta = parsed.scores.perception - prevScore;
+          if (Math.abs(delta) >= 5) {
+            await createNotification(
+              supabase, userId,
+              "score_shift",
+              delta > 0 ? `Perception up ${delta} points.` : `Perception dropped ${Math.abs(delta)} points.`,
+              delta > 0
+                ? "Your reads are shifting in the right direction. Keep scanning."
+                : "Mirror noticed a dip. Run a scan to understand what shifted."
+            );
+          }
+        }
+      }
     }
     return { scan, result: parsed };
   });
