@@ -1110,6 +1110,9 @@ function DecisionResult({ result, onReset, onShare }: { result: any; onReset: ()
       <div className="space-y-2.5">
         <Insight label="How it reads to others" body={result.how_it_reads_to_others} />
         <Insight label="What it reveals" body={result.what_it_reveals} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The strongest version" body={result.the_strongest_version} accent="ok" />
       </div>
