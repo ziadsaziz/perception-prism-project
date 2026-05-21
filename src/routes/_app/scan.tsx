@@ -2042,7 +2042,8 @@ function VoiceResult({ result, metrics, onReset, onShare }: { result: any; metri
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      {(result.energy_verdict || result.confidence_read) && (
+      <div className={`grid gap-2 ${result.energy_verdict && result.confidence_read ? "grid-cols-2" : "grid-cols-1"}`}>
         {result.energy_verdict && (
           <div className="bg-black/40 border border-white/[0.06] rounded-2xl px-4 py-3">
             <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Energy</p>
@@ -2063,6 +2064,7 @@ function VoiceResult({ result, metrics, onReset, onShare }: { result: any; metri
           </div>
         )}
       </div>
+      )}
 
       <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
       <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
