@@ -1171,3 +1171,154 @@ ${data.transcript}
 
     return { scan, result: parsed };
   });
+
+// ============================================================
+// 12. Weekly Blind Spot Report
+// ============================================================
+export const generateWeeklyReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    const { data: existing } = await supabase
+      .from("weekly_reports")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("week_start", weekStart.toISOString().slice(0, 10))
+      .maybeSingle();
+
+    if (existing) return existing;
+
+    const [
+      { data: profile },
+      { data: weekScans },
+      { data: allPatterns },
+      { data: recentScores },
+      { data: memory },
+      { data: dailyReads },
+    ] = await Promise.all([
+      supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("scans")
+        .select("scan_type, ai_summary, result_json, created_at")
+        .eq("user_id", userId)
+        .gte("created_at", weekStart.toISOString())
+        .order("created_at", { ascending: false }),
+      supabase.from("patterns")
+        .select("pattern_name, pattern_description, frequency, evidence, impact, fix")
+        .eq("user_id", userId)
+        .order("frequency", { ascending: false })
+        .limit(5),
+      supabase.from("perception_scores")
+        .select("perception_score, confidence_score, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase.from("mirror_memory")
+        .select("memory_type, memory_text")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase.from("daily_reads")
+        .select("read, mission, date")
+        .eq("user_id", userId)
+        .gte("date", weekStart.toISOString().slice(0, 10))
+        .order("date", { ascending: false }),
+    ]);
+
+    const scanSummaries = (weekScans ?? []).map((s: any) =>
+      `- [${s.scan_type}] ${s.ai_summary ?? ""}`
+    ).join("\n") || "(no scans this week)";
+
+    const patternLines = (allPatterns ?? []).map((p: any) =>
+      `- ${p.pattern_name} (seen ${p.frequency}x): ${p.pattern_description}`
+    ).join("\n") || "(no patterns yet)";
+
+    const memoryLines = (memory ?? []).map((m: any) =>
+      `- ${m.memory_type}: ${m.memory_text}`
+    ).join("\n") || "(no memory)";
+
+    const dailyLines = (dailyReads ?? []).map((r: any) =>
+      `- ${r.date}: ${r.read}`
+    ).join("\n") || "(no daily reads this week)";
+
+    const scores = recentScores ?? [];
+    const scoreDelta = scores.length >= 2
+      ? (scores[0].perception_score ?? 0) - (scores[scores.length - 1].perception_score ?? 0)
+      : 0;
+
+    const isEarlyUser = (weekScans?.length ?? 0) < 2;
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `Generate this user's Weekly Blind Spot Report. This is not a summary. This is Mirror's most important read of the week — the pattern that defined it, the blind spot that kept appearing, how their perception shifted, and the single most important move for next week.
+
+${isEarlyUser ? "Mirror has limited data this week. Keep claims small. Frame as an early read. Do not invent patterns." : ""}
+
+Return STRICT JSON:
+{
+  "dominant_pattern": "The single most important pattern Mirror observed this week. 1-2 lines. Specific and behavioral — not generic.",
+  "blind_spot": "The recurring thing they cannot see about themselves this week. 1-2 lines. The thing that kept showing up across multiple scans or situations.",
+  "perception_shift": "How their perception score moved this week and what drove it. 1-2 lines. Reference specific behavior if possible.",
+  "the_week_read": "ONE sharp line summarizing what defined this week for them perceptually. This is the line they'd screenshot.",
+  "full_report": "4-6 paragraphs. The complete weekly read. Each paragraph is 2-4 sentences. Grounded in what Mirror actually observed this week — scans, patterns, daily reads. Not generic. Not encouraging. Just what Mirror saw. End with the single most important move for next week.",
+  "next_move": "One specific, concrete action for next week. Not a mindset shift — a behavior change.",
+  "score_delta": ${scoreDelta}
+}
+
+User goal: ${profile?.main_goal ?? "—"}
+This week's scans:
+${scanSummaries}
+
+Recurring patterns Mirror has detected:
+${patternLines}
+
+What Mirror remembers:
+${memoryLines}
+
+This week's daily reads:
+${dailyLines}
+
+Perception score change this week: ${scoreDelta > 0 ? "+" : ""}${scoreDelta} points`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch {
+      parsed = {
+        dominant_pattern: "",
+        blind_spot: "",
+        perception_shift: "",
+        the_week_read: content.slice(0, 140),
+        full_report: content,
+        next_move: "",
+        score_delta: scoreDelta,
+      };
+    }
+
+    const { data: report } = await supabase.from("weekly_reports").insert({
+      user_id: userId,
+      week_start: weekStart.toISOString().slice(0, 10),
+      week_end: weekEnd.toISOString().slice(0, 10),
+      dominant_pattern: parsed.dominant_pattern ?? "",
+      blind_spot: parsed.blind_spot ?? "",
+      perception_shift: parsed.perception_shift ?? "",
+      full_report: parsed.full_report ?? "",
+      score_delta: parsed.score_delta ?? 0,
+    }).select().single();
+
+    if (parsed.blind_spot) {
+      await supabase.from("mirror_memory").insert({
+        user_id: userId,
+        memory_type: "weekly_blind_spot",
+        memory_text: parsed.blind_spot,
+      });
+    }
+
+    return { ...report, the_week_read: parsed.the_week_read, next_move: parsed.next_move };
+  });
