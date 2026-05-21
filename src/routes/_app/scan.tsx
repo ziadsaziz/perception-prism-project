@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { analyzeTextConversation } from "@/lib/ai.functions";
+import { analyzeTextConversation, analyzePost } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
