@@ -1415,6 +1415,13 @@ Perception score change this week: ${scoreDelta > 0 ? "+" : ""}${scoreDelta} poi
       score_delta: parsed.score_delta ?? 0,
     }).select().single();
 
+    await createNotification(
+      supabase, userId,
+      "weekly_report",
+      "Your weekly report is ready.",
+      parsed.the_week_read?.slice(0, 120) ?? "Mirror has compiled your week."
+    );
+
     if (parsed.blind_spot) {
       await supabase.from("mirror_memory").insert({
         user_id: userId,
