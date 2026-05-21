@@ -20,7 +20,7 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon },
   { id: "voice", title: "Voice & Energy", desc: "How you sound to others. Charisma map.", icon: Mic },
   { id: "social", title: "Social Profile", desc: "How your profile lands. Status read.", icon: Globe },
-  { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText },
+  { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText, active: true },
   { id: "dating", title: "Dating Dynamic", desc: "Interest, leverage, attachment, next move.", icon: Heart },
   { id: "emotion", title: "Emotional Pattern", desc: "Detect projection, fear, hidden need.", icon: Brain },
   { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass },
