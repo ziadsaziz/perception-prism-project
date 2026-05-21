@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeTextConversation } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
+import { MirrorCard } from "@/components/MirrorCard";
 import { toast } from "sonner";
 import { ScanLine, Image as ImageIcon, Mic, Globe, FileText, Heart, Brain, Compass, Loader2, ArrowLeft } from "lucide-react";
 
