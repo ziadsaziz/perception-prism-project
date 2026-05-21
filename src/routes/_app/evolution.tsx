@@ -7,14 +7,14 @@ import { GlassPanel } from "@/components/GlassPanel";
 export const Route = createFileRoute("/_app/evolution")({ component: Evolution });
 
 type ScoreRow = {
-  perception_score: number;
-  confidence_score: number;
-  attraction_score: number;
-  authority_score: number;
-  approachability_score: number;
-  authenticity_score: number;
-  emotional_control_score: number;
-  mystery_score: number;
+  perception_score: number | null;
+  confidence_score: number | null;
+  attraction_score: number | null;
+  authority_score: number | null;
+  approachability_score: number | null;
+  authenticity_score: number | null;
+  emotional_control_score: number | null;
+  mystery_score: number | null;
   created_at: string;
 };
 
