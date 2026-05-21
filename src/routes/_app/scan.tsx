@@ -5,6 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { analyzeTextConversation } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
 import { ScanLine, Image as ImageIcon, Mic, Globe, FileText, Heart, Brain, Compass, Loader2, ArrowLeft } from "lucide-react";
 
@@ -64,6 +66,7 @@ function Scan() {
 }
 
 function TextScan() {
+  const { canScan, plan, scansRemaining } = useSubscription();
   const fn = useServerFn(analyzeTextConversation);
   const [text, setText] = useState("");
   const [note, setNote] = useState("");
@@ -72,6 +75,7 @@ function TextScan() {
   const [result, setResult] = useState<any>(null);
   const [showCard, setShowCard] = useState(false);
   const [cardScore, setCardScore] = useState(0);
+
 
   const run = async () => {
     if (text.trim().length < 10) { toast.error("Mirror needs at least a few lines."); return; }
@@ -126,15 +130,27 @@ function TextScan() {
         </GlassPanel>
       ) : (
         <>
-          <textarea value={text} onChange={e => setText(e.target.value)} rows={10} maxLength={8000}
-            placeholder={`Me: hey, are we still on for tonight?\nThem: yeah maybe, I'll let you know\nMe: ok lmk asap...`}
-            className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none" />
-          <input value={note} onChange={e => setNote(e.target.value)} maxLength={500}
-            placeholder="One line of context (optional)"
-            className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30" />
-          <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
-            Read this
-          </button>
+          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
+
+          {canScan && (
+            <>
+              <textarea value={text} onChange={e => setText(e.target.value)} rows={10} maxLength={8000}
+                placeholder={`Me: hey, are we still on for tonight?\nThem: yeah maybe, I'll let you know\nMe: ok lmk asap...`}
+                className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none" />
+              <input value={note} onChange={e => setNote(e.target.value)} maxLength={500}
+                placeholder="One line of context (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30" />
+              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
+                Read this
+              </button>
+            </>
+          )}
+
+          {canScan && scansRemaining !== Infinity && (
+            <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+              {scansRemaining} {scansRemaining === 1 ? "scan" : "scans"} remaining this month
+            </p>
+          )}
         </>
       )}
     </main>
@@ -193,6 +209,19 @@ function Insight({ label, body, accent }: { label: string; body: string; accent?
 }
 
 function ComingSoon({ type }: { type: string }) {
+  const { canAccessElite } = useSubscription();
+
+  if (!canAccessElite) {
+    return (
+      <main className="px-5 pt-12 pb-6 space-y-5">
+        <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> All scans
+        </Link>
+        <UpgradePrompt reason="elite_feature" currentPlan="free" />
+      </main>
+    );
+  }
+
   return (
     <main className="px-5 pt-12 pb-6 space-y-5">
       <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
@@ -201,8 +230,7 @@ function ComingSoon({ type }: { type: string }) {
       <GlassPanel glow className="p-8 text-center mt-10">
         <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Coming Soon · {type}</p>
         <h1 className="mt-4 font-display text-2xl text-gradient">Mirror is calibrating this read.</h1>
-        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">Selfie, voice, and social scans unlock with Mirror Elite. Text scans are live now.</p>
-        <Link to="/scan" search={{ type: "text" }} className="mt-6 inline-block rounded-full bg-foreground text-background px-5 py-3 text-xs uppercase tracking-[0.24em]">Run a text scan</Link>
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">This scan type is being built now. You'll be the first to know when it's live.</p>
       </GlassPanel>
     </main>
   );
