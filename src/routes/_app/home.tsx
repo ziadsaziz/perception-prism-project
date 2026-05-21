@@ -9,6 +9,7 @@ import { MirrorMemory } from "@/components/MirrorMemory";
 import { GlassPanel } from "@/components/GlassPanel";
 import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { MirrorScore } from "@/components/MirrorScore";
 
 export const Route = createFileRoute("/_app/home")({ component: Home });
 
@@ -196,6 +197,10 @@ function Home() {
           </>
         )}
       </GlassPanel>
+
+      <MirrorScore />
+
+
 
       <section>
         <div className="flex items-center justify-between px-1 mb-2">

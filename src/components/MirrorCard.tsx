@@ -51,7 +51,7 @@ export function MirrorCard({ read, score, onClose }: MirrorCardProps) {
         {/* Score */}
         <div className="flex items-center justify-between pt-4 border-t border-[#C9A84C]/15">
           <div>
-            <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground/50">Perception score</p>
+            <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground/50">Mirror Score</p>
             <p className="font-display text-3xl text-[#C9A84C] mt-1">{score}</p>
           </div>
           <div className="text-right">

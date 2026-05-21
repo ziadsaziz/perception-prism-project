@@ -54,6 +54,51 @@ async function createNotification(
   }
 }
 
+function computeMirrorScore(scores: any): number {
+  if (!scores) return 0;
+  return Math.min(1000, Math.round((
+    (scores.perception ?? 50) * 0.20 +
+    (scores.confidence ?? 50) * 0.15 +
+    (scores.attraction ?? 50) * 0.13 +
+    (scores.authority ?? 50) * 0.12 +
+    (scores.approachability ?? 50) * 0.10 +
+    (scores.authenticity ?? 50) * 0.12 +
+    (scores.emotional_control ?? 50) * 0.10 +
+    (scores.mystery ?? 50) * 0.08
+  ) * 10));
+}
+
+async function checkMirrorScoreMilestone(supabase: any, userId: string, newScore: number) {
+  const milestones = [300, 500, 700, 900];
+  const { data: prev } = await supabase
+    .from("perception_scores")
+    .select("mirror_score")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(2);
+
+  if (!prev || prev.length < 2) return;
+  const prevScore = prev[1].mirror_score ?? 0;
+
+  for (const m of milestones) {
+    if (prevScore < m && newScore >= m) {
+      const labels: Record<number, string> = {
+        300: "Developing",
+        500: "Aware",
+        700: "Sharp",
+        900: "Commanding",
+      };
+      await createNotification(
+        supabase, userId,
+        "milestone",
+        `Mirror Score: ${newScore} — ${labels[m]}`,
+        `You crossed ${m}. Mirror has been watching this build.`
+      );
+      break;
+    }
+  }
+}
+
 // ============================================================
 // MIRROR VOICE SYSTEM
 // ============================================================
@@ -413,6 +458,16 @@ ${memoryContext}`
     (async () => {
       try {
         if (parsed.scores) {
+          const mirrorScore = Math.min(1000, Math.round((
+            (parsed.scores.perception ?? 50) * 0.20 +
+            (parsed.scores.confidence ?? 50) * 0.15 +
+            (parsed.scores.attraction ?? 50) * 0.13 +
+            (parsed.scores.authority ?? 50) * 0.12 +
+            (parsed.scores.approachability ?? 50) * 0.10 +
+            (parsed.scores.authenticity ?? 50) * 0.12 +
+            (parsed.scores.emotional_control ?? 50) * 0.10 +
+            (parsed.scores.mystery ?? 50) * 0.08
+          ) * 10));
           await supabase.from("perception_scores").insert({
             user_id: userId,
             perception_score: parsed.scores.perception ?? 50,
@@ -423,7 +478,9 @@ ${memoryContext}`
             authenticity_score: parsed.scores.authenticity ?? 50,
             emotional_control_score: parsed.scores.emotional_control ?? 50,
             mystery_score: parsed.scores.mystery ?? 50,
+            mirror_score: mirrorScore,
           });
+          await checkMirrorScoreMilestone(supabase, userId, mirrorScore);
         }
 
         if (parsed.blind_spot) {
@@ -674,6 +731,7 @@ ${data.post_text}
         authenticity_score: parsed.scores.authenticity ?? 50,
         emotional_control_score: 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
@@ -764,6 +822,7 @@ ${data.situation}
         authenticity_score: 50,
         emotional_control_score: 50,
         mystery_score: parsed.scores.mystery ?? 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
@@ -850,6 +909,7 @@ How often this happens: ${data.how_often ?? "not specified"}`
         authenticity_score: parsed.scores.authenticity ?? 50,
         emotional_control_score: parsed.scores.emotional_control ?? 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
@@ -969,6 +1029,7 @@ ${data.decision}
         authenticity_score: parsed.scores.authenticity ?? 50,
         emotional_control_score: 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
@@ -1071,6 +1132,7 @@ IMPORTANT: If the user provided context above, let it meaningfully shape the rea
         authenticity_score: parsed.scores.authenticity ?? 50,
         emotional_control_score: 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
@@ -1187,6 +1249,7 @@ Context from user: ${data.context_note ?? "none"}`
         authenticity_score: 50,
         emotional_control_score: 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 
@@ -1278,6 +1341,7 @@ ${data.transcript}
         authenticity_score: parsed.scores.authenticity ?? 50,
         emotional_control_score: 50,
         mystery_score: 50,
+        mirror_score: computeMirrorScore(parsed.scores),
       });
     }
 

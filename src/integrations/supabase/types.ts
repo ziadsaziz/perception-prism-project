@@ -216,6 +216,7 @@ export type Database = {
           created_at: string
           emotional_control_score: number | null
           id: string
+          mirror_score: number | null
           mystery_score: number | null
           perception_score: number | null
           user_id: string
@@ -229,6 +230,7 @@ export type Database = {
           created_at?: string
           emotional_control_score?: number | null
           id?: string
+          mirror_score?: number | null
           mystery_score?: number | null
           perception_score?: number | null
           user_id: string
@@ -242,6 +244,7 @@ export type Database = {
           created_at?: string
           emotional_control_score?: number | null
           id?: string
+          mirror_score?: number | null
           mystery_score?: number | null
           perception_score?: number | null
           user_id?: string
@@ -412,7 +415,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_mirror_score: {
+        Args: {
+          approachability: number
+          attraction: number
+          authenticity: number
+          authority: number
+          confidence: number
+          emotional_control: number
+          mystery: number
+          perception: number
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
