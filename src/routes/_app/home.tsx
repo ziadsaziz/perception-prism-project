@@ -228,3 +228,136 @@ function QuickAction({ to, search, icon: Icon, label, sub }: any) {
     </Link>
   );
 }
+
+function ProfileSetup({ userId, onComplete }: { userId: string; onComplete: (name: string) => void }) {
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState("");
+  const [goal, setGoal] = useState("");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const GOALS = [
+    "Come across more confident",
+    "Improve how I'm perceived",
+    "Understand people better",
+    "Get better at dating",
+    "Advance my career",
+    "Just curious about myself",
+  ];
+
+  const REASONS = [
+    "Someone misread me recently",
+    "I want to know my blind spots",
+    "I feel like I'm losing people",
+    "I want to be more magnetic",
+    "I want to stop second-guessing myself",
+  ];
+
+  const save = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    await supabase.from("profiles").update({
+      name: name.trim(),
+      main_goal: goal,
+      biggest_insecurity: reason,
+    }).eq("user_id", userId);
+    onComplete(name.trim());
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex items-center justify-center px-5">
+      <div className="w-full max-w-md space-y-6">
+        {step === 0 && (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">One last thing</p>
+              <h2 className="font-display text-3xl text-gradient">What do you go by?</h2>
+              <p className="text-sm text-muted-foreground">Mirror uses this in your reads.</p>
+            </div>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && name.trim()) setStep(1); }}
+              placeholder="First name"
+              autoFocus
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-5 py-4 text-[16px] text-white placeholder:text-white/25 focus:outline-none focus:border-white/20"
+            />
+            <button
+              onClick={() => setStep(1)}
+              disabled={!name.trim()}
+              className="w-full rounded-full border border-[#C9A84C]/50 text-[#C9A84C] py-4 text-[11px] uppercase tracking-[0.32em] disabled:opacity-25 hover:bg-[#C9A84C]/5 transition-colors"
+            >
+              Continue
+            </button>
+          </div>
+        )}
+
+        {step === 1 && (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">Your signal</p>
+              <h2 className="font-display text-3xl text-gradient">What brings you to Mirror?</h2>
+            </div>
+            <div className="space-y-2">
+              {GOALS.map(g => (
+                <button
+                  key={g}
+                  onClick={() => { setGoal(g); setStep(2); }}
+                  className={`w-full text-left rounded-2xl px-5 py-4 text-[14px] transition-colors ${
+                    goal === g
+                      ? "bg-[#C9A84C]/15 border border-[#C9A84C]/50 text-white"
+                      : "bg-white/[0.03] border border-white/[0.06] text-white/70 hover:bg-white/[0.06]"
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">The real question</p>
+              <h2 className="font-display text-3xl text-gradient">What made you download this?</h2>
+            </div>
+            <div className="space-y-2">
+              {REASONS.map(r => (
+                <button
+                  key={r}
+                  onClick={() => setReason(r)}
+                  className={`w-full text-left rounded-2xl px-5 py-4 text-[14px] transition-colors ${
+                    reason === r
+                      ? "bg-[#C9A84C]/15 border border-[#C9A84C]/50 text-white"
+                      : "bg-white/[0.03] border border-white/[0.06] text-white/70 hover:bg-white/[0.06]"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={save}
+              disabled={!reason || saving}
+              className="w-full rounded-full bg-[#C9A84C] text-background py-4 text-[11px] uppercase tracking-[0.32em] disabled:opacity-25"
+            >
+              {saving ? "Calibrating…" : "Enter Mirror"}
+            </button>
+          </div>
+        )}
+
+        {step > 0 && (
+          <div className="text-center">
+            <button
+              onClick={() => setStep(s => s - 1)}
+              className="text-[10px] uppercase tracking-[0.28em] text-white/30"
+            >
+              ← Back
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
