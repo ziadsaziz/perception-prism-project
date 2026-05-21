@@ -342,6 +342,92 @@ ${data.conversation}
       });
     }
 
+    // Detect and save behavioral pattern
+    try {
+      const { data: recentScans } = await supabase
+        .from("scans")
+        .select("ai_summary, result_json")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (recentScans && recentScans.length >= 1) {
+        const scanSummaries = recentScans
+          .map(s => s.ai_summary ?? "")
+          .filter(Boolean)
+          .join("\n");
+
+        const patternContent = await callAI(
+          `You are MIRROR's pattern detection engine. Your job is to identify one recurring behavioral pattern across a user's recent scans. Be specific, behavioral, and surgical. Never generic. Never therapeutic.
+
+Rules:
+- One pattern only. The most dominant one.
+- Name it in 3-5 words maximum. Sharp and specific. Example: "Pre-emptive emotional withdrawal" not "Communication issues".
+- Description in 2-3 lines. Grounded in what the scans showed. Behavioral language only.
+- Evidence in one line. What specifically keeps appearing.
+- Impact in one line. How this pattern lands on other people.
+- Fix in one line. The single behavioral shift that would change it.
+- Only identify a pattern if there is clear evidence. If there is not enough data say so.
+
+Return STRICT JSON only:
+{
+  "found": true or false,
+  "pattern_name": "3-5 word name",
+  "pattern_description": "2-3 lines describing the pattern",
+  "evidence": "one line of specific evidence from scans",
+  "impact": "one line on how this lands on others",
+  "fix": "one behavioral shift"
+}`,
+          `Recent scan summaries for this user:\n${scanSummaries}`
+        );
+
+        let patternParsed: any;
+        try { patternParsed = JSON.parse(patternContent); } catch { patternParsed = null; }
+
+        if (patternParsed?.found && patternParsed?.pattern_name) {
+          const { data: existing } = await supabase
+            .from("patterns")
+            .select("id, frequency")
+            .eq("user_id", userId)
+            .eq("pattern_name", patternParsed.pattern_name)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase
+              .from("patterns")
+              .update({
+                frequency: (existing.frequency ?? 1) + 1,
+                pattern_description: patternParsed.pattern_description,
+                evidence: patternParsed.evidence,
+                impact: patternParsed.impact,
+                fix: patternParsed.fix,
+                last_seen: new Date().toISOString(),
+              })
+              .eq("id", existing.id);
+          } else {
+            await supabase.from("patterns").insert({
+              user_id: userId,
+              pattern_name: patternParsed.pattern_name,
+              pattern_description: patternParsed.pattern_description,
+              evidence: patternParsed.evidence,
+              impact: patternParsed.impact,
+              fix: patternParsed.fix,
+              frequency: 1,
+              last_seen: new Date().toISOString(),
+            });
+          }
+
+          await supabase.from("mirror_memory").insert({
+            user_id: userId,
+            memory_type: "pattern",
+            memory_text: `${patternParsed.pattern_name}: ${patternParsed.pattern_description}`,
+          });
+        }
+      }
+    } catch {
+      // Pattern detection failure is non-blocking — scan result still returns
+    }
+
     if (parsed.scores) {
       await supabase.from("perception_scores").insert({
         user_id: userId,

@@ -34,15 +34,40 @@ function Patterns() {
         </GlassPanel>
       ) : (
         <div className="space-y-2.5">
-          {patterns.map(p => (
-            <GlassPanel key={p.id} className="p-5">
-              <div className="flex items-center justify-between">
-                <p className="font-display text-lg text-gradient">{p.pattern_name}</p>
-                <span className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">×{p.frequency}</span>
+          {patterns.map((p: any) => (
+            <GlassPanel key={p.id} className="p-5 space-y-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">
+                  Detected pattern · {p.frequency} {p.frequency === 1 ? "time" : "times"}
+                </p>
+                <h3 className="mt-2 font-display text-xl text-gradient">{p.pattern_name}</h3>
+                <p className="mt-2 text-sm text-foreground/80 leading-relaxed">{p.pattern_description}</p>
               </div>
-              <p className="mt-2 text-sm text-foreground/85 leading-relaxed">{p.pattern_description}</p>
-              {p.impact && <p className="mt-3 text-xs text-crimson/80"><span className="uppercase tracking-[0.2em] mr-2">Impact</span>{p.impact}</p>}
-              {p.fix && <p className="mt-1 text-xs text-accent"><span className="uppercase tracking-[0.2em] mr-2">Fix</span>{p.fix}</p>}
+
+              {p.evidence && (
+                <div className="pt-3 border-t border-border/40">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-1">Evidence</p>
+                  <p className="text-sm text-foreground/70 leading-relaxed">{p.evidence}</p>
+                </div>
+              )}
+
+              {p.impact && (
+                <div className="pt-3 border-t border-border/40">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-1">How it lands</p>
+                  <p className="text-sm text-foreground/70 leading-relaxed">{p.impact}</p>
+                </div>
+              )}
+
+              {p.fix && (
+                <div className="pt-3 border-t border-border/40">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C] mb-1">The shift</p>
+                  <p className="text-sm text-foreground/90 leading-relaxed">{p.fix}</p>
+                </div>
+              )}
+
+              <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/50">
+                Last seen · {new Date(p.last_seen).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </p>
             </GlassPanel>
           ))}
         </div>
