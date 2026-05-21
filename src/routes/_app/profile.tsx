@@ -194,6 +194,10 @@ function Profile() {
         </GlassPanel>
       </section>
 
+      <section>
+        <WeeklyReport />
+      </section>
+
       {/* Daily read history */}
       <section>
         <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">
