@@ -66,15 +66,76 @@ function Profile() {
         <p className="mt-1 text-xs text-muted-foreground">{user?.email}</p>
       </header>
 
-      <GlassPanel glow className="p-5">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-accent">Current plan</p>
-        <p className="mt-2 font-display text-2xl text-gradient capitalize">{sub?.plan ?? "Free"}</p>
-        <p className="mt-2 text-xs text-muted-foreground">Mirror gets sharper the more it studies your patterns.</p>
-        <button className="mt-4 rounded-full px-5 py-3 text-xs uppercase tracking-[0.24em] bg-foreground text-background"
-          onClick={() => toast("Upgrades launching soon. Mirror Plus & Elite tiers coming.")}>
-          Upgrade Mirror
-        </button>
-      </GlassPanel>
+      {/* Subscription status */}
+      <section id="pricing">
+        <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">Your plan</p>
+        <GlassPanel glow className="mt-2 p-5 space-y-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-display text-2xl text-gradient">
+                Mirror {plan.charAt(0).toUpperCase() + plan.slice(1)}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {plan === "free"
+                  ? `${scansRemaining === Infinity ? 3 : scansRemaining} scans remaining this month`
+                  : "Unlimited scans"}
+              </p>
+            </div>
+            {plan === "free" && (
+              <span className="text-[10px] uppercase tracking-[0.24em] px-2 py-1 rounded-full bg-muted/40 text-muted-foreground">Free</span>
+            )}
+            {plan === "plus" && (
+              <span className="text-[10px] uppercase tracking-[0.24em] px-2 py-1 rounded-full bg-accent/20 text-accent">Plus</span>
+            )}
+            {plan === "elite" && (
+              <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.24em] px-2 py-1 rounded-full bg-[#C9A84C]/20 text-[#C9A84C]">
+                <Sparkles className="h-3 w-3" /> Elite
+              </span>
+            )}
+          </div>
+
+          {plan === "free" && (
+            <div className="space-y-3 pt-2">
+              <PricingCard
+                name="Plus"
+                price="$9"
+                features={[
+                  "Unlimited text scans",
+                  "Daily reads & missions",
+                  "Pattern tracking",
+                  "Weekly blind spot report",
+                ]}
+                highlight
+                onSelect={() => toast("Stripe integration coming soon.")}
+              />
+              <PricingCard
+                name="Elite"
+                price="$29"
+                features={[
+                  "Everything in Plus",
+                  "Voice, selfie, social, dating scans",
+                  "Deeper memory & brutally honest mode",
+                  "Monthly identity report",
+                ]}
+                elite
+                onSelect={() => toast("Stripe integration coming soon.")}
+              />
+              <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                Stripe payments coming soon. Join the waitlist below.
+              </p>
+            </div>
+          )}
+
+          {plan !== "free" && (
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {plan === "elite"
+                ? "You have full access to every Mirror feature."
+                : "Upgrade to Elite to unlock voice, selfie, and social scans."}
+            </p>
+          )}
+        </GlassPanel>
+      </section>
+
 
       <section>
         <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">Mirror's tone</p>
