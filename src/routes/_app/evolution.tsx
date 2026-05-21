@@ -240,10 +240,10 @@ function Evolution() {
                       </span>
                     </div>
                     <span className="text-sm text-foreground tabular-nums">
-                      {s.perception_score}
+                      {s.perception_score ?? 0}
                       {i < scores.length - 1 && (
                         <span className="text-[10px] text-muted-foreground/40 ml-1.5">
-                          {s.perception_score >= (scores[i + 1]?.perception_score ?? s.perception_score) ? "↑" : "↓"}
+                          {(s.perception_score ?? 0) >= ((scores[i + 1]?.perception_score ?? s.perception_score) ?? 0) ? "↑" : "↓"}
                         </span>
                       )}
                     </span>
