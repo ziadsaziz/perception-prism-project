@@ -158,7 +158,7 @@ function Scan() {
         <div>
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">All scans</p>
           <div className="space-y-2">
-            {SCAN_TYPES.filter(s => ["post", "dating", "emotion", "decision"].includes(s.id)).map(s => (
+            {SCAN_TYPES.filter(s => ["post", "dating", "emotion", "decision", "social"].includes(s.id)).map(s => (
               <Link key={s.id} to="/scan" search={{ type: s.id }}
                 className="block bg-glass ring-hairline rounded-2xl p-4 active:scale-[0.99] transition-transform">
                 <div className="flex items-start gap-3">
@@ -168,6 +168,9 @@ function Scan() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium">{s.title}</h3>
                     <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+                    {s.id === "social" && (
+                      <span className="mt-1.5 inline-block text-[9px] uppercase tracking-[0.2em] text-accent/60 border border-accent/20 rounded-full px-1.5 py-0.5">Elite</span>
+                    )}
                   </div>
                 </div>
               </Link>
