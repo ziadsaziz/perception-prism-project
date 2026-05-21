@@ -37,7 +37,8 @@ function Scan() {
   if (type === "dating") return <DatingScan />;
   if (type === "decision") return <DecisionScan />;
   if (type === "social") return <SocialScan />;
-  if (type && !["text", "post", "emotion", "dating", "decision", "social"].includes(type)) return <ComingSoon type={type} />;
+  if (type === "selfie") return <SelfieScan />;
+  if (type && !["text", "post", "emotion", "dating", "decision", "social", "selfie"].includes(type)) return <ComingSoon type={type} />;
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
