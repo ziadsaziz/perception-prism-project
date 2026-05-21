@@ -1425,7 +1425,6 @@ function VoiceScan() {
         }, 200);
       }
 
-      speechSegmentsRef.current = [];
       pausesRef.current = [];
       fillerCountRef.current = 0;
       wordCountRef.current = 0;
