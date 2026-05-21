@@ -574,6 +574,94 @@ ${data.post_text}
   });
 
 // ============================================================
+// 7. Dating Dynamic scan
+// ============================================================
+export const analyzeDatingDynamic = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { situation: string; context_note?: string; dynamic_type?: string }) =>
+    z.object({
+      situation: z.string().min(10).max(4000),
+      context_note: z.string().max(500).optional(),
+      dynamic_type: z.string().optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const [{ data: profile }, { data: memory }] = await Promise.all([
+      supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle(),
+      supabase.from("mirror_memory").select("memory_text").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    const memoryContext = (memory ?? []).map(m => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `You are analyzing a dating or romantic dynamic. The user wants to understand what's actually happening — not what they hope is happening. Read the situation with surgical honesty. No flattery. No false hope. No empty reassurance.
+
+Return STRICT JSON:
+{
+  "read": "ONE sharp line. The core truth about this dynamic. Max 22 words. Uncomfortable if necessary.",
+  "who_has_leverage": "one of: 'You', 'Them', 'Equal', 'Unclear'",
+  "leverage_reason": "One line explaining the leverage read.",
+  "what_they_likely_feel": "2-3 lines. What the other person is actually feeling — not what they say. Read their behavior, not their words.",
+  "what_you_are_doing": "2-3 lines. What the user's behavior is signaling to the other person — without the user realizing it.",
+  "blind_spot": "1-2 lines. The thing the user cannot see because they're inside this dynamic.",
+  "attraction_read": "one of: 'High', 'Moderate', 'Low', 'Fading', 'Strategic'",
+  "attraction_reason": "One line explaining the attraction read.",
+  "the_move": "1-2 lines. The single strongest move the user can make right now. Specific. Not 'be yourself' or 'communicate more'.",
+  "what_not_to_do": "One line. The move that would cost them the most right now.",
+  "scores": { "perception": 0-100, "attraction": 0-100, "confidence": 0-100, "mystery": 0-100 },
+  "summary": "8-10 words for memory"
+}
+
+What Mirror knows about this user:
+${memoryContext}
+
+Dynamic type: ${data.dynamic_type ?? "not specified"}
+Context: ${data.context_note ?? "none"}
+Situation:
+"""
+${data.situation}
+"""`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { parsed = { read: content.slice(0, 200), summary: "dating scan" }; }
+
+    const { data: scan } = await supabase.from("scans").insert({
+      user_id: userId,
+      scan_type: "dating_dynamic",
+      input_text: data.situation.slice(0, 4000),
+      ai_summary: parsed.summary ?? parsed.read ?? null,
+      result_json: parsed,
+      score_json: parsed.scores ?? null,
+    }).select().single();
+
+    if (parsed.scores) {
+      await supabase.from("perception_scores").insert({
+        user_id: userId,
+        perception_score: parsed.scores.perception ?? 50,
+        confidence_score: parsed.scores.confidence ?? 50,
+        attraction_score: parsed.scores.attraction ?? 50,
+        authority_score: 50,
+        approachability_score: 50,
+        authenticity_score: 50,
+        emotional_control_score: 50,
+        mystery_score: parsed.scores.mystery ?? 50,
+      });
+    }
+
+    if (parsed.blind_spot) {
+      await supabase.from("mirror_memory").insert({
+        user_id: userId,
+        memory_type: "scan_insight",
+        memory_text: parsed.blind_spot,
+      });
+    }
+
+    return { scan, result: parsed };
+  });
+
+// ============================================================
 // 6. Emotional Pattern scan
 // ============================================================
 export const analyzeEmotionalPattern = createServerFn({ method: "POST" })
