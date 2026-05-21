@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_app/scan")({
 const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; active?: boolean }> = [
   { id: "text", title: "Text Conversation", desc: "Paste or upload a chat. See what they really felt.", icon: ScanLine, active: true },
   { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon, active: true },
-  { id: "voice", title: "Voice & Energy", desc: "How you sound to others. Charisma map.", icon: Mic, active: true },
+  { id: "voice", title: "Voice & Energy", desc: "Speech patterns. How you communicate.", icon: Mic, active: true },
   { id: "social", title: "Social Profile", desc: "How your profile lands. Status read.", icon: Globe, active: true },
   { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText, active: true },
   { id: "dating", title: "Dating Dynamic", desc: "Interest, leverage, attachment, next move.", icon: Heart, active: true },
@@ -1146,7 +1146,7 @@ const PRESENCE_VERDICT_COLOR: Record<string, string> = {
 };
 
 function SelfieScan() {
-  const { canScan, plan } = useSubscription();
+  const { canScan, plan, canAccessElite } = useSubscription();
   const fn = useServerFn(analyzeSelfie);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -1223,8 +1223,8 @@ function SelfieScan() {
         </GlassPanel>
       ) : (
         <>
-          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
-          {canScan && (
+          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
+          {canAccessElite && (
             <>
               <input
                 ref={fileRef}
@@ -1350,7 +1350,7 @@ const CONFIDENCE_COLOR: Record<string, string> = {
 };
 
 function VoiceScan() {
-  const { canScan, plan } = useSubscription();
+  const { canScan, plan, canAccessElite } = useSubscription();
   const fn = useServerFn(analyzeVoice);
   const [mode, setMode] = useState<"record" | "type">("record");
   const [transcript, setTranscript] = useState("");
@@ -1382,6 +1382,7 @@ function VoiceScan() {
   const confidenceScoresRef = useRef<Array<number>>([]);
   const finalTranscriptRef = useRef<string>("");
   const volumeIntervalRef = useRef<any>(null);
+  const secondsRef = useRef<number>(0);
 
   const FILLER_WORDS = ["um", "uh", "like", "you know", "basically", "literally", "right", "so", "okay", "actually", "i mean", "kind of", "sort of"];
 
@@ -1504,11 +1505,11 @@ function VoiceScan() {
       setRecording(true);
       setRecorded(false);
 
-      let seconds = 0;
+      secondsRef.current = 0;
       timerRef.current = setInterval(() => {
-        seconds += 1;
-        setRecordingSeconds(seconds);
-        if (seconds >= 180) stopRecording();
+        secondsRef.current += 1;
+        setRecordingSeconds(secondsRef.current);
+        if (secondsRef.current >= 180) stopRecording();
       }, 1000);
 
     } catch {
@@ -1543,7 +1544,7 @@ function VoiceScan() {
       streamRef.current = null;
     }
 
-    const totalSeconds = recordingSeconds || 1;
+    const totalSeconds = secondsRef.current || 1;
     const totalWords = wordCountRef.current;
     const wpm = Math.round((totalWords / totalSeconds) * 60);
     const pauses = pausesRef.current;
@@ -1691,8 +1692,8 @@ Speech behavior metrics (measured by browser):
         </GlassPanel>
       ) : (
         <>
-          {!canScan && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
-          {canScan && (
+          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
+          {canAccessElite && (
             <>
               <div className="flex gap-2">
                 <button onClick={() => { setMode("record"); reset(); }}
