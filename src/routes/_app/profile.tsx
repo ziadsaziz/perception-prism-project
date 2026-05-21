@@ -83,6 +83,14 @@ function Profile() {
         </GlassPanel>
       </section>
 
+      {/* Daily read history */}
+      <section>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">
+          This week's reads
+        </p>
+        <DailyHistory />
+      </section>
+
       <button onClick={async () => { await signOut(); nav({ to: "/" }); }}
         className="w-full rounded-full bg-glass ring-hairline py-3.5 text-xs uppercase tracking-[0.24em] text-muted-foreground">
         Sign out
