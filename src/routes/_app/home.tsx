@@ -85,45 +85,69 @@ function Home() {
       </GlassPanel>
 
       <section>
-        <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">Perception scores</p>
-        <GlassPanel className="mt-2 p-4">
+        <div className="flex items-center justify-between px-1 mb-2">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">Perception scores</p>
+          {hasScores && (
+            <p className="text-[10px] uppercase tracking-[0.24em] text-[#C9A84C]">
+              {scanCount} {scanCount === 1 ? "scan" : "scans"} logged
+            </p>
+          )}
+        </div>
+        <GlassPanel className="p-4">
           {hasScores ? (
-            <div className="grid grid-cols-4 gap-3">
-              <ScoreRing value={scores!.perception_score} label="Perception" />
-              <ScoreRing value={scores!.confidence_score} label="Confidence" />
-              <ScoreRing value={scores!.attraction_score} label="Attraction" />
-              <ScoreRing value={scores!.emotional_control_score} label="Control" />
-              <ScoreRing value={scores!.approachability_score} label="Approach" />
-              <ScoreRing value={scores!.mystery_score} label="Mystery" />
-              <ScoreRing value={scores!.authority_score} label="Authority" />
-              <ScoreRing value={scores!.authenticity_score} label="Authentic" />
-            </div>
+            <>
+              <div className="grid grid-cols-4 gap-3">
+                <ScoreRing value={scores!.perception_score} label="Perception" />
+                <ScoreRing value={scores!.confidence_score} label="Confidence" />
+                <ScoreRing value={scores!.attraction_score} label="Attraction" />
+                <ScoreRing value={scores!.emotional_control_score} label="Control" />
+                <ScoreRing
+                  value={scores!.approachability_score}
+                  label="Approach"
+                  locked={scanCount < 3}
+                />
+                <ScoreRing
+                  value={scores!.mystery_score}
+                  label="Mystery"
+                  locked={scanCount < 3}
+                />
+                <ScoreRing
+                  value={scores!.authority_score}
+                  label="Authority"
+                  locked={scanCount < 5}
+                />
+                <ScoreRing
+                  value={scores!.authenticity_score}
+                  label="Authentic"
+                  locked={scanCount < 5}
+                />
+              </div>
+              {scanCount < 5 && (
+                <p className="mt-4 text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                  {scanCount < 3
+                    ? `${3 - scanCount} more ${3 - scanCount === 1 ? "scan" : "scans"} to unlock approach & mystery`
+                    : `${5 - scanCount} more ${5 - scanCount === 1 ? "scan" : "scans"} to unlock authority & authenticity`}
+                </p>
+              )}
+            </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-8">
-              <div className="grid grid-cols-4 gap-3 mb-6">
+            <div className="flex flex-col items-center text-center py-4 gap-4">
+              <div className="grid grid-cols-4 gap-3 w-full opacity-20 blur-[3px] pointer-events-none select-none">
                 {[...Array(8)].map((_, i) => (
-                  <div key={i} className="flex flex-col items-center gap-2 blur-[6px] opacity-40">
-                    <div className="relative" style={{ width: 84, height: 84 }}>
-                      <svg width={84} height={84} className="-rotate-90">
-                        <circle cx={42} cy={42} r={36} stroke="oklch(0.22 0.01 270)" strokeWidth="4" fill="none" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="font-display text-xl text-muted-foreground">--</span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">--</span>
-                  </div>
+                  <ScoreRing key={i} value={72} label="——" />
                 ))}
               </div>
-              <div className="text-center">
-                <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground mb-2">
-                  Scores locked
-                </p>
-                <p className="text-xs text-muted-foreground max-w-[240px] leading-relaxed">
+              <div className="space-y-1">
+                <p className="text-[11px] uppercase tracking-[0.32em] text-[#C9A84C]">Scores locked</p>
+                <p className="text-[12px] text-muted-foreground leading-relaxed max-w-[240px]">
                   Mirror builds your perception profile after your first scan.
                 </p>
               </div>
-              <Link to="/scan" search={{ type: "text" }} className="mt-5 inline-block rounded-full bg-foreground text-background px-5 py-3 text-[10px] uppercase tracking-[0.24em]">
+              <Link
+                to="/scan"
+                search={{ type: "text" }}
+                className="rounded-full border border-[#C9A84C]/50 text-[#C9A84C] px-5 py-2.5 text-[11px] uppercase tracking-[0.28em] hover:bg-[#C9A84C]/5 transition-colors"
+              >
                 Run your first scan
               </Link>
             </div>
