@@ -60,6 +60,7 @@ Hard rules:
 8. One central truth per response. No lists of takeaways.
 9. Always sound like Mirror has been watching patterns over time.
 10. Always end with one simple move the user can apply today.
+11. Always anchor every read in at least one specific thing the user provided. Never make a claim that could apply to anyone. If the input is too vague to anchor a specific read, say less and ask for more context rather than generalizing.
 
 Language to favor:
 - "you come across like you want X before you feel Y"
@@ -240,6 +241,18 @@ export const generateDailyRead = createServerFn({ method: "POST" })
     const isEarly = (scans?.length ?? 0) < 2;
     const yesterdayLine = yesterday?.read ? `Yesterday Mirror said: "${yesterday.read}" — do not repeat this observation.` : "";
 
+    const now = new Date();
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayOfWeek = dayNames[now.getDay()];
+    const hour = now.getHours();
+    const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+
+    const { count: weekScanCount } = await supabase
+      .from("scans")
+      .select("id", { count: "exact" })
+      .eq("user_id", userId)
+      .gte("created_at", new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()).toISOString());
+
     const content = await callAI(
       voiceFor(profile?.tone_preference ?? "Direct"),
       `Write today's Mirror daily observation for this user. This appears every morning — it must feel like Mirror noticed something new overnight. Never repeat yesterday's observation.
@@ -251,6 +264,13 @@ Return STRICT JSON:
   "early": ${isEarly}
 }
 
+Temporal context:
+- Today is ${dayOfWeek} ${timeOfDay}
+- The user has run ${weekScanCount ?? 0} scans this week
+- ${dayOfWeek === "Monday" ? "It is the start of the week. The read should feel like a reset — fresh, forward-looking." : ""}
+- ${dayOfWeek === "Friday" || dayOfWeek === "Saturday" ? "It is the end of the week. The read can reflect on what the week surfaced." : ""}
+- ${(weekScanCount ?? 0) === 0 ? "The user has not scanned this week. The read should gently invite them back." : ""}
+- ${(weekScanCount ?? 0) >= 5 ? "The user has been very active this week. The read should acknowledge the pattern building." : ""}
 ${isEarly ? "Mirror has limited context. Keep claims small." : ""}
 ${yesterdayLine}
 
@@ -292,7 +312,14 @@ export const analyzeTextConversation = createServerFn({ method: "POST" })
     z.object({ conversation: z.string().min(10).max(8000), context_note: z.string().max(500).optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: profile } = await supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle();
+    const [{ data: profile }, { data: memory }] = await Promise.all([
+      supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle(),
+      supabase.from("mirror_memory").select("memory_text, memory_type").eq("user_id", userId).order("created_at", { ascending: false }).limit(7),
+    ]);
+
+    const memoryContext = (memory ?? [])
+      .map(m => `- ${m.memory_text}`)
+      .join("\n") || "(no prior observations)";
     const { data: prevScores } = await supabase.from("perception_scores").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     const content = await callAI(
@@ -322,7 +349,10 @@ Context: ${data.context_note ?? "none"}
 Conversation:
 """
 ${data.conversation}
-"""`
+"""
+
+What Mirror has observed about this user before:
+${memoryContext}`
     );
     let parsed: any;
     try { parsed = JSON.parse(content); } catch { parsed = { read: content.slice(0, 200), summary: "scan", scores: {} }; }
