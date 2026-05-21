@@ -413,6 +413,16 @@ ${memoryContext}`
     (async () => {
       try {
         if (parsed.scores) {
+          const mirrorScore = Math.min(1000, Math.round((
+            (parsed.scores.perception ?? 50) * 0.20 +
+            (parsed.scores.confidence ?? 50) * 0.15 +
+            (parsed.scores.attraction ?? 50) * 0.13 +
+            (parsed.scores.authority ?? 50) * 0.12 +
+            (parsed.scores.approachability ?? 50) * 0.10 +
+            (parsed.scores.authenticity ?? 50) * 0.12 +
+            (parsed.scores.emotional_control ?? 50) * 0.10 +
+            (parsed.scores.mystery ?? 50) * 0.08
+          ) * 10));
           await supabase.from("perception_scores").insert({
             user_id: userId,
             perception_score: parsed.scores.perception ?? 50,
@@ -423,7 +433,9 @@ ${memoryContext}`
             authenticity_score: parsed.scores.authenticity ?? 50,
             emotional_control_score: parsed.scores.emotional_control ?? 50,
             mystery_score: parsed.scores.mystery ?? 50,
+            mirror_score: mirrorScore,
           });
+          await checkMirrorScoreMilestone(supabase, userId, mirrorScore);
         }
 
         if (parsed.blind_spot) {
