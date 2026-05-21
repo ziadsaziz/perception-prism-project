@@ -7,7 +7,7 @@ import { ChevronRight } from "lucide-react";
 
 type MemoryEntry = {
   id: string;
-  memory_type: string;
+  memory_type: string | null;
   memory_text: string;
   created_at: string;
 };
