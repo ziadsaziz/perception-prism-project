@@ -862,3 +862,103 @@ ${data.decision}
 
     return { scan, result: parsed };
   });
+
+// ============================================================
+// 9. Social Profile scan
+// ============================================================
+export const analyzeSocialProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    bio: string;
+    platform?: string;
+    username?: string;
+    follower_count?: string;
+    post_description?: string;
+    context_note?: string;
+  }) =>
+    z.object({
+      bio: z.string().min(1).max(2000),
+      platform: z.string().optional(),
+      username: z.string().max(100).optional(),
+      follower_count: z.string().max(50).optional(),
+      post_description: z.string().max(1000).optional(),
+      context_note: z.string().max(500).optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const [{ data: profile }, { data: memory }] = await Promise.all([
+      supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle(),
+      supabase.from("mirror_memory").select("memory_text").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    const memoryContext = (memory ?? []).map(m => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `You are reading a social media profile. Your job is to tell the user exactly how their profile lands on a stranger who visits it for the first time — in under 10 seconds. Not what they intended. What is actually felt.
+
+Return STRICT JSON:
+{
+  "read": "ONE sharp line. The immediate impression a stranger gets. Max 22 words.",
+  "first_impression": "2-3 lines. What a stranger feels and concludes in the first 8 seconds of seeing this profile. Specific and behavioral.",
+  "what_it_signals": "2-3 lines. What the profile reveals about the person beyond what they intend — status signals, insecurity signals, confidence signals.",
+  "blind_spot": "1-2 lines. The thing the profile owner cannot see about how this reads.",
+  "profile_verdict": "one of: 'Magnetic', 'Credible', 'Generic', 'Trying too hard', 'Underplaying', 'Confusing'",
+  "verdict_reason": "One line explaining the verdict.",
+  "strongest_element": "One line. The single strongest thing about this profile.",
+  "weakest_element": "One line. The single thing costing them the most.",
+  "the_move": "2-3 lines. The specific changes that would make the biggest difference. Not vague advice — exact changes.",
+  "scores": { "perception": 0-100, "authority": 0-100, "authenticity": 0-100, "attraction": 0-100 },
+  "summary": "8-10 words for memory"
+}
+
+What Mirror knows about this user:
+${memoryContext}
+
+Platform: ${data.platform ?? "not specified"}
+Username: ${data.username ?? "not provided"}
+Follower count: ${data.follower_count ?? "not provided"}
+Bio:
+"""
+${data.bio}
+"""
+What their posts are like: ${data.post_description ?? "not described"}
+Context: ${data.context_note ?? "none"}`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { parsed = { read: content.slice(0, 200), summary: "social profile scan" }; }
+
+    const { data: scan } = await supabase.from("scans").insert({
+      user_id: userId,
+      scan_type: "social_profile",
+      input_text: data.bio.slice(0, 2000),
+      ai_summary: parsed.summary ?? parsed.read ?? null,
+      result_json: parsed,
+      score_json: parsed.scores ?? null,
+    }).select().single();
+
+    if (parsed.scores) {
+      await supabase.from("perception_scores").insert({
+        user_id: userId,
+        perception_score: parsed.scores.perception ?? 50,
+        confidence_score: 50,
+        attraction_score: parsed.scores.attraction ?? 50,
+        authority_score: parsed.scores.authority ?? 50,
+        approachability_score: 50,
+        authenticity_score: parsed.scores.authenticity ?? 50,
+        emotional_control_score: 50,
+        mystery_score: 50,
+      });
+    }
+
+    if (parsed.blind_spot) {
+      await supabase.from("mirror_memory").insert({
+        user_id: userId,
+        memory_type: "scan_insight",
+        memory_text: parsed.blind_spot,
+      });
+    }
+
+    return { scan, result: parsed };
+  });
