@@ -19,6 +19,22 @@ function Auth() {
   const { user } = useAuth();
   const nav = useNavigate();
 
+  const [lineIndex, setLineIndex] = useState(0);
+
+  const PSYCH_LINES = [
+    "Mirror doesn't guess. It observes.",
+    "Every pattern you've repeated today left a trace.",
+    "You've already been read three times today. This is the only one you control.",
+    "Most people never know how they actually come across.",
+    "The version of you other people see is not the version you imagine.",
+    "Blind spots aren't random. They're consistent.",
+  ];
+
+  useEffect(() => {
+    const id = setInterval(() => setLineIndex(i => (i + 1) % PSYCH_LINES.length), 3500);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => { if (user) nav({ to: "/home" }); }, [user, nav]);
 
   const submit = async (e: React.FormEvent) => {
@@ -98,9 +114,17 @@ function Auth() {
         {mode === "signup" ? "Already have an account?" : "First time? Create your Mirror"}
       </button>
 
-      <p className="mt-auto pt-8 text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-        Private. End-to-end. Yours alone.
-      </p>
+      <div className="mt-auto pt-8 space-y-3 text-center">
+        <p
+          className="text-[12px] text-muted-foreground/70 leading-relaxed italic transition-opacity duration-700"
+          key={lineIndex}
+        >
+          &ldquo;{PSYCH_LINES[lineIndex]}&rdquo;
+        </p>
+        <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/40">
+          Private. End-to-end. Yours alone.
+        </p>
+      </div>
     </main>
   );
 }
