@@ -962,3 +962,118 @@ Context: ${data.context_note ?? "none"}`
 
     return { scan, result: parsed };
   });
+
+// ============================================================
+// 10. Selfie & Presence scan
+// ============================================================
+export const analyzeSelfie = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { image_base64: string; context_note?: string }) =>
+    z.object({
+      image_base64: z.string().min(100),
+      context_note: z.string().max(500).optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const [{ data: profile }, { data: memory }] = await Promise.all([
+      supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle(),
+      supabase.from("mirror_memory").select("memory_text").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    const memoryContext = (memory ?? []).map((m: any) => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
+    const system = voiceFor(profile?.tone_preference ?? "Direct");
+
+    const res = await fetch(GATEWAY, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: "system", content: system },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Analyze this person's presence and first impression from this photo. You are MIRROR — a high-level perception analyst. Your job is to read the signals their appearance, posture, expression, and energy project — not to evaluate their looks. Never comment on attractiveness. Read presence, confidence, energy, and how they come across to a stranger seeing them for the first time.
+
+Return STRICT JSON only:
+{
+  "read": "ONE sharp line. The immediate energy or presence this person projects. Max 22 words. Not about looks — about signal.",
+  "presence_read": "2-3 lines. What a stranger would feel and conclude about this person in the first 5 seconds. Behavioral and energetic read only.",
+  "confidence_signals": "2-3 lines. What their posture, expression, and energy communicate about their internal state.",
+  "blind_spot": "1-2 lines. The signal they're sending without knowing it.",
+  "presence_verdict": "one of: 'Commanding', 'Warm', 'Guarded', 'Uncertain', 'Magnetic', 'Closed off', 'Approachable', 'Intense'",
+  "verdict_reason": "One line explaining the verdict.",
+  "the_move": "1-2 lines. One specific thing they could shift — in how they present themselves — that would change the read.",
+  "scores": { "perception": 0-100, "confidence": 0-100, "attraction": 0-100, "approachability": 0-100 },
+  "summary": "8-10 words for memory"
+}
+
+What Mirror knows about this user:
+${memoryContext}
+
+Context from user: ${data.context_note ?? "none"}`
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/jpeg;base64,${data.image_base64}`,
+                  detail: "low",
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
+      if (res.status === 402) throw new Error("Mirror credits exhausted.");
+      throw new Error(`Vision error: ${res.status} ${text.slice(0, 200)}`);
+    }
+
+    const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const raw = out.choices?.[0]?.message?.content ?? "";
+
+    let parsed: any;
+    try { parsed = JSON.parse(raw); } catch { parsed = { read: raw.slice(0, 200), summary: "selfie scan" }; }
+
+    const { data: scan } = await supabase.from("scans").insert({
+      user_id: userId,
+      scan_type: "selfie_presence",
+      input_text: "[image scan]",
+      ai_summary: parsed.summary ?? parsed.read ?? null,
+      result_json: parsed,
+      score_json: parsed.scores ?? null,
+    }).select().single();
+
+    if (parsed.scores) {
+      await supabase.from("perception_scores").insert({
+        user_id: userId,
+        perception_score: parsed.scores.perception ?? 50,
+        confidence_score: parsed.scores.confidence ?? 50,
+        attraction_score: parsed.scores.attraction ?? 50,
+        authority_score: 50,
+        approachability_score: parsed.scores.approachability ?? 50,
+        authenticity_score: 50,
+        emotional_control_score: 50,
+        mystery_score: 50,
+      });
+    }
+
+    if (parsed.blind_spot) {
+      await supabase.from("mirror_memory").insert({
+        user_id: userId,
+        memory_type: "scan_insight",
+        memory_text: parsed.blind_spot,
+      });
+    }
+
+    return { scan, result: parsed };
+  });

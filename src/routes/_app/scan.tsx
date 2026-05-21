@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision, analyzeSocialProfile } from "@/lib/ai.functions";
+import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision, analyzeSocialProfile, analyzeSelfie } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_app/scan")({
 
 const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; active?: boolean }> = [
   { id: "text", title: "Text Conversation", desc: "Paste or upload a chat. See what they really felt.", icon: ScanLine, active: true },
-  { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon },
+  { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon, active: true },
   { id: "voice", title: "Voice & Energy", desc: "How you sound to others. Charisma map.", icon: Mic },
   { id: "social", title: "Social Profile", desc: "How your profile lands. Status read.", icon: Globe, active: true },
   { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText, active: true },
@@ -37,7 +37,8 @@ function Scan() {
   if (type === "dating") return <DatingScan />;
   if (type === "decision") return <DecisionScan />;
   if (type === "social") return <SocialScan />;
-  if (type && !["text", "post", "emotion", "dating", "decision", "social"].includes(type)) return <ComingSoon type={type} />;
+  if (type === "selfie") return <SelfieScan />;
+  if (type && !["text", "post", "emotion", "dating", "decision", "social", "selfie"].includes(type)) return <ComingSoon type={type} />;
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
@@ -1127,6 +1128,203 @@ function SocialResult({ result, onReset, onShare }: { result: any; onReset: () =
 
       <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
         Mirror reads signals, not follower counts
+      </p>
+    </main>
+  );
+}
+
+const PRESENCE_VERDICT_COLOR: Record<string, string> = {
+  Commanding: "text-[#C9A84C]",
+  Warm: "text-amber-300",
+  Guarded: "text-white/50",
+  Uncertain: "text-white/40",
+  Magnetic: "text-[#C9A84C]",
+  "Closed off": "text-red-400",
+  Approachable: "text-green-400",
+  Intense: "text-blue-400",
+};
+
+function SelfieScan() {
+  const { canScan, plan } = useSubscription();
+  const fn = useServerFn(analyzeSelfie);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [result, setResult] = useState<any>(null);
+  const [showCard, setShowCard] = useState(false);
+  const [cardScore, setCardScore] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith("image/")) { toast.error("Please upload an image file."); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB."); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const res = e.target?.result as string;
+      setImagePreview(res);
+      setImageBase64(res.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const run = async () => {
+    if (!imageBase64) { toast.error("Upload a photo first."); return; }
+    setLoading(true); setResult(null); setStage(0);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    try {
+      const r = await fn({ data: { image_base64: imageBase64, context_note: note } });
+      setResult(r.result);
+      if (r.result?.scores?.perception) {
+        setCardScore(r.result.scores.perception);
+        setTimeout(() => setShowCard(true), 800);
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Scan failed.");
+    } finally { clearInterval(t); setLoading(false); }
+  };
+
+  if (result) return (
+    <>
+      <SelfieResult
+        result={result}
+        preview={imagePreview}
+        onReset={() => { setResult(null); setImageBase64(null); setImagePreview(null); setShowCard(false); }}
+        onShare={() => setShowCard(true)}
+      />
+      {showCard && result.read && (
+        <MirrorCard
+          read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
+          score={cardScore}
+          onClose={() => setShowCard(false)}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4">
+      <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <ArrowLeft className="h-3 w-3" /> All scans
+      </Link>
+      <header>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Selfie · Presence</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">What do you project?</h1>
+        <p className="mt-2 text-xs text-muted-foreground">Upload a photo. Mirror reads the energy, confidence, and presence you project — before you say a word.</p>
+      </header>
+
+      {loading ? (
+        <GlassPanel glow className="p-8 text-center">
+          <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading your presence</p>
+        </GlassPanel>
+      ) : (
+        <>
+          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
+          {canScan && (
+            <>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+              />
+
+              {imagePreview ? (
+                <div className="relative">
+                  <img src={imagePreview} alt="preview" className="w-full rounded-2xl ring-hairline object-cover max-h-[420px]" />
+                  <button
+                    onClick={() => { setImageBase64(null); setImagePreview(null); }}
+                    className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/70 flex items-center justify-center text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full bg-glass ring-hairline rounded-2xl py-12 flex flex-col items-center justify-center gap-3"
+                >
+                  <div className="h-12 w-12 rounded-full bg-foreground/5 flex items-center justify-center">
+                    <ImageIcon className="h-5 w-5 text-accent" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-foreground/90">Tap to upload a photo</p>
+                    <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mt-1">JPG, PNG · Max 5MB</p>
+                  </div>
+                </button>
+              )}
+
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                rows={2}
+                maxLength={500}
+                placeholder="Any context? Where was this taken, what were you going for? (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+              />
+
+              <div className="bg-black/30 border border-foreground/10 rounded-2xl px-4 py-3">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Mirror reads presence, energy, and confidence signals — not attractiveness. Your photo is analyzed and never stored. Private by design.
+                </p>
+              </div>
+
+              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
+                Read my presence
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
+
+function SelfieResult({ result, preview, onReset, onShare }: { result: any; preview: string | null; onReset: () => void; onShare?: () => void }) {
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      <div className="flex items-center justify-between">
+        <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> New scan
+        </button>
+        {onShare && (
+          <button onClick={onShare} className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">
+            Share read ↑
+          </button>
+        )}
+      </div>
+
+      {preview && (
+        <img src={preview} alt="your photo" className="w-full rounded-2xl ring-hairline object-cover max-h-[320px]" />
+      )}
+
+      {result.presence_verdict && (
+        <div className="flex items-center gap-3">
+          <span className={`font-display text-[32px] leading-none ${PRESENCE_VERDICT_COLOR[result.presence_verdict] ?? "text-white"}`}>
+            {result.presence_verdict}
+          </span>
+          {result.verdict_reason && (
+            <p className="text-[12px] text-white/50 leading-snug max-w-[220px]">{result.verdict_reason}</p>
+          )}
+        </div>
+      )}
+
+      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
+      <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
+
+      <div className="space-y-2.5">
+        <Insight label="Presence read" body={result.presence_read} />
+        <Insight label="Confidence signals" body={result.confidence_signals} />
+        <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
+        <Insight label="The move" body={result.the_move} accent="ok" />
+      </div>
+
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
+        Mirror reads presence, not appearance
       </p>
     </main>
   );
