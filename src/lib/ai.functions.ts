@@ -293,7 +293,14 @@ export const analyzeTextConversation = createServerFn({ method: "POST" })
     z.object({ conversation: z.string().min(10).max(8000), context_note: z.string().max(500).optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: profile } = await supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle();
+    const [{ data: profile }, { data: memory }] = await Promise.all([
+      supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle(),
+      supabase.from("mirror_memory").select("memory_text, memory_type").eq("user_id", userId).order("created_at", { ascending: false }).limit(7),
+    ]);
+
+    const memoryContext = (memory ?? [])
+      .map(m => `- ${m.memory_text}`)
+      .join("\n") || "(no prior observations)";
     const { data: prevScores } = await supabase.from("perception_scores").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     const content = await callAI(
