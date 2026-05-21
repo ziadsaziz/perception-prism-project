@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useSubscription } from "@/hooks/use-subscription";
 import { supabase } from "@/integrations/supabase/client";
+import { exportMirrorData } from "@/lib/export";
 import { GlassPanel } from "@/components/GlassPanel";
 import { toast } from "sonner";
 import { Check, Sparkles } from "lucide-react";
@@ -22,6 +23,7 @@ function Profile() {
   const { upgrade } = Route.useSearch();
   const [profile, setProfile] = useState<any>(null);
   const [, setSub] = useState<any>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -170,7 +172,23 @@ function Profile() {
         <GlassPanel className="mt-2 divide-y divide-border/40">
           <Row label="Manual mode" sub="Mirror only sees what you upload" value={profile?.comfort_level === "manual" ? "On" : "Off"} />
           <Row label="Connected insights" sub="Future: photos, calendar, social" value="Coming soon" muted />
-          <Row label="Export data" sub="Download everything Mirror has on you" action="Export" onClick={() => toast("Export ready in v2.")} />
+          <Row
+            label="Export data"
+            sub="Download everything Mirror has on you"
+            action={exporting ? "Exporting…" : "Export"}
+            onClick={async () => {
+              if (exporting || !user) return;
+              setExporting(true);
+              try {
+                await exportMirrorData(user.id, profile?.name ?? "mirror-user");
+                toast.success("Your data has been downloaded.");
+              } catch (e: any) {
+                toast.error(e.message ?? "Export failed.");
+              } finally {
+                setExporting(false);
+              }
+            }}
+          />
           <Row label="Delete all scans" sub="Wipe Mirror's memory of you" action="Delete" danger onClick={deleteAllScans} />
         </GlassPanel>
       </section>
