@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { analyzeTextConversation, analyzePost } from "@/lib/ai.functions";
+import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -22,7 +22,7 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "social", title: "Social Profile", desc: "How your profile lands. Status read.", icon: Globe },
   { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText, active: true },
   { id: "dating", title: "Dating Dynamic", desc: "Interest, leverage, attachment, next move.", icon: Heart },
-  { id: "emotion", title: "Emotional Pattern", desc: "Detect projection, fear, hidden need.", icon: Brain },
+  { id: "emotion", title: "Emotional Pattern", desc: "Detect projection, fear, hidden need.", icon: Brain, active: true },
   { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass },
 ];
 
@@ -33,7 +33,8 @@ function Scan() {
 
   if (type === "text") return <TextScan />;
   if (type === "post") return <PostScan />;
-  if (type && type !== "text" && type !== "post") return <ComingSoon type={type} />;
+  if (type === "emotion") return <EmotionScan />;
+  if (type && !["text", "post", "emotion"].includes(type)) return <ComingSoon type={type} />;
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
@@ -366,6 +367,169 @@ function PostResult({ result, onReset, onShare }: { result: any; onReset: () => 
 
       <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
         Mirror reads signals, not intent
+      </p>
+    </main>
+  );
+}
+
+const FEELINGS = ["Anxious", "Frustrated", "Invisible", "Misunderstood", "Drained", "Disconnected", "Angry", "Numb"];
+const FREQUENCIES = ["Just happened", "Once a week", "All the time", "Always in this situation"];
+
+function EmotionScan() {
+  const { canScan, plan } = useSubscription();
+  const fn = useServerFn(analyzeEmotionalPattern);
+  const [situation, setSituation] = useState("");
+  const [feeling, setFeeling] = useState("");
+  const [howOften, setHowOften] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [result, setResult] = useState<any>(null);
+  const [showCard, setShowCard] = useState(false);
+  const [cardScore, setCardScore] = useState(0);
+
+  const run = async () => {
+    if (situation.trim().length < 10) { toast.error("Tell Mirror what's happening."); return; }
+    setLoading(true); setResult(null); setStage(0);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    try {
+      const r = await fn({ data: { situation, feeling, how_often: howOften } });
+      setResult(r.result);
+      if (r.result?.scores?.perception) {
+        setCardScore(r.result.scores.perception);
+        setTimeout(() => setShowCard(true), 800);
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Scan failed.");
+    } finally { clearInterval(t); setLoading(false); }
+  };
+
+  if (result) return (
+    <>
+      <EmotionResult result={result} onReset={() => { setResult(null); setSituation(""); setShowCard(false); }} onShare={() => setShowCard(true)} />
+      {showCard && result.read && (
+        <MirrorCard
+          read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
+          score={cardScore}
+          onClose={() => setShowCard(false)}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4">
+      <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <ArrowLeft className="h-3 w-3" /> All scans
+      </Link>
+      <header>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Emotional · Pattern</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">What keeps happening?</h1>
+        <p className="mt-2 text-xs text-muted-foreground">Describe the situation. Mirror finds the pattern beneath the feeling.</p>
+      </header>
+
+      {loading ? (
+        <GlassPanel glow className="p-8 text-center">
+          <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
+        </GlassPanel>
+      ) : (
+        <>
+          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
+          {canScan && (
+            <>
+              <textarea
+                value={situation}
+                onChange={e => setSituation(e.target.value)}
+                rows={7}
+                maxLength={3000}
+                placeholder="What's happening? What keeps repeating? Describe it like you'd tell a friend — the situation, what you did, how it went, what you felt after."
+                className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+              />
+
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">What are you feeling?</p>
+                <div className="flex flex-wrap gap-2">
+                  {FEELINGS.map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setFeeling(feeling === f ? "" : f)}
+                      className={`rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                        feeling === f
+                          ? "bg-[#C9A84C] text-black"
+                          : "bg-glass ring-hairline text-muted-foreground"
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">How often does this happen?</p>
+                <div className="flex flex-wrap gap-2">
+                  {FREQUENCIES.map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setHowOften(howOften === f ? "" : f)}
+                      className={`rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                        howOften === f
+                          ? "bg-white/20 text-white"
+                          : "bg-glass ring-hairline text-muted-foreground"
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
+                Find my pattern
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
+
+function EmotionResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      <div className="flex items-center justify-between">
+        <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> New scan
+        </button>
+        {onShare && (
+          <button onClick={onShare} className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">
+            Share read ↑
+          </button>
+        )}
+      </div>
+
+      {result.the_pattern_name && (
+        <div className="bg-black/40 border border-[#C9A84C]/20 rounded-2xl px-5 py-4">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">Pattern detected</p>
+          <p className="mt-1 font-display text-[22px] text-gradient">{result.the_pattern_name}</p>
+        </div>
+      )}
+
+      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
+      <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
+
+      <div className="space-y-2.5">
+        <Insight label="What's actually happening" body={result.what_is_actually_happening} />
+        <Insight label="The root" body={result.the_root} />
+        <Insight label="How others read it" body={result.how_others_read_it} />
+        <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
+        <Insight label="The move" body={result.the_move} accent="ok" />
+      </div>
+
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
+        Mirror reads patterns, not destiny
       </p>
     </main>
   );

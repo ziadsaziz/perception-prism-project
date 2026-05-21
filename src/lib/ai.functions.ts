@@ -572,3 +572,119 @@ ${data.post_text}
 
     return { scan, result: parsed };
   });
+
+// ============================================================
+// 6. Emotional Pattern scan
+// ============================================================
+export const analyzeEmotionalPattern = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { situation: string; feeling?: string; how_often?: string }) =>
+    z.object({
+      situation: z.string().min(10).max(3000),
+      feeling: z.string().max(200).optional(),
+      how_often: z.string().max(100).optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const [{ data: profile }, { data: memory }] = await Promise.all([
+      supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle(),
+      supabase.from("mirror_memory").select("memory_text").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    const memoryContext = (memory ?? []).map(m => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `The user is describing an emotional situation or recurring feeling. Your job is not to comfort them. Your job is to identify the behavioral pattern driving it — what they keep doing, what they keep triggering, and what signal they're sending to others without knowing.
+
+Return STRICT JSON:
+{
+  "read": "ONE sharp line. The core pattern in plain language. Max 20 words. No therapy language.",
+  "what_is_actually_happening": "2-3 lines. Not what they feel — what they are doing. Behavioral read only. Anchor in what they described.",
+  "the_root": "1-2 lines. The thing beneath the thing. What need or fear is driving this pattern.",
+  "how_others_read_it": "1-2 lines. How this pattern lands on the people around them — what they feel or conclude about the user.",
+  "blind_spot": "1 line. The one thing the user cannot see from inside this pattern.",
+  "the_pattern_name": "3-5 words. A sharp name for this recurring pattern. E.g. 'Approval loop under pressure' or 'Preemptive emotional retreat'.",
+  "the_move": "1-2 lines. The single behavioral shift that interrupts this pattern today.",
+  "scores": { "perception": 0-100, "emotional_control": 0-100, "authenticity": 0-100, "confidence": 0-100 },
+  "summary": "8-10 words for memory"
+}
+
+What Mirror has seen before from this user:
+${memoryContext}
+
+What the user described:
+"""
+${data.situation}
+"""
+Feeling they named: ${data.feeling ?? "not specified"}
+How often this happens: ${data.how_often ?? "not specified"}`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { parsed = { read: content.slice(0, 200), summary: "emotional pattern scan" }; }
+
+    const { data: scan } = await supabase.from("scans").insert({
+      user_id: userId,
+      scan_type: "emotional_pattern",
+      input_text: data.situation.slice(0, 3000),
+      ai_summary: parsed.summary ?? parsed.read ?? null,
+      result_json: parsed,
+      score_json: parsed.scores ?? null,
+    }).select().single();
+
+    if (parsed.scores) {
+      await supabase.from("perception_scores").insert({
+        user_id: userId,
+        perception_score: parsed.scores.perception ?? 50,
+        confidence_score: parsed.scores.confidence ?? 50,
+        attraction_score: 50,
+        authority_score: 50,
+        approachability_score: 50,
+        authenticity_score: parsed.scores.authenticity ?? 50,
+        emotional_control_score: parsed.scores.emotional_control ?? 50,
+        mystery_score: 50,
+      });
+    }
+
+    if (parsed.blind_spot) {
+      await supabase.from("mirror_memory").insert({
+        user_id: userId,
+        memory_type: "scan_insight",
+        memory_text: parsed.blind_spot,
+      });
+    }
+
+    if (parsed.the_pattern_name && parsed.what_is_actually_happening) {
+      const { data: existing } = await supabase
+        .from("patterns")
+        .select("id, frequency")
+        .eq("user_id", userId)
+        .eq("pattern_name", parsed.the_pattern_name)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase.from("patterns").update({
+          frequency: (existing.frequency ?? 1) + 1,
+          pattern_description: parsed.what_is_actually_happening,
+          evidence: parsed.the_root,
+          impact: parsed.how_others_read_it,
+          fix: parsed.the_move,
+          last_seen: new Date().toISOString(),
+        }).eq("id", existing.id);
+      } else {
+        await supabase.from("patterns").insert({
+          user_id: userId,
+          pattern_name: parsed.the_pattern_name,
+          pattern_description: parsed.what_is_actually_happening,
+          evidence: parsed.the_root,
+          impact: parsed.how_others_read_it,
+          fix: parsed.the_move,
+          frequency: 1,
+          last_seen: new Date().toISOString(),
+        });
+      }
+    }
+
+    return { scan, result: parsed };
+  });
