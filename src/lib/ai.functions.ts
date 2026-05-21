@@ -137,12 +137,13 @@ What Mirror has been told:
 // ============================================================
 export const generateBaselineFromSignals = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { signal_01: string; signal_02: string; signal_03: string; signal_04: string }) =>
+  .inputValidator((d: { signal_01: string; signal_02: string; signal_03: string; signal_04: string; tone_preference?: string }) =>
     z.object({
       signal_01: z.string().min(1).max(1000),
       signal_02: z.string().min(1).max(1000),
       signal_03: z.string().min(1).max(1000),
       signal_04: z.string().min(1).max(1000),
+      tone_preference: z.string().optional(),
     }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
