@@ -26,15 +26,30 @@ function Auth() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { error, data } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: `${window.location.origin}/onboarding` },
         });
         if (error) throw error;
         toast.success("Welcome to Mirror.");
+        // If session exists immediately (email confirmation disabled), route directly
+        if (data.session) {
+          nav({ to: "/onboarding" });
+        }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Check if onboarding is complete — if not, send them there
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("onboarding_complete")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+        if (!profile?.onboarding_complete) {
+          nav({ to: "/onboarding" });
+        } else {
+          nav({ to: "/home" });
+        }
       }
     } catch (err: any) {
       toast.error(err.message ?? "Could not authenticate.");
