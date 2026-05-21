@@ -59,6 +59,16 @@ function Home() {
   const hasScores = scanCount > 0;
 
   return (
+    <>
+      {showSetup && user && (
+        <ProfileSetup
+          userId={user.id}
+          onComplete={(name) => {
+            setProfile((p: any) => ({ ...p, name }));
+            setShowSetup(false);
+          }}
+        />
+      )}
     <main className="px-5 pt-12 pb-6 space-y-5">
       <header className="flex items-center justify-between">
         <div>
