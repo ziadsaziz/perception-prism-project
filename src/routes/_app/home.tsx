@@ -82,6 +82,16 @@ function Home() {
   useEffect(() => { if (profile) fetchDaily(); /* once */ // eslint-disable-next-line
   }, [profile?.user_id]);
 
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstall(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
   const hasScores = scanCount > 0 && scores !== null;
 
   return (
