@@ -51,7 +51,7 @@ function Home() {
   useEffect(() => { if (profile) fetchDaily(); /* once */ // eslint-disable-next-line
   }, [profile?.user_id]);
 
-  const hasScores = scores !== null;
+  const hasScores = scanCount > 0;
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-5">
