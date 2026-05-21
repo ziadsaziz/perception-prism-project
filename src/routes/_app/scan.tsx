@@ -911,6 +911,9 @@ function DatingResult({ result, onReset, onShare }: { result: any; onReset: () =
       <div className="space-y-2.5">
         <Insight label="What they likely feel" body={result.what_they_likely_feel} />
         <Insight label="What you're signaling" body={result.what_you_are_doing} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The move" body={result.the_move} accent="ok" />
       </div>
