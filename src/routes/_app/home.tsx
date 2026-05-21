@@ -24,16 +24,21 @@ function Home() {
   const [daily, setDaily] = useState<{ read: string; mission: string; early?: boolean } | null>(null);
   const [pattern, setPattern] = useState<any>(null);
   const [loadingRead, setLoadingRead] = useState(false);
+  const [scanCount, setScanCount] = useState<number>(0);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [p, s, pat] = await Promise.all([
+      const [p, s, pat, sc] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("perception_scores").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("patterns").select("*").eq("user_id", user.id).order("last_seen", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("scans").select("id", { count: "exact" }).eq("user_id", user.id),
       ]);
-      setProfile(p.data); setScores(s.data as any); setPattern(pat.data);
+      setProfile(p.data);
+      setScores(s.data as any);
+      setPattern(pat.data);
+      setScanCount(sc.count ?? 0);
     })();
   }, [user]);
 
