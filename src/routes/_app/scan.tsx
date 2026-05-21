@@ -70,6 +70,8 @@ function TextScan() {
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState(0);
   const [result, setResult] = useState<any>(null);
+  const [showCard, setShowCard] = useState(false);
+  const [cardScore, setCardScore] = useState(0);
 
   const run = async () => {
     if (text.trim().length < 10) { toast.error("Mirror needs at least a few lines."); return; }
@@ -78,12 +80,32 @@ function TextScan() {
     try {
       const r = await fn({ data: { conversation: text, context_note: note } });
       setResult(r.result);
+      // Show mirror card after scan completes
+      if (r.result?.scores?.perception) {
+        setCardScore(r.result.scores.perception);
+        setTimeout(() => setShowCard(true), 800);
+      }
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
     } finally { clearInterval(t); setLoading(false); }
   };
 
-  if (result) return <TextResult result={result} onReset={() => { setResult(null); setText(""); setNote(""); }} />;
+  if (result) return (
+    <>
+      <TextResult
+        result={result}
+        onReset={() => { setResult(null); setText(""); setNote(""); setShowCard(false); }}
+        onShare={() => setShowCard(true)}
+      />
+      {showCard && result.read && (
+        <MirrorCard
+          read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
+          score={cardScore}
+          onClose={() => setShowCard(false)}
+        />
+      )}
+    </>
+  );
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
@@ -119,12 +141,22 @@ function TextScan() {
   );
 }
 
-function TextResult({ result, onReset }: { result: any; onReset: () => void }) {
+function TextResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
   return (
     <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
-      <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-        <ArrowLeft className="h-3 w-3" /> New scan
-      </button>
+      <div className="flex items-center gap-3">
+        <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> New scan
+        </button>
+        {onShare && (
+          <button
+            onClick={onShare}
+            className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C] hover:opacity-80 transition-opacity"
+          >
+            Share read ↑
+          </button>
+        )}
+      </div>
       <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
       <h1 className="font-display text-[28px] leading-tight text-gradient whitespace-pre-line">{result.read ?? result.truth}</h1>
 
