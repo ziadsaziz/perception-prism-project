@@ -316,6 +316,13 @@ Repeated patterns:\n${patternLines}`
       seen: true,
     });
 
+    await createNotification(
+      supabase, userId,
+      "daily_read",
+      "Your read is ready.",
+      parsed.read?.slice(0, 120) ?? "Mirror has a new observation for you today."
+    );
+
     return {
       read: parsed.read,
       mission: parsed.mission,
