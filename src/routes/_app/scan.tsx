@@ -1412,7 +1412,6 @@ function VoiceScan() {
         const source = audioContext.createMediaStreamSource(stream);
         source.connect(analyser);
         audioContextRef.current = audioContext;
-        analyserRef.current = analyser;
 
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         volumeIntervalRef.current = setInterval(() => {
