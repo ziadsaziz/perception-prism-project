@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic } from "@/lib/ai.functions";
+import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -23,7 +23,7 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText, active: true },
   { id: "dating", title: "Dating Dynamic", desc: "Interest, leverage, attachment, next move.", icon: Heart, active: true },
   { id: "emotion", title: "Emotional Pattern", desc: "Detect projection, fear, hidden need.", icon: Brain, active: true },
-  { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass },
+  { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass, active: true },
 ];
 
 const STAGES = ["Reading tone…", "Detecting pressure points…", "Finding the pattern…", "Separating behavior from emotion…", "Building your Mirror read…"];
@@ -35,7 +35,8 @@ function Scan() {
   if (type === "post") return <PostScan />;
   if (type === "emotion") return <EmotionScan />;
   if (type === "dating") return <DatingScan />;
-  if (type && !["text", "post", "emotion", "dating"].includes(type)) return <ComingSoon type={type} />;
+  if (type === "decision") return <DecisionScan />;
+  if (type && !["text", "post", "emotion", "dating", "decision"].includes(type)) return <ComingSoon type={type} />;
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
@@ -730,6 +731,185 @@ function DatingResult({ result, onReset, onShare }: { result: any; onReset: () =
 
       <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
         Mirror reads dynamics, not destiny
+      </p>
+    </main>
+  );
+}
+
+const DECISION_TYPES = [
+  "Career move",
+  "Relationship choice",
+  "Public statement",
+  "Walking away",
+  "Asking for something",
+  "Setting a boundary",
+  "Taking a risk",
+  "Staying put",
+];
+
+const VERDICT_COLOR: Record<string, string> = {
+  Strong: "text-[#C9A84C]",
+  Calculated: "text-blue-400",
+  Grounded: "text-green-400",
+  Risky: "text-orange-400",
+  Reactive: "text-red-400",
+  "Weak signal": "text-white/40",
+};
+
+function DecisionScan() {
+  const { canScan, plan } = useSubscription();
+  const fn = useServerFn(analyzeDecision);
+  const [decision, setDecision] = useState("");
+  const [decisionType, setDecisionType] = useState("");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [result, setResult] = useState<any>(null);
+  const [showCard, setShowCard] = useState(false);
+  const [cardScore, setCardScore] = useState(0);
+
+  const run = async () => {
+    if (decision.trim().length < 10) { toast.error("Describe the decision first."); return; }
+    setLoading(true); setResult(null); setStage(0);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    try {
+      const r = await fn({ data: { decision, decision_type: decisionType, context_note: note } });
+      setResult(r.result);
+      if (r.result?.scores?.perception) {
+        setCardScore(r.result.scores.perception);
+        setTimeout(() => setShowCard(true), 800);
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Scan failed.");
+    } finally { clearInterval(t); setLoading(false); }
+  };
+
+  if (result) return (
+    <>
+      <DecisionResult result={result} onReset={() => { setResult(null); setDecision(""); setShowCard(false); }} onShare={() => setShowCard(true)} />
+      {showCard && result.read && (
+        <MirrorCard
+          read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
+          score={cardScore}
+          onClose={() => setShowCard(false)}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4">
+      <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <ArrowLeft className="h-3 w-3" /> All scans
+      </Link>
+      <header>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Decision · Perception</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">How does this look?</h1>
+        <p className="mt-2 text-xs text-muted-foreground">Describe what you're about to do. Mirror reads how it lands on the people watching.</p>
+      </header>
+
+      {loading ? (
+        <GlassPanel glow className="p-8 text-center">
+          <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
+        </GlassPanel>
+      ) : (
+        <>
+          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
+          {canScan && (
+            <>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">What kind of decision?</p>
+                <div className="flex flex-wrap gap-2">
+                  {DECISION_TYPES.map(d => (
+                    <button
+                      key={d}
+                      onClick={() => setDecisionType(decisionType === d ? "" : d)}
+                      className={`rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                        decisionType === d
+                          ? "bg-[#C9A84C] text-black"
+                          : "bg-glass ring-hairline text-muted-foreground"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                value={decision}
+                onChange={e => setDecision(e.target.value)}
+                rows={8}
+                maxLength={3000}
+                placeholder={`Describe what you're about to do — or what you already did. Be specific. Include who's involved, what the situation is, and what you're deciding.\n\nExample: "I'm thinking about quitting my job without another one lined up. My manager has been undermining me for months. I have 3 months savings. I want to take a month off then freelance."`}
+                className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+              />
+
+              <input
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                maxLength={500}
+                placeholder="Who are you most worried about how this looks to? (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+              />
+
+              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
+                Read this decision
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
+
+function DecisionResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      <div className="flex items-center justify-between">
+        <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> New scan
+        </button>
+        {onShare && (
+          <button onClick={onShare} className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">
+            Share read ↑
+          </button>
+        )}
+      </div>
+
+      {result.perception_verdict && (
+        <div className="flex items-center gap-3">
+          <span className={`font-display text-[32px] leading-none ${VERDICT_COLOR[result.perception_verdict] ?? "text-white"}`}>
+            {result.perception_verdict}
+          </span>
+          {result.verdict_reason && (
+            <p className="text-[12px] text-white/50 leading-snug max-w-[200px]">{result.verdict_reason}</p>
+          )}
+        </div>
+      )}
+
+      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
+      <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
+
+      <div className="space-y-2.5">
+        <Insight label="How it reads to others" body={result.how_it_reads_to_others} />
+        <Insight label="What it reveals" body={result.what_it_reveals} />
+        <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
+        <Insight label="The strongest version" body={result.the_strongest_version} accent="ok" />
+      </div>
+
+      {result.alternative_read && (
+        <GlassPanel className="p-5 border border-white/[0.06]">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-white/40 mb-2">Consider instead</p>
+          <p className="text-sm text-foreground/80 leading-relaxed">{result.alternative_read}</p>
+        </GlassPanel>
+      )}
+
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
+        Mirror reads perception, not outcome
       </p>
     </main>
   );

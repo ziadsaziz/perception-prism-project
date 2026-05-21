@@ -776,3 +776,89 @@ How often this happens: ${data.how_often ?? "not specified"}`
 
     return { scan, result: parsed };
   });
+
+// ============================================================
+// 8. Decision Perception scan
+// ============================================================
+export const analyzeDecision = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { decision: string; context_note?: string; decision_type?: string }) =>
+    z.object({
+      decision: z.string().min(10).max(3000),
+      context_note: z.string().max(500).optional(),
+      decision_type: z.string().optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const [{ data: profile }, { data: memory }] = await Promise.all([
+      supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle(),
+      supabase.from("mirror_memory").select("memory_text").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    const memoryContext = (memory ?? []).map(m => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `The user is about to make a decision — or has already made one. Your job is not to validate or judge it. Your job is to read how this decision lands on the people observing it. What signal does it send? What does it reveal about the person making it? How will they be perceived as a result?
+
+Return STRICT JSON:
+{
+  "read": "ONE sharp line. The core perception signal this decision sends. Max 22 words.",
+  "perception_verdict": "one of: 'Strong', 'Calculated', 'Grounded', 'Risky', 'Reactive', 'Weak signal'",
+  "verdict_reason": "One line explaining the verdict.",
+  "how_it_reads_to_others": "2-3 lines. How the key people in this situation will perceive this decision — not whether it's right, but what it signals about the user.",
+  "what_it_reveals": "1-2 lines. What this decision reveals about the user beneath the surface — their fear, their values, or their need.",
+  "blind_spot": "1-2 lines. What the user cannot see about how this lands.",
+  "the_strongest_version": "1-2 lines. If they're going to make this move, what's the most powerful way to do it — or the framing that makes it land strongest.",
+  "alternative_read": "Optional. If there's a significantly stronger alternative decision that would land better, name it in one line. If not, omit.",
+  "scores": { "perception": 0-100, "confidence": 0-100, "authority": 0-100, "authenticity": 0-100 },
+  "summary": "8-10 words for memory"
+}
+
+What Mirror knows about this user:
+${memoryContext}
+
+Decision type: ${data.decision_type ?? "not specified"}
+Context: ${data.context_note ?? "none"}
+The decision:
+"""
+${data.decision}
+"""`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { parsed = { read: content.slice(0, 200), summary: "decision scan" }; }
+
+    const { data: scan } = await supabase.from("scans").insert({
+      user_id: userId,
+      scan_type: "decision_perception",
+      input_text: data.decision.slice(0, 3000),
+      ai_summary: parsed.summary ?? parsed.read ?? null,
+      result_json: parsed,
+      score_json: parsed.scores ?? null,
+    }).select().single();
+
+    if (parsed.scores) {
+      await supabase.from("perception_scores").insert({
+        user_id: userId,
+        perception_score: parsed.scores.perception ?? 50,
+        confidence_score: parsed.scores.confidence ?? 50,
+        attraction_score: 50,
+        authority_score: parsed.scores.authority ?? 50,
+        approachability_score: 50,
+        authenticity_score: parsed.scores.authenticity ?? 50,
+        emotional_control_score: 50,
+        mystery_score: 50,
+      });
+    }
+
+    if (parsed.blind_spot) {
+      await supabase.from("mirror_memory").insert({
+        user_id: userId,
+        memory_type: "scan_insight",
+        memory_text: parsed.blind_spot,
+      });
+    }
+
+    return { scan, result: parsed };
+  });
