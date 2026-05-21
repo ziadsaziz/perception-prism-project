@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { analyzeTextConversation } from "@/lib/ai.functions";
+import { analyzeTextConversation, analyzePost } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -20,7 +20,7 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon },
   { id: "voice", title: "Voice & Energy", desc: "How you sound to others. Charisma map.", icon: Mic },
   { id: "social", title: "Social Profile", desc: "How your profile lands. Status read.", icon: Globe },
-  { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText },
+  { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText, active: true },
   { id: "dating", title: "Dating Dynamic", desc: "Interest, leverage, attachment, next move.", icon: Heart },
   { id: "emotion", title: "Emotional Pattern", desc: "Detect projection, fear, hidden need.", icon: Brain },
   { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass },
@@ -32,7 +32,8 @@ function Scan() {
   const { type } = Route.useSearch();
 
   if (type === "text") return <TextScan />;
-  if (type && type !== "text") return <ComingSoon type={type} />;
+  if (type === "post") return <PostScan />;
+  if (type && type !== "text" && type !== "post") return <ComingSoon type={type} />;
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
@@ -205,6 +206,168 @@ function Insight({ label, body, accent }: { label: string; body: string; accent?
       <p className={`text-[10px] uppercase tracking-[0.28em] ${color}`}>{label}</p>
       <p className="mt-1.5 text-sm leading-relaxed text-foreground/90">{body}</p>
     </div>
+  );
+}
+
+const PLATFORMS = ["Instagram", "LinkedIn", "X / Twitter", "TikTok", "Facebook", "Other"];
+
+const LANDING_COLOR: Record<string, string> = {
+  Strong: "text-[#C9A84C]",
+  Neutral: "text-white/60",
+  Risky: "text-orange-400",
+  Overexposed: "text-red-400",
+};
+
+function PostScan() {
+  const { canScan, plan } = useSubscription();
+  const fn = useServerFn(analyzePost);
+  const [text, setText] = useState("");
+  const [platform, setPlatform] = useState("Instagram");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [result, setResult] = useState<any>(null);
+  const [showCard, setShowCard] = useState(false);
+  const [cardScore, setCardScore] = useState(0);
+
+  const run = async () => {
+    if (text.trim().length < 5) { toast.error("Paste the post first."); return; }
+    setLoading(true); setResult(null); setStage(0);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    try {
+      const r = await fn({ data: { post_text: text, platform, context_note: note } });
+      setResult(r.result);
+      if (r.result?.scores?.perception) {
+        setCardScore(r.result.scores.perception);
+        setTimeout(() => setShowCard(true), 800);
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Scan failed.");
+    } finally { clearInterval(t); setLoading(false); }
+  };
+
+  if (result) return (
+    <>
+      <PostResult result={result} onReset={() => { setResult(null); setText(""); setShowCard(false); }} onShare={() => setShowCard(true)} />
+      {showCard && result.read && (
+        <MirrorCard
+          read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
+          score={cardScore}
+          onClose={() => setShowCard(false)}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4">
+      <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <ArrowLeft className="h-3 w-3" /> All scans
+      </Link>
+      <header>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Post · Analysis</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">Will this land?</h1>
+        <p className="mt-2 text-xs text-muted-foreground">Paste your post. Mirror reads what it signals before you hit publish.</p>
+      </header>
+
+      {loading ? (
+        <GlassPanel glow className="p-8 text-center">
+          <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
+        </GlassPanel>
+      ) : (
+        <>
+          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
+          {canScan && (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {PLATFORMS.map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPlatform(p)}
+                    className={`rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                      platform === p
+                        ? "bg-[#C9A84C] text-black"
+                        : "bg-glass ring-hairline text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={text}
+                onChange={e => setText(e.target.value)}
+                rows={8}
+                maxLength={3000}
+                placeholder="Paste your caption, tweet, LinkedIn post, or anything you're about to put out there…"
+                className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+              />
+              <input
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                maxLength={500}
+                placeholder="Any context? (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+              />
+              <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
+                Read this post
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
+
+function PostResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      <div className="flex items-center justify-between">
+        <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> New scan
+        </button>
+        {onShare && (
+          <button onClick={onShare} className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">
+            Share read ↑
+          </button>
+        )}
+      </div>
+
+      {result.how_it_lands && (
+        <div className="flex items-center gap-3">
+          <span className={`font-display text-[32px] leading-none ${LANDING_COLOR[result.how_it_lands] ?? "text-white"}`}>
+            {result.how_it_lands}
+          </span>
+          {result.landing_reason && (
+            <p className="text-[12px] text-white/50 leading-snug max-w-[200px]">{result.landing_reason}</p>
+          )}
+        </div>
+      )}
+
+      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
+      <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
+
+      <div className="space-y-2.5">
+        <Insight label="What it signals" body={result.what_it_signals} />
+        <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
+        <Insight label="The move" body={result.the_move} accent="ok" />
+      </div>
+
+      {result.stronger_version && (
+        <GlassPanel className="p-5">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C] mb-3">Stronger version</p>
+          <p className="text-sm leading-relaxed text-white/90 italic">"{result.stronger_version}"</p>
+        </GlassPanel>
+      )}
+
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70 pt-2">
+        Mirror reads signals, not intent
+      </p>
+    </main>
   );
 }
 

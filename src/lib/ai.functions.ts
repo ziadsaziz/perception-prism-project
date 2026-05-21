@@ -495,3 +495,80 @@ ${memoryThin ? "Mirror has limited context on this user. Keep claims small. If t
     ]);
     return { reply };
   });
+
+// ============================================================
+// 5. Post Analysis scan
+// ============================================================
+export const analyzePost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { post_text: string; platform?: string; context_note?: string }) =>
+    z.object({
+      post_text: z.string().min(5).max(3000),
+      platform: z.string().optional(),
+      context_note: z.string().max(500).optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: profile } = await supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle();
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `Analyze this ${data.platform ?? "social media"} post. The user is about to publish it — or already did. Tell them exactly how it lands on the people reading it.
+
+Return STRICT JSON:
+{
+  "read": "ONE sharp line about the overall signal this post sends. Max 20 words. What do people actually feel when they read this?",
+  "what_it_signals": "2-3 lines. What does this post reveal about the person posting it — beyond what they intended? Behavioral read only.",
+  "blind_spot": "1-2 lines. What the poster doesn't realize they're showing.",
+  "how_it_lands": "one of: 'Strong', 'Neutral', 'Risky', 'Overexposed'",
+  "landing_reason": "One line explaining the how_it_lands verdict.",
+  "the_move": "One line. Should they post it, edit it, or kill it — and why.",
+  "stronger_version": "Optional. If it can be improved, rewrite it in 1-3 sentences in a stronger way. If it's strong as-is, omit this field.",
+  "scores": { "perception": 0-100, "confidence": 0-100, "authenticity": 0-100, "authority": 0-100 },
+  "summary": "8-10 words for memory"
+}
+
+Platform: ${data.platform ?? "not specified"}
+Context: ${data.context_note ?? "none"}
+Post:
+"""
+${data.post_text}
+"""`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { parsed = { read: content.slice(0, 200), summary: "post scan" }; }
+
+    const { data: scan } = await supabase.from("scans").insert({
+      user_id: userId,
+      scan_type: "post_analysis",
+      input_text: data.post_text.slice(0, 3000),
+      ai_summary: parsed.summary ?? parsed.read ?? null,
+      result_json: parsed,
+      score_json: parsed.scores ?? null,
+    }).select().single();
+
+    if (parsed.scores) {
+      await supabase.from("perception_scores").insert({
+        user_id: userId,
+        perception_score: parsed.scores.perception ?? 50,
+        confidence_score: parsed.scores.confidence ?? 50,
+        attraction_score: 50,
+        authority_score: parsed.scores.authority ?? 50,
+        approachability_score: 50,
+        authenticity_score: parsed.scores.authenticity ?? 50,
+        emotional_control_score: 50,
+        mystery_score: 50,
+      });
+    }
+
+    if (parsed.blind_spot) {
+      await supabase.from("mirror_memory").insert({
+        user_id: userId,
+        memory_type: "scan_insight",
+        memory_text: parsed.blind_spot,
+      });
+    }
+
+    return { scan, result: parsed };
+  });
