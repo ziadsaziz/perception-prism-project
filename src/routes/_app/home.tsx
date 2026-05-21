@@ -45,7 +45,7 @@ function Home() {
   useEffect(() => { if (profile) fetchDaily(); /* once */ // eslint-disable-next-line
   }, [profile?.user_id]);
 
-  const s = scores ?? { perception_score: 50, confidence_score: 50, attraction_score: 50, authority_score: 50, approachability_score: 50, authenticity_score: 50, emotional_control_score: 50, mystery_score: 50 };
+  
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-5">
@@ -82,16 +82,47 @@ function Home() {
       <section>
         <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">Perception scores</p>
         <GlassPanel className="mt-2 p-4">
-          <div className="grid grid-cols-4 gap-3">
-            <ScoreRing value={s.perception_score} label="Perception" />
-            <ScoreRing value={s.confidence_score} label="Confidence" />
-            <ScoreRing value={s.attraction_score} label="Attraction" />
-            <ScoreRing value={s.emotional_control_score} label="Control" />
-            <ScoreRing value={s.approachability_score} label="Approach" />
-            <ScoreRing value={s.mystery_score} label="Mystery" />
-            <ScoreRing value={s.authority_score} label="Authority" />
-            <ScoreRing value={s.authenticity_score} label="Authentic" />
-          </div>
+          {hasScores ? (
+            <div className="grid grid-cols-4 gap-3">
+              <ScoreRing value={scores!.perception_score} label="Perception" />
+              <ScoreRing value={scores!.confidence_score} label="Confidence" />
+              <ScoreRing value={scores!.attraction_score} label="Attraction" />
+              <ScoreRing value={scores!.emotional_control_score} label="Control" />
+              <ScoreRing value={scores!.approachability_score} label="Approach" />
+              <ScoreRing value={scores!.mystery_score} label="Mystery" />
+              <ScoreRing value={scores!.authority_score} label="Authority" />
+              <ScoreRing value={scores!.authenticity_score} label="Authentic" />
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="grid grid-cols-4 gap-3 mb-6">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="flex flex-col items-center gap-2 blur-[6px] opacity-40">
+                    <div className="relative" style={{ width: 84, height: 84 }}>
+                      <svg width={84} height={84} className="-rotate-90">
+                        <circle cx={42} cy={42} r={36} stroke="oklch(0.22 0.01 270)" strokeWidth="4" fill="none" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="font-display text-xl text-muted-foreground">--</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">--</span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground mb-2">
+                  Scores locked
+                </p>
+                <p className="text-xs text-muted-foreground max-w-[240px] leading-relaxed">
+                  Mirror builds your perception profile after your first scan.
+                </p>
+              </div>
+              <Link to="/scan" search={{ type: "text" }} className="mt-5 inline-block rounded-full bg-foreground text-background px-5 py-3 text-[10px] uppercase tracking-[0.24em]">
+                Run your first scan
+              </Link>
+            </div>
+          )}
         </GlassPanel>
       </section>
 
