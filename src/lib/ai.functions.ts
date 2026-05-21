@@ -482,27 +482,41 @@ export const askMirror = createServerFn({ method: "POST" })
   .inputValidator((d: { message: string }) => z.object({ message: z.string().min(1).max(2000) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const [{ data: profile }, { data: history }, { data: recentScans }, { data: patterns }] = await Promise.all([
+    const [{ data: profile }, { data: history }, { data: recentScans }, { data: patterns }, { data: memory }] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("advisor_messages").select("role, content").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
       supabase.from("scans").select("scan_type, ai_summary").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
-      supabase.from("patterns").select("pattern_name, pattern_description").eq("user_id", userId).order("frequency", { ascending: false }).limit(3),
+      supabase.from("patterns").select("pattern_name, pattern_description, frequency").eq("user_id", userId).order("frequency", { ascending: false }).limit(3),
+      supabase.from("mirror_memory").select("memory_text, memory_type").eq("user_id", userId).order("created_at", { ascending: false }).limit(6),
     ]);
 
     const scanMemory = (recentScans ?? []).map(s => `- ${s.scan_type}: ${s.ai_summary ?? ""}`).join("\n") || "(none yet)";
-    const patternMemory = (patterns ?? []).map(p => `- ${p.pattern_name}: ${p.pattern_description}`).join("\n") || "(none yet)";
+    const patternContext = (patterns ?? [])
+      .map(p => `- ${p.pattern_name} (seen ${p.frequency}x): ${p.pattern_description}`)
+      .join("\n") || "(no patterns detected yet)";
+    const memoryContext = (memory ?? [])
+      .map(m => `- ${m.memory_text}`)
+      .join("\n") || "(no prior observations)";
     const memoryThin = (recentScans?.length ?? 0) < 2;
 
     const system = `${voiceFor(profile?.tone_preference ?? "Direct")}
 
 User goal: ${profile?.main_goal ?? "—"}
 What Mirror has noticed (scans):\n${scanMemory}
-Repeated patterns:\n${patternMemory}
 
 Reply in 2 to 5 short, sharp lines. No filler. No disclaimers. No lists.
 Anchor every observation in something the user has actually shown Mirror.
 End with one clear move.
-${memoryThin ? "Mirror has limited context on this user. Keep claims small. If they ask something big, say it is an early read and ask them to share more." : ""}`;
+${memoryThin ? "Mirror has limited context on this user. Keep claims small. If they ask something big, say it is an early read and ask them to share more." : ""}
+
+What Mirror has observed about this user:
+Patterns:
+${patternContext}
+
+Memory:
+${memoryContext}
+
+Use this context to make your responses specific to this user. Reference their actual patterns and observations when relevant. Never be generic. Never give advice that could apply to anyone.`;
 
     const messages = [
       { role: "system" as const, content: system },

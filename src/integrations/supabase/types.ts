@@ -43,8 +43,10 @@ export type Database = {
           ai_reflection: string | null
           confidence_level: number | null
           created_at: string
+          date: string | null
           id: string
           mood: string | null
+          move_completed: boolean | null
           social_energy: number | null
           user_id: string
           what_happened: string | null
@@ -53,8 +55,10 @@ export type Database = {
           ai_reflection?: string | null
           confidence_level?: number | null
           created_at?: string
+          date?: string | null
           id?: string
           mood?: string | null
+          move_completed?: boolean | null
           social_energy?: number | null
           user_id: string
           what_happened?: string | null
@@ -63,8 +67,10 @@ export type Database = {
           ai_reflection?: string | null
           confidence_level?: number | null
           created_at?: string
+          date?: string | null
           id?: string
           mood?: string | null
+          move_completed?: boolean | null
           social_energy?: number | null
           user_id?: string
           what_happened?: string | null
