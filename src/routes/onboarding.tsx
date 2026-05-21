@@ -159,17 +159,27 @@ function Onboarding() {
     setAnswers(updated);
 
     if (phaseKey === "q4") {
-      transition("processing");
-      try {
-        const result = await baselineFn({ data: updated });
-        setBaseline(result);
-      } catch (e: any) {
-        toast.error(e?.message ?? "Mirror could not build your baseline.");
-        transition("q4");
-      }
+      transition("tone");
     } else {
       const nextKey = `q${Number(phaseKey[1]) + 1}` as Phase;
       transition(nextKey);
+    }
+  }
+
+  async function runBaseline() {
+    transition("processing");
+    try {
+      const result = await baselineFn({ data: { ...answers, tone_preference: tone } });
+      setBaseline(result);
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ tone_preference: tone })
+          .eq("user_id", user.id);
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Mirror could not build your baseline.");
+      transition("tone");
     }
   }
 
