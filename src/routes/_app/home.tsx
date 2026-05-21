@@ -32,6 +32,8 @@ function Home() {
   const [moveDone, setMoveDone] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
     if (!user) return;
