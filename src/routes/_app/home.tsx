@@ -124,6 +124,34 @@ function Home() {
         <NotificationCenter />
       </header>
 
+      {showInstall && (
+        <div className="flex items-center justify-between bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.28em] text-[#C9A84C]">Add to home screen</p>
+            <p className="text-[12px] text-white/60 mt-0.5">Install Mirror for the full experience</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                if (!installPrompt) return;
+                await installPrompt.prompt();
+                const { outcome } = await installPrompt.userChoice;
+                if (outcome === "accepted") setShowInstall(false);
+              }}
+              className="rounded-full bg-[#C9A84C] text-black px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] font-medium"
+            >
+              Install
+            </button>
+            <button
+              onClick={() => setShowInstall(false)}
+              className="text-white/30 text-[11px]"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <GlassPanel glow className="p-6">
         <div className="flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read · today</p>
