@@ -263,6 +263,31 @@ function Home() {
           )}
         </GlassPanel>
       </section>
+      {recentScans.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between px-1 mb-2">
+            <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">Recent reads</p>
+            <Link to="/patterns" className="text-[10px] uppercase tracking-[0.24em] text-accent">See all</Link>
+          </div>
+          <div className="space-y-2">
+            {recentScans.map((scan, i) => (
+              <GlassPanel key={i} className="p-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[9px] uppercase tracking-[0.28em] text-accent">
+                    {scan.scan_type.replace(/_/g, " ")}
+                  </p>
+                  <p className="text-[9px] uppercase tracking-[0.24em] text-muted-foreground/50">
+                    {new Date(scan.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </p>
+                </div>
+                <p className="text-[13px] text-foreground/85 leading-relaxed line-clamp-2">
+                  {scan.result_json?.read ?? scan.ai_summary ?? "—"}
+                </p>
+              </GlassPanel>
+            ))}
+          </div>
+        </section>
+      )}
       <MirrorMemory />
     </main>
     </>
