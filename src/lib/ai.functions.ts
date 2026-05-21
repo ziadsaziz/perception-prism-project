@@ -1077,3 +1077,94 @@ Context from user: ${data.context_note ?? "none"}`
 
     return { scan, result: parsed };
   });
+
+// ============================================================
+// 11. Voice & Energy scan
+// ============================================================
+export const analyzeVoice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    transcript: string;
+    vocal_description?: string;
+    context_note?: string;
+  }) =>
+    z.object({
+      transcript: z.string().min(10).max(5000),
+      vocal_description: z.string().max(500).optional(),
+      context_note: z.string().max(500).optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const [{ data: profile }, { data: memory }] = await Promise.all([
+      supabase.from("profiles").select("tone_preference, main_goal").eq("user_id", userId).maybeSingle(),
+      supabase.from("mirror_memory").select("memory_text").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    const memoryContext = (memory ?? []).map((m: any) => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `You are analyzing someone's voice note transcript and how they sound. Read the energy, confidence, and behavioral signals in how they speak — not just what they say. Look for: trailing sentences, over-explanation, filler words, hedging language, apology patterns, certainty signals, authority signals, and emotional tone.
+
+Return STRICT JSON:
+{
+  "read": "ONE sharp line. The core energy signal this person projects when they speak. Max 22 words.",
+  "energy_read": "2-3 lines. How this person sounds to someone hearing them for the first time. What they feel about the speaker based on delivery.",
+  "vocal_patterns": "2-3 lines. The specific speech patterns that define how this person communicates — what they do repeatedly without noticing.",
+  "blind_spot": "1-2 lines. The signal their voice is sending that they're not aware of.",
+  "energy_verdict": "one of: 'Commanding', 'Warm', 'Anxious', 'Confident', 'Hesitant', 'Overexplaining', 'Grounded', 'Scattered'",
+  "verdict_reason": "One line explaining the verdict.",
+  "confidence_read": "one of: 'High', 'Moderate', 'Low', 'Performed'",
+  "the_move": "1-2 lines. The single shift in how they speak that would change how they're received most.",
+  "scores": { "perception": 0-100, "confidence": 0-100, "authority": 0-100, "authenticity": 0-100 },
+  "summary": "8-10 words for memory"
+}
+
+What Mirror knows about this user:
+${memoryContext}
+
+Vocal qualities the user described: ${data.vocal_description ?? "not described"}
+Context: ${data.context_note ?? "none"}
+
+Transcript:
+"""
+${data.transcript}
+"""`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { parsed = { read: content.slice(0, 200), summary: "voice scan" }; }
+
+    const { data: scan } = await supabase.from("scans").insert({
+      user_id: userId,
+      scan_type: "voice_energy",
+      input_text: data.transcript.slice(0, 5000),
+      ai_summary: parsed.summary ?? parsed.read ?? null,
+      result_json: parsed,
+      score_json: parsed.scores ?? null,
+    }).select().single();
+
+    if (parsed.scores) {
+      await supabase.from("perception_scores").insert({
+        user_id: userId,
+        perception_score: parsed.scores.perception ?? 50,
+        confidence_score: parsed.scores.confidence ?? 50,
+        attraction_score: 50,
+        authority_score: parsed.scores.authority ?? 50,
+        approachability_score: 50,
+        authenticity_score: parsed.scores.authenticity ?? 50,
+        emotional_control_score: 50,
+        mystery_score: 50,
+      });
+    }
+
+    if (parsed.blind_spot) {
+      await supabase.from("mirror_memory").insert({
+        user_id: userId,
+        memory_type: "scan_insight",
+        memory_text: parsed.blind_spot,
+      });
+    }
+
+    return { scan, result: parsed };
+  });
