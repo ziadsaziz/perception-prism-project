@@ -484,6 +484,13 @@ Return STRICT JSON only:
             memory_type: "pattern",
             memory_text: `${patternParsed.pattern_name}: ${patternParsed.pattern_description}`,
           });
+
+          await createNotification(
+            supabase, userId,
+            "pattern",
+            `Pattern detected: ${patternParsed.pattern_name}`,
+            patternParsed.pattern_description?.slice(0, 120) ?? "Mirror identified a recurring behavioral pattern."
+          );
         }
       }
     } catch {
