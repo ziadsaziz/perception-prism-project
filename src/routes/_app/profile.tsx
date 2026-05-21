@@ -367,7 +367,7 @@ function Profile() {
   );
 }
 
-function DailyHistory({ userId }: { userId?: string }) {
+function DailyHistory({ userId }: { userId: string }) {
   const [reads, setReads] = useState<Array<{ read: string; mission: string; date: string }>>([]);
 
   useEffect(() => {
