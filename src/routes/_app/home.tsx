@@ -248,8 +248,8 @@ function Home() {
           ) : (
             <div className="flex flex-col items-center text-center py-4 gap-4">
               <div className="grid grid-cols-4 gap-3 w-full opacity-20 blur-[3px] pointer-events-none select-none">
-                {[...Array(8)].map((_, i) => (
-                  <ScoreRing key={i} value={72} label="——" />
+                {["Perception", "Confidence", "Attraction", "Control", "Approach", "Mystery", "Authority", "Authentic"].map((label) => (
+                  <ScoreRing key={label} value={72} label={label} locked />
                 ))}
               </div>
               <div className="space-y-1">
