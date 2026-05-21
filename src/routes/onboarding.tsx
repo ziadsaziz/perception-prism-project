@@ -80,6 +80,7 @@ function Onboarding() {
   const [phase, setPhase] = useState<Phase>("entry");
   const [visible, setVisible] = useState(true);
   const [answers, setAnswers] = useState({ signal_01: "", signal_02: "", signal_03: "", signal_04: "" });
+  const [tone, setTone] = useState<string>("Direct");
   const [draft, setDraft] = useState("");
   const [processIdx, setProcessIdx] = useState(0);
   const [baseline, setBaseline] = useState<{ read: string; truth: string; blind_spot: string; first_move: string } | null>(null);
