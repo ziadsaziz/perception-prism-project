@@ -61,7 +61,7 @@ function Home() {
   useEffect(() => { if (profile) fetchDaily(); /* once */ // eslint-disable-next-line
   }, [profile?.user_id]);
 
-  const hasScores = scanCount > 0;
+  const hasScores = scanCount > 0 && scores !== null;
 
   return (
     <>
