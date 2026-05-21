@@ -276,7 +276,7 @@ function Home() {
           <QuickAction to="/scan" search={{ type: "text" }} icon={ScanLine} label="Conversation" sub="Paste or upload" />
           <QuickAction to="/scan" search={{ type: "selfie" }} icon={ImageIcon} label="Selfie" sub="Presence read" />
           <QuickAction to="/scan" search={{ type: "voice" }} icon={Mic} label="Voice note" sub="Energy & tone" />
-          <QuickAction to="/advisor" icon={Sparkles} label="Ask Mirror" sub="Strategic session" />
+          <QuickAction to="/scan" search={{ type: "dating" }} icon={Heart} label="Dating" sub="Read the dynamic" />
         </div>
       </section>
 
