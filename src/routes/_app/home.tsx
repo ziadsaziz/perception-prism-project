@@ -65,7 +65,7 @@ function Home() {
 
   return (
     <>
-      {showSetup && user && (
+      {profileChecked && showSetup && user && (
         <ProfileSetup
           userId={user.id}
           onComplete={(name) => {
