@@ -96,7 +96,17 @@ function Home() {
       <header className="flex items-center justify-between">
         <div>
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">Today</p>
-          <h1 className="font-display text-2xl text-gradient mt-1">{profile?.name ? `Welcome back, ${profile.name}.` : "Welcome back."}</h1>
+          <h1 className="font-display text-2xl text-gradient mt-1">
+            {(() => {
+              const hour = new Date().getHours();
+              const name = profile?.name;
+              const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+              if (!name) return `${greeting}.`;
+              if (lastScanDaysAgo !== null && lastScanDaysAgo >= 3) return `${name}. Mirror noticed you've been quiet.`;
+              if (scanCount === 0) return `${greeting}, ${name}. Let's see what Mirror finds.`;
+              return `${greeting}, ${name}.`;
+            })()}
+          </h1>
         </div>
         <div className="h-9 w-9 rounded-full bg-glass ring-hairline flex items-center justify-center">
           <div className="h-2 w-2 rounded-full bg-accent animate-pulse-soft" />
