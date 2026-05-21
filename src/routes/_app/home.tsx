@@ -109,9 +109,7 @@ function Home() {
             })()}
           </h1>
         </div>
-        <div className="h-9 w-9 rounded-full bg-glass ring-hairline flex items-center justify-center">
-          <div className="h-2 w-2 rounded-full bg-accent animate-pulse-soft" />
-        </div>
+        <NotificationCenter />
       </header>
 
       <GlassPanel glow className="p-6">
