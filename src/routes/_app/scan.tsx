@@ -112,24 +112,68 @@ function Scan() {
         <p className="mt-2 text-sm text-muted-foreground">Feed Mirror something. It will tell you what the world is reading.</p>
       </header>
 
-      <div className="space-y-2.5">
-        {SCAN_TYPES.map(s => (
-          <Link key={s.id} to="/scan" search={{ type: s.id }}
-            className="block bg-glass ring-hairline rounded-2xl p-4 active:scale-[0.99] transition-transform">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-secondary/60 flex items-center justify-center shrink-0">
-                <s.icon className="h-4 w-4 text-accent" strokeWidth={1.5} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium">{s.title}</h3>
-                  {!s.active && <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted/40">Soon</span>}
+      <div className="space-y-3">
+        {/* Hero scan — text conversation */}
+        {(() => {
+          const hero = SCAN_TYPES.find(s => s.id === "text");
+          if (!hero) return null;
+          return (
+            <Link to="/scan" search={{ type: "text" }}
+              className="block bg-glass ring-hairline rounded-2xl p-5 border border-[#C9A84C]/20 active:scale-[0.99] transition-transform glow-gold">
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-[#C9A84C]/10 flex items-center justify-center shrink-0">
+                  <hero.icon className="h-5 w-5 text-[#C9A84C]" strokeWidth={1.5} />
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-medium">{hero.title}</h3>
+                    <span className="text-[9px] uppercase tracking-[0.2em] text-[#C9A84C] px-1.5 py-0.5 rounded-full border border-[#C9A84C]/30">Most used</span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{hero.desc}</p>
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })()}
+
+        {/* Elite scans — 2 column grid */}
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">Elite scans</p>
+          <div className="grid grid-cols-2 gap-2">
+            {SCAN_TYPES.filter(s => ["selfie", "voice", "social"].includes(s.id)).map(s => (
+              <Link key={s.id} to="/scan" search={{ type: s.id }}
+                className="bg-glass ring-hairline rounded-2xl p-4 active:scale-[0.99] transition-transform">
+                <div className="h-8 w-8 rounded-xl bg-secondary/60 flex items-center justify-center mb-3">
+                  <s.icon className="h-4 w-4 text-accent" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-sm font-medium leading-tight">{s.title}</h3>
+                <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">{s.desc}</p>
+                <span className="mt-2 inline-block text-[9px] uppercase tracking-[0.2em] text-accent/60 border border-accent/20 rounded-full px-1.5 py-0.5">Elite</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Standard scans — list */}
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">All scans</p>
+          <div className="space-y-2">
+            {SCAN_TYPES.filter(s => ["post", "dating", "emotion", "decision"].includes(s.id)).map(s => (
+              <Link key={s.id} to="/scan" search={{ type: s.id }}
+                className="block bg-glass ring-hairline rounded-2xl p-4 active:scale-[0.99] transition-transform">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-secondary/60 flex items-center justify-center shrink-0">
+                    <s.icon className="h-4 w-4 text-accent" strokeWidth={1.5} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium">{s.title}</h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
     </main>
   );
