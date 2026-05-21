@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { generateBaselineFromSignals } from "@/lib/ai.functions";
 import { toast } from "sonner";
@@ -84,7 +85,22 @@ function Onboarding() {
   const [baseline, setBaseline] = useState<{ read: string; truth: string; blind_spot: string; first_move: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { if (!loading && !user) nav({ to: "/auth" }); }, [user, loading, nav]);
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      nav({ to: "/auth" });
+      return;
+    }
+    // If onboarding already complete, skip to home
+    supabase
+      .from("profiles")
+      .select("onboarding_complete")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.onboarding_complete) nav({ to: "/home" });
+      });
+  }, [user, loading, nav]);
 
   // Entry auto-advance
   useEffect(() => {
