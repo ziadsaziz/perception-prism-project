@@ -17,6 +17,7 @@ async function callAI(system: string, user: string, json = true): Promise<string
     },
     body: JSON.stringify({
       model: MODEL,
+      max_tokens: 800,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
