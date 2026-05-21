@@ -38,7 +38,7 @@ export function ScoreRing({ value, label, locked = false, delta }: ScoreRingProp
               <path d="M8 11V7a4 4 0 0 1 8 0v4" />
             </svg>
           ) : (
-            <span className="text-[11px] font-medium text-white leading-none">{value}</span>
+            <span className="text-[11px] font-medium text-white leading-none" ref={el => { if (el) navigator.vibrate?.(6); }}>{value}</span>
           )}
         </div>
         {delta !== undefined && delta !== 0 && !locked && (
