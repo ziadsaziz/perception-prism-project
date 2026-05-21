@@ -723,6 +723,7 @@ Return STRICT JSON:
   "what_they_likely_feel": "2-3 lines. What the other person is actually feeling — not what they say. Read their behavior, not their words.",
   "what_you_are_doing": "2-3 lines. What the user's behavior is signaling to the other person — without the user realizing it.",
   "blind_spot": "1-2 lines. The thing the user cannot see because they're inside this dynamic.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "attraction_read": "one of: 'High', 'Moderate', 'Low', 'Fading', 'Strategic'",
   "attraction_reason": "One line explaining the attraction read.",
   "the_move": "1-2 lines. The single strongest move the user can make right now. Specific. Not 'be yourself' or 'communicate more'.",
