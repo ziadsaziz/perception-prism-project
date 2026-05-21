@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_app/scan")({
 
 const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; active?: boolean }> = [
   { id: "text", title: "Text Conversation", desc: "Paste or upload a chat. See what they really felt.", icon: ScanLine, active: true },
-  { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon },
+  { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon, active: true },
   { id: "voice", title: "Voice & Energy", desc: "How you sound to others. Charisma map.", icon: Mic },
   { id: "social", title: "Social Profile", desc: "How your profile lands. Status read.", icon: Globe, active: true },
   { id: "post", title: "Post Analysis", desc: "Will this post help you — or expose you?", icon: FileText, active: true },
