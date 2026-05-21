@@ -406,142 +406,138 @@ ${memoryContext}`
       score_json: parsed.scores ?? null,
     }).select().single();
 
-    // Save insight to mirror memory
-    if (parsed.blind_spot) {
-      await supabase.from("mirror_memory").insert({
-        user_id: userId,
-        memory_type: "scan_insight",
-        memory_text: parsed.blind_spot,
-      });
-    }
+    // Return immediately — run all post-processing in background
+    const result = { scan, result: parsed };
 
-    // Detect and save behavioral pattern
-    try {
-      const { data: recentScans } = await supabase
-        .from("scans")
-        .select("ai_summary, result_json")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(5);
+    // Fire and forget — don't block the user
+    (async () => {
+      try {
+        if (parsed.scores) {
+          await supabase.from("perception_scores").insert({
+            user_id: userId,
+            perception_score: parsed.scores.perception ?? 50,
+            confidence_score: parsed.scores.confidence ?? 50,
+            attraction_score: parsed.scores.attraction ?? 50,
+            authority_score: parsed.scores.authority ?? 50,
+            approachability_score: parsed.scores.approachability ?? 50,
+            authenticity_score: parsed.scores.authenticity ?? 50,
+            emotional_control_score: parsed.scores.emotional_control ?? 50,
+            mystery_score: parsed.scores.mystery ?? 50,
+          });
+        }
 
-      if (recentScans && recentScans.length >= 1) {
-        const scanSummaries = recentScans
-          .map(s => s.ai_summary ?? "")
-          .filter(Boolean)
-          .join("\n");
+        if (parsed.blind_spot) {
+          await supabase.from("mirror_memory").insert({
+            user_id: userId,
+            memory_type: "scan_insight",
+            memory_text: parsed.blind_spot,
+          });
+        }
 
-        const patternContent = await callAI(
-          `You are MIRROR's pattern detection engine. Your job is to identify one recurring behavioral pattern across a user's recent scans. Be specific, behavioral, and surgical. Never generic. Never therapeutic.
+        // Pattern detection
+        const { data: recentScans } = await supabase
+          .from("scans")
+          .select("ai_summary, result_json")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(5);
 
-Rules:
-- One pattern only. The most dominant one.
-- Name it in 3-5 words maximum. Sharp and specific. Example: "Pre-emptive emotional withdrawal" not "Communication issues".
-- Description in 2-3 lines. Grounded in what the scans showed. Behavioral language only.
-- Evidence in one line. What specifically keeps appearing.
-- Impact in one line. How this pattern lands on other people.
-- Fix in one line. The single behavioral shift that would change it.
-- Only identify a pattern if there is clear evidence. If there is not enough data say so.
+        if (recentScans && recentScans.length >= 1) {
+          const scanSummaries = recentScans
+            .map(s => s.ai_summary ?? "")
+            .filter(Boolean)
+            .join("\n");
 
-Return STRICT JSON only:
+          const patternContent = await callAI(
+            `You are MIRROR's pattern detection engine. Identify one recurring behavioral pattern. Return STRICT JSON only:
 {
   "found": true or false,
   "pattern_name": "3-5 word name",
-  "pattern_description": "2-3 lines describing the pattern",
-  "evidence": "one line of specific evidence from scans",
-  "impact": "one line on how this lands on others",
+  "pattern_description": "2-3 lines",
+  "evidence": "one line",
+  "impact": "one line",
   "fix": "one behavioral shift"
 }`,
-          `Recent scan summaries for this user:\n${scanSummaries}`
-        );
+            `Recent scan summaries:\n${scanSummaries}`
+          );
 
-        let patternParsed: any;
-        try { patternParsed = JSON.parse(patternContent); } catch { patternParsed = null; }
+          let patternParsed: any;
+          try { patternParsed = JSON.parse(patternContent); } catch { patternParsed = null; }
 
-        if (patternParsed?.found && patternParsed?.pattern_name) {
-          const { data: existing } = await supabase
-            .from("patterns")
-            .select("id, frequency")
-            .eq("user_id", userId)
-            .eq("pattern_name", patternParsed.pattern_name)
-            .maybeSingle();
-
-          if (existing) {
-            await supabase
+          if (patternParsed?.found && patternParsed?.pattern_name) {
+            const { data: existing } = await supabase
               .from("patterns")
-              .update({
+              .select("id, frequency")
+              .eq("user_id", userId)
+              .eq("pattern_name", patternParsed.pattern_name)
+              .maybeSingle();
+
+            if (existing) {
+              await supabase.from("patterns").update({
                 frequency: (existing.frequency ?? 1) + 1,
                 pattern_description: patternParsed.pattern_description,
                 evidence: patternParsed.evidence,
                 impact: patternParsed.impact,
                 fix: patternParsed.fix,
                 last_seen: new Date().toISOString(),
-              })
-              .eq("id", existing.id);
-          } else {
-            await supabase.from("patterns").insert({
+              }).eq("id", existing.id);
+            } else {
+              await supabase.from("patterns").insert({
+                user_id: userId,
+                pattern_name: patternParsed.pattern_name,
+                pattern_description: patternParsed.pattern_description,
+                evidence: patternParsed.evidence,
+                impact: patternParsed.impact,
+                fix: patternParsed.fix,
+                frequency: 1,
+                last_seen: new Date().toISOString(),
+              });
+            }
+
+            await supabase.from("mirror_memory").insert({
               user_id: userId,
-              pattern_name: patternParsed.pattern_name,
-              pattern_description: patternParsed.pattern_description,
-              evidence: patternParsed.evidence,
-              impact: patternParsed.impact,
-              fix: patternParsed.fix,
-              frequency: 1,
-              last_seen: new Date().toISOString(),
+              memory_type: "pattern",
+              memory_text: `${patternParsed.pattern_name}: ${patternParsed.pattern_description}`,
             });
-          }
 
-          await supabase.from("mirror_memory").insert({
-            user_id: userId,
-            memory_type: "pattern",
-            memory_text: `${patternParsed.pattern_name}: ${patternParsed.pattern_description}`,
-          });
-
-          await createNotification(
-            supabase, userId,
-            "pattern",
-            `Pattern detected: ${patternParsed.pattern_name}`,
-            patternParsed.pattern_description?.slice(0, 120) ?? "Mirror identified a recurring behavioral pattern."
-          );
-        }
-      }
-    } catch {
-      // Pattern detection failure is non-blocking — scan result still returns
-    }
-
-    if (parsed.scores) {
-      await supabase.from("perception_scores").insert({
-        user_id: userId,
-        perception_score: parsed.scores.perception ?? 50,
-        confidence_score: parsed.scores.confidence ?? 50,
-        attraction_score: parsed.scores.attraction ?? 50,
-        authority_score: parsed.scores.authority ?? 50,
-        authenticity_score: parsed.scores.authenticity ?? 50,
-      });
-
-      if (parsed.scores?.perception) {
-        const prevScore = (await supabase
-          .from("perception_scores")
-          .select("perception_score")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(2)).data?.[1]?.perception_score;
-
-        if (prevScore !== undefined && prevScore !== null) {
-          const delta = parsed.scores.perception - prevScore;
-          if (Math.abs(delta) >= 5) {
             await createNotification(
               supabase, userId,
-              "score_shift",
-              delta > 0 ? `Perception up ${delta} points.` : `Perception dropped ${Math.abs(delta)} points.`,
-              delta > 0
-                ? "Your reads are shifting in the right direction. Keep scanning."
-                : "Mirror noticed a dip. Run a scan to understand what shifted."
+              "pattern",
+              `Pattern detected: ${patternParsed.pattern_name}`,
+              patternParsed.pattern_description?.slice(0, 120) ?? "Mirror identified a recurring behavioral pattern."
             );
           }
         }
+
+        // Score shift notification
+        if (parsed.scores?.perception) {
+          const { data: prevScores } = await supabase
+            .from("perception_scores")
+            .select("perception_score")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(2);
+
+          if (prevScores && prevScores.length >= 2) {
+            const delta = parsed.scores.perception - prevScores[1].perception_score;
+            if (Math.abs(delta) >= 5) {
+              await createNotification(
+                supabase, userId,
+                "score_shift",
+                delta > 0 ? `Perception up ${delta} points.` : `Perception dropped ${Math.abs(delta)} points.`,
+                delta > 0
+                  ? "Your reads are shifting in the right direction."
+                  : "Mirror noticed a dip. Run a scan to understand what shifted."
+              );
+            }
+          }
+        }
+      } catch {
+        // Background processing failure is non-blocking
       }
-    }
-    return { scan, result: parsed };
+    })();
+
+    return result;
   });
 
 // ============================================================
