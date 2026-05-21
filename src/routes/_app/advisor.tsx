@@ -24,13 +24,37 @@ function Advisor() {
   const [msgs, setMsgs] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("advisor_messages").select("role, content").eq("user_id", user.id).order("created_at", { ascending: true }).limit(40)
-      .then(({ data }) => setMsgs((data as any) ?? []));
+    supabase.from("advisor_messages").select("role, content").eq("user_id", user.id).order("created_at", { ascending: false }).limit(40)
+      .then(({ data }) => {
+        const reversed = ((data as any) ?? []).reverse();
+        setMsgs(reversed);
+        if ((data?.length ?? 0) === 40) setHasMore(true);
+      });
   }, [user]);
+
+  const loadMore = async () => {
+    if (!user || loadingMore) return;
+    setLoadingMore(true);
+    const newOffset = offset + 40;
+    const { data } = await supabase
+      .from("advisor_messages")
+      .select("role, content")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .range(newOffset, newOffset + 39);
+    const older = ((data as any) ?? []).reverse();
+    setMsgs(m => [...older, ...m]);
+    setOffset(newOffset);
+    if ((data?.length ?? 0) < 40) setHasMore(false);
+    setLoadingMore(false);
+  };
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
