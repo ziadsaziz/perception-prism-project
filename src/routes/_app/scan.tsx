@@ -1330,7 +1330,7 @@ function SelfieResult({ result, preview, onReset, onShare }: { result: any; prev
   );
 }
 
-
+function ComingSoon({ type }: { type: string }) {
   const { canAccessElite } = useSubscription();
 
   if (!canAccessElite) {
