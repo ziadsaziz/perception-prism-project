@@ -121,13 +121,16 @@ export function NotificationCenter() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex justify-end">
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
           <div
-            className="absolute inset-0 bg-background/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
 
-          <div className="relative w-full max-w-md h-full bg-background/95 backdrop-blur-2xl border-l border-white/[0.06] overflow-y-auto animate-in slide-in-from-right duration-300">
+          <div className="relative w-full max-h-[75vh] bg-[#0A0A0A] border-t border-white/[0.08] rounded-t-3xl flex flex-col overflow-y-auto animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="h-1 w-10 rounded-full bg-white/10" />
+            </div>
             <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl px-5 pt-6 pb-4 border-b border-white/[0.04]">
               <div className="flex items-start justify-between mb-2">
                 <div>

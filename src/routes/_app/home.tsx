@@ -7,7 +7,7 @@ import { generateDailyRead } from "@/lib/ai.functions";
 import { ScoreRing } from "@/components/ScoreRing";
 import { MirrorMemory } from "@/components/MirrorMemory";
 import { GlassPanel } from "@/components/GlassPanel";
-import { ScanLine, Image as ImageIcon, Mic, Sparkles, ChevronRight } from "lucide-react";
+import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 
 export const Route = createFileRoute("/_app/home")({ component: Home });
@@ -248,8 +248,8 @@ function Home() {
           ) : (
             <div className="flex flex-col items-center text-center py-4 gap-4">
               <div className="grid grid-cols-4 gap-3 w-full opacity-20 blur-[3px] pointer-events-none select-none">
-                {[...Array(8)].map((_, i) => (
-                  <ScoreRing key={i} value={72} label="——" />
+                {["Perception", "Confidence", "Attraction", "Control", "Approach", "Mystery", "Authority", "Authentic"].map((label) => (
+                  <ScoreRing key={label} value={72} label={label} locked />
                 ))}
               </div>
               <div className="space-y-1">
@@ -276,7 +276,7 @@ function Home() {
           <QuickAction to="/scan" search={{ type: "text" }} icon={ScanLine} label="Conversation" sub="Paste or upload" />
           <QuickAction to="/scan" search={{ type: "selfie" }} icon={ImageIcon} label="Selfie" sub="Presence read" />
           <QuickAction to="/scan" search={{ type: "voice" }} icon={Mic} label="Voice note" sub="Energy & tone" />
-          <QuickAction to="/advisor" icon={Sparkles} label="Ask Mirror" sub="Strategic session" />
+          <QuickAction to="/scan" search={{ type: "dating" }} icon={Heart} label="Dating" sub="Read the dynamic" />
         </div>
       </section>
 

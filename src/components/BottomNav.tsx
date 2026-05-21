@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, ScanLine, Waves, TrendingUp, Sparkles, User } from "lucide-react";
+import { Home, ScanLine, TrendingUp, Sparkles, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -7,7 +7,6 @@ import { useAuth } from "@/hooks/use-auth";
 const items = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/scan", label: "Scan", icon: ScanLine },
-  { to: "/patterns", label: "Patterns", icon: Waves },
   { to: "/evolution", label: "Evolve", icon: TrendingUp },
   { to: "/advisor", label: "Mirror", icon: Sparkles },
   { to: "/profile", label: "Profile", icon: User },
