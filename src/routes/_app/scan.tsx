@@ -2109,10 +2109,10 @@ function ComingSoon({ type }: { type: string }) {
       <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
         <ArrowLeft className="h-3 w-3" /> All scans
       </Link>
-      <GlassPanel glow className="p-8 text-center mt-10">
-        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Coming Soon · {type}</p>
-        <h1 className="mt-4 font-display text-2xl text-gradient">Mirror is calibrating this read.</h1>
-        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">This scan type is being built now. You'll be the first to know when it's live.</p>
+      <GlassPanel glow className="p-8 text-center mt-10 space-y-3">
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Coming · {type.replace(/_/g, " ")}</p>
+        <h1 className="font-display text-2xl text-gradient">Mirror is calibrating this read.</h1>
+        <p className="text-sm text-muted-foreground leading-relaxed">This scan type is being built now. You'll be the first to know when it's live.</p>
       </GlassPanel>
     </main>
   );
