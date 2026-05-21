@@ -202,34 +202,82 @@ export const generateDailyRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const [{ data: profile }, { data: scans }, { data: patterns }] = await Promise.all([
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: existing } = await supabase
+      .from("daily_reads")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("date", today)
+      .maybeSingle();
+
+    if (existing) {
+      const wasNew = !existing.seen;
+      await supabase
+        .from("daily_reads")
+        .update({ seen: true })
+        .eq("id", existing.id);
+      return {
+        read: existing.read,
+        mission: existing.mission,
+        early: false,
+        isNew: wasNew,
+        date: existing.date,
+      };
+    }
+
+    const [{ data: profile }, { data: scans }, { data: patterns }, { data: yesterday }] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("scans").select("scan_type, ai_summary").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
       supabase.from("patterns").select("pattern_name, pattern_description").eq("user_id", userId).order("frequency", { ascending: false }).limit(3),
+      supabase.from("daily_reads").select("read").eq("user_id", userId).order("date", { ascending: false }).limit(1).maybeSingle(),
     ]);
     const scanLines = (scans ?? []).map(s => `- [${s.scan_type}] ${s.ai_summary ?? ""}`).join("\n") || "(no scans yet)";
     const patternLines = (patterns ?? []).map(p => `- ${p.pattern_name}: ${p.pattern_description}`).join("\n") || "(none observed yet)";
     const isEarly = (scans?.length ?? 0) < 2;
+    const yesterdayLine = yesterday?.read ? `Yesterday Mirror said: "${yesterday.read}" — do not repeat this observation.` : "";
 
     const content = await callAI(
       voiceFor(profile?.tone_preference ?? "Direct"),
-      `Write today's Mirror Read for this user. Use what Mirror has been watching — do not invent new history.
+      `Write today's Mirror daily observation for this user. This appears every morning — it must feel like Mirror noticed something new overnight. Never repeat yesterday's observation.
 
 Return STRICT JSON:
 {
-  "read": "ONE personal line, max 22 words, anchored in behavior Mirror has observed. No clichés.",
-  "mission": "One short move under 14 words. Specific. Applicable today.",
+  "read": "ONE sharp personal observation, max 20 words. Must feel different from yesterday. Anchored in their patterns.",
+  "mission": "One move under 12 words. Specific. For today only.",
   "early": ${isEarly}
 }
 
-${isEarly ? "Mirror has limited context. Keep claims small. Frame as an early signal." : ""}
+${isEarly ? "Mirror has limited context. Keep claims small." : ""}
+${yesterdayLine}
 
 User goal: ${profile?.main_goal ?? "—"}
 Recent scans:\n${scanLines}
 Repeated patterns:\n${patternLines}`
     );
-    try { return JSON.parse(content) as { read: string; mission: string; early?: boolean }; }
-    catch { return { read: content.slice(0, 140), mission: "Say less today. Watch more.", early: isEarly }; }
+
+    let parsed: { read: string; mission: string; early?: boolean };
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      parsed = { read: content.slice(0, 140), mission: "Say less today. Watch more.", early: isEarly };
+    }
+
+    await supabase.from("daily_reads").insert({
+      user_id: userId,
+      read: parsed.read,
+      mission: parsed.mission,
+      date: today,
+      seen: true,
+    });
+
+    return {
+      read: parsed.read,
+      mission: parsed.mission,
+      early: !!parsed.early,
+      isNew: true,
+      date: today,
+    };
   });
 
 // ============================================================

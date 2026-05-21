@@ -22,7 +22,7 @@ function Home() {
   const dailyFn = useServerFn(generateDailyRead);
   const [profile, setProfile] = useState<any>(null);
   const [scores, setScores] = useState<Scores | null>(null);
-  const [daily, setDaily] = useState<{ read: string; mission: string; early?: boolean } | null>(null);
+  const [daily, setDaily] = useState<{ read: string; mission: string; early?: boolean; isNew?: boolean } | null>(null);
   const [pattern, setPattern] = useState<any>(null);
   const [loadingRead, setLoadingRead] = useState(false);
   const [scanCount, setScanCount] = useState<number>(0);
@@ -66,7 +66,15 @@ function Home() {
       </header>
 
       <GlassPanel glow className="p-6">
-        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read · today</p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read · today</p>
+          {daily?.isNew && (
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+              <span className="text-[9px] uppercase tracking-[0.28em] text-accent">New</span>
+            </div>
+          )}
+        </div>
         {loadingRead || !daily ? (
           <div className="mt-3 h-16 rounded-md animate-shimmer" />
         ) : (

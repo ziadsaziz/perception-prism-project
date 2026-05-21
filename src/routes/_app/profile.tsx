@@ -83,6 +83,14 @@ function Profile() {
         </GlassPanel>
       </section>
 
+      {/* Daily read history */}
+      <section>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">
+          This week's reads
+        </p>
+        <DailyHistory />
+      </section>
+
       <button onClick={async () => { await signOut(); nav({ to: "/" }); }}
         className="w-full rounded-full bg-glass ring-hairline py-3.5 text-xs uppercase tracking-[0.24em] text-muted-foreground">
         Sign out
@@ -108,5 +116,45 @@ function Row({ label, sub, value, action, onClick, danger, muted }: any) {
         <span className={`text-[10px] uppercase tracking-[0.24em] ${muted ? "text-muted-foreground" : "text-foreground/80"}`}>{value}</span>
       )}
     </div>
+  );
+}
+
+function DailyHistory() {
+  const { user } = useAuth();
+  const [reads, setReads] = useState<Array<{ read: string; mission: string; date: string }>>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("daily_reads")
+      .select("read, mission, date")
+      .eq("user_id", user.id)
+      .order("date", { ascending: false })
+      .limit(7)
+      .then(({ data }) => setReads(data ?? []));
+  }, [user]);
+
+  if (reads.length === 0) {
+    return (
+      <GlassPanel className="mt-2 p-5">
+        <p className="text-sm text-muted-foreground">No reads yet. Open Mirror tomorrow morning.</p>
+      </GlassPanel>
+    );
+  }
+
+  return (
+    <GlassPanel className="mt-2 divide-y divide-border/40">
+      {reads.map((r, i) => (
+        <div key={r.date} className="px-4 py-3.5">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-accent">
+            {i === 0
+              ? "Today"
+              : new Date(r.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+          </p>
+          <p className="mt-1.5 text-sm text-foreground/90 leading-snug">{r.read}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">↳ {r.mission}</p>
+        </div>
+      ))}
+    </GlassPanel>
   );
 }

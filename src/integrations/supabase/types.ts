@@ -71,6 +71,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_reads: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          mission: string
+          read: string
+          seen: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          mission: string
+          read: string
+          seen?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          mission?: string
+          read?: string
+          seen?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mirror_memory: {
         Row: {
           created_at: string
