@@ -213,6 +213,7 @@ function Home() {
       </section>
       <MirrorMemory />
     </main>
+    </>
   );
 }
 
