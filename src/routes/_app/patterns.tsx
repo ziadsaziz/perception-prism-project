@@ -75,17 +75,80 @@ function Patterns() {
 
       {scans.length > 0 && (
         <section>
-          <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">Recent reads</p>
-          <div className="mt-2 space-y-2">
-            {scans.map((s, i) => (
-              <div key={i} className="bg-glass ring-hairline rounded-2xl p-4">
-                <p className="text-[10px] uppercase tracking-[0.24em] text-accent">{s.scan_type.replace("_", " ")}</p>
-                <p className="mt-1.5 text-sm text-foreground/85 leading-relaxed">{s.ai_summary ?? "—"}</p>
-              </div>
+          <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">Scan history</p>
+          <div className="space-y-2">
+            {scans.map((s: any, i: number) => (
+              <ScanHistoryCard key={i} scan={s} />
             ))}
           </div>
         </section>
       )}
     </main>
+  );
+}
+
+function ScanHistoryCard({ scan }: { scan: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const result = scan.result_json;
+
+  return (
+    <div className="bg-glass ring-hairline rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full text-left p-4"
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-[0.24em] text-accent">
+            {scan.scan_type.replace(/_/g, " ")}
+          </p>
+          <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50">
+            {new Date(scan.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </p>
+        </div>
+        <p className="mt-1.5 text-sm text-foreground/85 leading-relaxed line-clamp-2">
+          {result?.read ?? scan.ai_summary ?? "—"}
+        </p>
+        {!expanded && (
+          <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40">
+            Tap to expand
+          </p>
+        )}
+      </button>
+
+      {expanded && result && (
+        <div className="px-4 pb-4 space-y-3 border-t border-border/30 pt-3">
+          {result.truth && (
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground mb-1">The truth</p>
+              <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{result.truth}</p>
+            </div>
+          )}
+          {result.what_it_signals && (
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground mb-1">What it signals</p>
+              <p className="text-sm text-foreground/80 leading-relaxed">{result.what_it_signals}</p>
+            </div>
+          )}
+          {result.blind_spot && (
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.28em] text-red-400/70 mb-1">Blind spot</p>
+              <p className="text-sm text-foreground/80 leading-relaxed">{result.blind_spot}</p>
+            </div>
+          )}
+          {result.the_move && (
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.28em] text-accent mb-1">The move</p>
+              <p className="text-sm text-foreground/90 leading-relaxed">{result.the_move}</p>
+            </div>
+          )}
+          {result.first_move && (
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.28em] text-accent mb-1">The move</p>
+              <p className="text-sm text-foreground/90 leading-relaxed">{result.first_move}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
