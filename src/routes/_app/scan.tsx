@@ -30,7 +30,66 @@ const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; ac
   { id: "decision", title: "Decision Perception", desc: "How this choice makes you look.", icon: Compass, active: true },
 ];
 
-const STAGES = ["Reading tone…", "Detecting pressure points…", "Finding the pattern…", "Separating behavior from emotion…", "Building your Mirror read…"];
+const SCAN_STAGES: Record<string, string[]> = {
+  text: [
+    "Reading the tone…",
+    "Detecting what's underneath the words…",
+    "Finding the pressure points…",
+    "Separating behavior from emotion…",
+    "Building your Mirror read…",
+  ],
+  post: [
+    "Reading the signal this post sends…",
+    "Measuring how it lands on a stranger…",
+    "Detecting what it reveals about you…",
+    "Finding the blind spot…",
+    "Writing your read…",
+  ],
+  emotion: [
+    "Reading the emotional pattern…",
+    "Finding what's underneath the feeling…",
+    "Detecting the root…",
+    "Measuring how this lands on others…",
+    "Building your Mirror read…",
+  ],
+  dating: [
+    "Reading the dynamic…",
+    "Measuring leverage…",
+    "Detecting what's not being said…",
+    "Reading what they likely feel…",
+    "Writing your read…",
+  ],
+  decision: [
+    "Reading how this decision lands…",
+    "Measuring the signal it sends…",
+    "Detecting what it reveals about you…",
+    "Finding the strongest version…",
+    "Writing your read…",
+  ],
+  social: [
+    "Reading your profile as a stranger would…",
+    "Measuring the first impression…",
+    "Detecting what it signals about you…",
+    "Finding what's costing you…",
+    "Writing your read…",
+  ],
+  selfie: [
+    "Reading your presence…",
+    "Measuring confidence signals…",
+    "Detecting what you're projecting…",
+    "Finding the blind spot…",
+    "Writing your read…",
+  ],
+  voice: [
+    "Reading your energy…",
+    "Measuring pace and pressure…",
+    "Detecting hesitation patterns…",
+    "Finding what your delivery signals…",
+    "Writing your read…",
+  ],
+};
+
+const STAGES = SCAN_STAGES.text;
 
 function Scan() {
   const { type } = Route.useSearch();
