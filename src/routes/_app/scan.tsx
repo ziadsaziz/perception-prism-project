@@ -32,7 +32,8 @@ function Scan() {
   const { type } = Route.useSearch();
 
   if (type === "text") return <TextScan />;
-  if (type && type !== "text") return <ComingSoon type={type} />;
+  if (type === "post") return <PostScan />;
+  if (type && type !== "text" && type !== "post") return <ComingSoon type={type} />;
 
   return (
     <main className="px-5 pt-12 pb-6 space-y-4">
