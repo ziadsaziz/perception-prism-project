@@ -197,7 +197,7 @@ function TextScan() {
   const run = async () => {
     if (text.trim().length < 10) { toast.error("Mirror needs at least a few lines."); return; }
     setLoading(true); setResult(null); setStage(0);
-    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
       const r = await fn({ data: { conversation: text, context_note: note } });
       setResult(r.result);
@@ -370,7 +370,7 @@ function PostScan() {
   const run = async () => {
     if (text.trim().length < 5) { toast.error("Paste the post first."); return; }
     setLoading(true); setResult(null); setStage(0);
-    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
       const r = await fn({ data: { post_text: text, platform, context_note: note } });
       setResult(r.result);
@@ -546,7 +546,7 @@ function EmotionScan() {
   const run = async () => {
     if (situation.trim().length < 10) { toast.error("Tell Mirror what's happening."); return; }
     setLoading(true); setResult(null); setStage(0);
-    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
       const r = await fn({ data: { situation, feeling, how_often: howOften } });
       setResult(r.result);
@@ -752,7 +752,7 @@ function DatingScan() {
   const run = async () => {
     if (situation.trim().length < 10) { toast.error("Tell Mirror what's happening."); return; }
     setLoading(true); setResult(null); setStage(0);
-    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
       const r = await fn({ data: { situation, dynamic_type: dynamicType, context_note: note } });
       setResult(r.result);
@@ -967,7 +967,7 @@ function DecisionScan() {
   const run = async () => {
     if (decision.trim().length < 10) { toast.error("Describe the decision first."); return; }
     setLoading(true); setResult(null); setStage(0);
-    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
       const r = await fn({ data: { decision, decision_type: decisionType, context_note: note } });
       setResult(r.result);
@@ -1160,7 +1160,7 @@ function SocialScan() {
   const run = async () => {
     if (bio.trim().length < 1) { toast.error("Paste your bio first."); return; }
     setLoading(true); setResult(null); setStage(0);
-    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
       const r = await fn({ data: { bio, platform, username, follower_count: followerCount, post_description: postDescription, context_note: note } });
       setResult(r.result);
@@ -1406,7 +1406,7 @@ function SelfieScan() {
   const run = async () => {
     if (!imageBase64) { toast.error("Upload a photo first."); return; }
     setLoading(true); setResult(null); setStage(0);
-    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
       const r = await fn({ data: { image_base64: imageBase64, context_note: note } });
       setResult(r.result);
@@ -1845,7 +1845,7 @@ function VoiceScan() {
   const run = async () => {
     if (transcript.trim().length < 10) { toast.error("Mirror needs more to work with."); return; }
     setLoading(true); setResult(null); setStage(0);
-    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 1400);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
       const metricsDescription = speechMetrics ? `
 Speech behavior metrics (measured by browser):
