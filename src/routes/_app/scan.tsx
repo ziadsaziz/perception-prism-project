@@ -314,6 +314,9 @@ function TextResult({ result, onReset, onShare }: { result: any; onReset: () => 
       <div className="grid grid-cols-1 gap-2.5 mt-2">
         <Insight label="What shifted" body={result.what_shifted ?? result.power_dynamic} />
         <Insight label="What they likely felt" body={result.what_they_likely_felt ?? result.what_they_felt} />
+        {result.what_is_working && (
+          <Insight label="What's working" body={result.what_is_working} accent="ok" />
+        )}
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The move" body={result.move ?? result.next_move} accent="ok" />
       </div>
