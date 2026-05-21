@@ -368,6 +368,7 @@ export const analyzeTextConversation = createServerFn({ method: "POST" })
   "what_shifted": "One short line: where the dynamic actually changed inside this conversation.",
   "what_they_likely_felt": "One short line: what the other side most likely felt — not what they said.",
   "blind_spot": "One short line: the pattern the user is repeating without noticing.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "move": "One short line: the next move today.",
   "optional_response": "1-2 sentences — a reply the user could send that reflects the stronger version of themselves.",
   "score_reasons": {
