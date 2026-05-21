@@ -330,7 +330,10 @@ Context: ${data.context_note ?? "none"}
 Conversation:
 """
 ${data.conversation}
-"""`
+"""
+
+What Mirror has observed about this user before:
+${memoryContext}`
     );
     let parsed: any;
     try { parsed = JSON.parse(content); } catch { parsed = { read: content.slice(0, 200), summary: "scan", scores: {} }; }
