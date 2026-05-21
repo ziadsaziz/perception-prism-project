@@ -1,19 +1,27 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassPanel } from "@/components/GlassPanel";
 import { toast } from "sonner";
+import { Check, Sparkles } from "lucide-react";
 
-export const Route = createFileRoute("/_app/profile")({ component: Profile });
+export const Route = createFileRoute("/_app/profile")({
+  validateSearch: z.object({ upgrade: z.string().optional() }),
+  component: Profile,
+});
 
 const TONES = ["Gentle", "Direct", "Brutally honest", "Strategic"];
 
 function Profile() {
   const { user, signOut } = useAuth();
   const nav = useNavigate();
+  const { plan, scansRemaining } = useSubscription();
+  const { upgrade } = Route.useSearch();
   const [profile, setProfile] = useState<any>(null);
-  const [sub, setSub] = useState<any>(null);
+  const [, setSub] = useState<any>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -22,6 +30,13 @@ function Profile() {
       supabase.from("subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
     ]).then(([p, s]) => { setProfile(p.data); setSub(s.data); });
   }, [user]);
+
+  useEffect(() => {
+    if (upgrade) {
+      const el = document.getElementById("pricing");
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [upgrade]);
 
   const updateTone = async (tone: string) => {
     if (!user) return;
