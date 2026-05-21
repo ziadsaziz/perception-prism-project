@@ -288,7 +288,7 @@ function Profile() {
 
       <section>
         <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">This week's reads</p>
-        <DailyHistory userId={user?.id} />
+        {user?.id && <DailyHistory userId={user.id} />}
       </section>
 
       {/* Privacy */}
