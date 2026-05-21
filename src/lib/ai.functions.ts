@@ -636,6 +636,7 @@ Return STRICT JSON:
   "read": "ONE sharp line about the overall signal this post sends. Max 20 words. What do people actually feel when they read this?",
   "what_it_signals": "2-3 lines. What does this post reveal about the person posting it — beyond what they intended? Behavioral read only.",
   "blind_spot": "1-2 lines. What the poster doesn't realize they're showing.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "how_it_lands": "one of: 'Strong', 'Neutral', 'Risky', 'Overexposed'",
   "landing_reason": "One line explaining the how_it_lands verdict.",
   "the_move": "One line. Should they post it, edit it, or kill it — and why.",
