@@ -204,7 +204,17 @@ function TextScan() {
       haptic(12);
       // Show mirror card after scan completes
       if (r.result?.scores?.perception) {
-        setCardScore(r.result.scores.perception);
+        const ms = r.result?.scores ? Math.min(1000, Math.round((
+          (r.result.scores.perception ?? 50) * 0.20 +
+          (r.result.scores.confidence ?? 50) * 0.15 +
+          (r.result.scores.attraction ?? 50) * 0.13 +
+          (r.result.scores.authority ?? 50) * 0.12 +
+          (r.result.scores.approachability ?? 50) * 0.10 +
+          (r.result.scores.authenticity ?? 50) * 0.12 +
+          (r.result.scores.emotional_control ?? 50) * 0.10 +
+          (r.result.scores.mystery ?? 50) * 0.08
+        ) * 10)) : 0;
+        setCardScore(ms);
         setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
@@ -376,7 +386,17 @@ function PostScan() {
       setResult(r.result);
       haptic(12);
       if (r.result?.scores?.perception) {
-        setCardScore(r.result.scores.perception);
+        const ms = r.result?.scores ? Math.min(1000, Math.round((
+          (r.result.scores.perception ?? 50) * 0.20 +
+          (r.result.scores.confidence ?? 50) * 0.15 +
+          (r.result.scores.attraction ?? 50) * 0.13 +
+          (r.result.scores.authority ?? 50) * 0.12 +
+          (r.result.scores.approachability ?? 50) * 0.10 +
+          (r.result.scores.authenticity ?? 50) * 0.12 +
+          (r.result.scores.emotional_control ?? 50) * 0.10 +
+          (r.result.scores.mystery ?? 50) * 0.08
+        ) * 10)) : 0;
+        setCardScore(ms);
         setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
@@ -552,7 +572,17 @@ function EmotionScan() {
       setResult(r.result);
       haptic(12);
       if (r.result?.scores?.perception) {
-        setCardScore(r.result.scores.perception);
+        const ms = r.result?.scores ? Math.min(1000, Math.round((
+          (r.result.scores.perception ?? 50) * 0.20 +
+          (r.result.scores.confidence ?? 50) * 0.15 +
+          (r.result.scores.attraction ?? 50) * 0.13 +
+          (r.result.scores.authority ?? 50) * 0.12 +
+          (r.result.scores.approachability ?? 50) * 0.10 +
+          (r.result.scores.authenticity ?? 50) * 0.12 +
+          (r.result.scores.emotional_control ?? 50) * 0.10 +
+          (r.result.scores.mystery ?? 50) * 0.08
+        ) * 10)) : 0;
+        setCardScore(ms);
         setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
@@ -758,7 +788,17 @@ function DatingScan() {
       setResult(r.result);
       haptic(12);
       if (r.result?.scores?.perception) {
-        setCardScore(r.result.scores.perception);
+        const ms = r.result?.scores ? Math.min(1000, Math.round((
+          (r.result.scores.perception ?? 50) * 0.20 +
+          (r.result.scores.confidence ?? 50) * 0.15 +
+          (r.result.scores.attraction ?? 50) * 0.13 +
+          (r.result.scores.authority ?? 50) * 0.12 +
+          (r.result.scores.approachability ?? 50) * 0.10 +
+          (r.result.scores.authenticity ?? 50) * 0.12 +
+          (r.result.scores.emotional_control ?? 50) * 0.10 +
+          (r.result.scores.mystery ?? 50) * 0.08
+        ) * 10)) : 0;
+        setCardScore(ms);
         setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
@@ -973,7 +1013,17 @@ function DecisionScan() {
       setResult(r.result);
       haptic(12);
       if (r.result?.scores?.perception) {
-        setCardScore(r.result.scores.perception);
+        const ms = r.result?.scores ? Math.min(1000, Math.round((
+          (r.result.scores.perception ?? 50) * 0.20 +
+          (r.result.scores.confidence ?? 50) * 0.15 +
+          (r.result.scores.attraction ?? 50) * 0.13 +
+          (r.result.scores.authority ?? 50) * 0.12 +
+          (r.result.scores.approachability ?? 50) * 0.10 +
+          (r.result.scores.authenticity ?? 50) * 0.12 +
+          (r.result.scores.emotional_control ?? 50) * 0.10 +
+          (r.result.scores.mystery ?? 50) * 0.08
+        ) * 10)) : 0;
+        setCardScore(ms);
         setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
@@ -1166,7 +1216,17 @@ function SocialScan() {
       setResult(r.result);
       haptic(12);
       if (r.result?.scores?.perception) {
-        setCardScore(r.result.scores.perception);
+        const ms = r.result?.scores ? Math.min(1000, Math.round((
+          (r.result.scores.perception ?? 50) * 0.20 +
+          (r.result.scores.confidence ?? 50) * 0.15 +
+          (r.result.scores.attraction ?? 50) * 0.13 +
+          (r.result.scores.authority ?? 50) * 0.12 +
+          (r.result.scores.approachability ?? 50) * 0.10 +
+          (r.result.scores.authenticity ?? 50) * 0.12 +
+          (r.result.scores.emotional_control ?? 50) * 0.10 +
+          (r.result.scores.mystery ?? 50) * 0.08
+        ) * 10)) : 0;
+        setCardScore(ms);
         setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
@@ -1412,7 +1472,17 @@ function SelfieScan() {
       setResult(r.result);
       haptic(12);
       if (r.result?.scores?.perception) {
-        setCardScore(r.result.scores.perception);
+        const ms = r.result?.scores ? Math.min(1000, Math.round((
+          (r.result.scores.perception ?? 50) * 0.20 +
+          (r.result.scores.confidence ?? 50) * 0.15 +
+          (r.result.scores.attraction ?? 50) * 0.13 +
+          (r.result.scores.authority ?? 50) * 0.12 +
+          (r.result.scores.approachability ?? 50) * 0.10 +
+          (r.result.scores.authenticity ?? 50) * 0.12 +
+          (r.result.scores.emotional_control ?? 50) * 0.10 +
+          (r.result.scores.mystery ?? 50) * 0.08
+        ) * 10)) : 0;
+        setCardScore(ms);
         setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
@@ -1865,7 +1935,17 @@ Speech behavior metrics (measured by browser):
       setResult(r.result);
       haptic(12);
       if (r.result?.scores?.perception) {
-        setCardScore(r.result.scores.perception);
+        const ms = r.result?.scores ? Math.min(1000, Math.round((
+          (r.result.scores.perception ?? 50) * 0.20 +
+          (r.result.scores.confidence ?? 50) * 0.15 +
+          (r.result.scores.attraction ?? 50) * 0.13 +
+          (r.result.scores.authority ?? 50) * 0.12 +
+          (r.result.scores.approachability ?? 50) * 0.10 +
+          (r.result.scores.authenticity ?? 50) * 0.12 +
+          (r.result.scores.emotional_control ?? 50) * 0.10 +
+          (r.result.scores.mystery ?? 50) * 0.08
+        ) * 10)) : 0;
+        setCardScore(ms);
         setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
       }
     } catch (e: any) {
