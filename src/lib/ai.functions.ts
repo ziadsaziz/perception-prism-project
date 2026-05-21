@@ -737,6 +737,7 @@ ${memoryContext}
 
 Dynamic type: ${data.dynamic_type ?? "not specified"}
 Context: ${data.context_note ?? "none"}
+IMPORTANT: If the user provided context above, let it meaningfully shape the read. The same words land differently in different relationships, situations, and cultures. A direct message to a close friend reads differently than the same message to a new contact. Weight the context heavily when forming the perception read.
 Situation:
 """
 ${data.situation}
