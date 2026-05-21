@@ -34,6 +34,25 @@ async function callAI(system: string, user: string, json = true): Promise<string
   return data.choices?.[0]?.message?.content ?? "";
 }
 
+async function createNotification(
+  supabase: any,
+  userId: string,
+  type: string,
+  title: string,
+  body: string
+) {
+  try {
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type,
+      title,
+      body,
+    });
+  } catch {
+    // Non-blocking — never fail a scan because of a notification error
+  }
+}
+
 // ============================================================
 // MIRROR VOICE SYSTEM
 // ============================================================
@@ -297,6 +316,13 @@ Repeated patterns:\n${patternLines}`
       seen: true,
     });
 
+    await createNotification(
+      supabase, userId,
+      "daily_read",
+      "Your read is ready.",
+      parsed.read?.slice(0, 120) ?? "Mirror has a new observation for you today."
+    );
+
     return {
       read: parsed.read,
       mission: parsed.mission,
@@ -458,6 +484,13 @@ Return STRICT JSON only:
             memory_type: "pattern",
             memory_text: `${patternParsed.pattern_name}: ${patternParsed.pattern_description}`,
           });
+
+          await createNotification(
+            supabase, userId,
+            "pattern",
+            `Pattern detected: ${patternParsed.pattern_name}`,
+            patternParsed.pattern_description?.slice(0, 120) ?? "Mirror identified a recurring behavioral pattern."
+          );
         }
       }
     } catch {
@@ -473,6 +506,29 @@ Return STRICT JSON only:
         authority_score: parsed.scores.authority ?? 50,
         authenticity_score: parsed.scores.authenticity ?? 50,
       });
+
+      if (parsed.scores?.perception) {
+        const prevScore = (await supabase
+          .from("perception_scores")
+          .select("perception_score")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(2)).data?.[1]?.perception_score;
+
+        if (prevScore !== undefined && prevScore !== null) {
+          const delta = parsed.scores.perception - prevScore;
+          if (Math.abs(delta) >= 5) {
+            await createNotification(
+              supabase, userId,
+              "score_shift",
+              delta > 0 ? `Perception up ${delta} points.` : `Perception dropped ${Math.abs(delta)} points.`,
+              delta > 0
+                ? "Your reads are shifting in the right direction. Keep scanning."
+                : "Mirror noticed a dip. Run a scan to understand what shifted."
+            );
+          }
+        }
+      }
     }
     return { scan, result: parsed };
   });
@@ -1358,6 +1414,13 @@ Perception score change this week: ${scoreDelta > 0 ? "+" : ""}${scoreDelta} poi
       full_report: parsed.full_report ?? "",
       score_delta: parsed.score_delta ?? 0,
     }).select().single();
+
+    await createNotification(
+      supabase, userId,
+      "weekly_report",
+      "Your weekly report is ready.",
+      parsed.the_week_read?.slice(0, 120) ?? "Mirror has compiled your week."
+    );
 
     if (parsed.blind_spot) {
       await supabase.from("mirror_memory").insert({
