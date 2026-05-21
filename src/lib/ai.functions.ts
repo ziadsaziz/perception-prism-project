@@ -930,6 +930,7 @@ Return STRICT JSON:
   "how_it_reads_to_others": "2-3 lines. How the key people in this situation will perceive this decision — not whether it's right, but what it signals about the user.",
   "what_it_reveals": "1-2 lines. What this decision reveals about the user beneath the surface — their fear, their values, or their need.",
   "blind_spot": "1-2 lines. What the user cannot see about how this lands.",
+  "what_is_working": "Optional. Only include if something is genuinely working well — a strong move, a well-landed message, confident energy. If present, 1-2 lines on what landed and why. If nothing stands out as working, omit this field entirely. Do not manufacture positives.",
   "the_strongest_version": "1-2 lines. If they're going to make this move, what's the most powerful way to do it — or the framing that makes it land strongest.",
   "alternative_read": "Optional. If there's a significantly stronger alternative decision that would land better, name it in one line. If not, omit.",
   "scores": { "perception": 0-100, "confidence": 0-100, "authority": 0-100, "authenticity": 0-100 },
