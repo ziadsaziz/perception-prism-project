@@ -12,6 +12,8 @@ import { GlassPanel } from "@/components/GlassPanel";
 import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { MirrorScore } from "@/components/MirrorScore";
+import { MoodCheckin, useTodayCheckin } from "@/components/MoodCheckin";
+
 
 export const Route = createFileRoute("/_app/home")({ component: Home });
 
@@ -37,6 +39,21 @@ function Home() {
   const [profileChecked, setProfileChecked] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showInstall, setShowInstall] = useState(false);
+  const { checkinDone, checkinData, setCheckinDone } = useTodayCheckin();
+  const [showCheckin, setShowCheckin] = useState(false);
+  const [sessionMood, setSessionMood] = useState<string | null>(checkinData?.mood ?? null);
+
+  useEffect(() => {
+    if (checkinData?.mood && !sessionMood) setSessionMood(checkinData.mood);
+  }, [checkinData, sessionMood]);
+
+  useEffect(() => {
+    if (checkinDone === false && profileChecked) {
+      const timer = setTimeout(() => setShowCheckin(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [checkinDone, profileChecked]);
+
 
   useEffect(() => {
     if (!user) return;
@@ -73,10 +90,13 @@ function Home() {
     })();
   }, [user]);
 
-  const fetchDaily = async () => {
+  const fetchDaily = async (mood?: string, energy?: number, happened?: string) => {
     setLoadingRead(true);
-    try { setDaily(await dailyFn({} as any)); } finally { setLoadingRead(false); }
+    try {
+      setDaily(await dailyFn({ data: { mood, energy, happened } } as any));
+    } finally { setLoadingRead(false); }
   };
+
 
   useEffect(() => {
     if (user) fetchDaily();
@@ -106,6 +126,21 @@ function Home() {
           }}
         />
       )}
+      {showCheckin && (
+        <MoodCheckin
+          onComplete={(mood, energy, contextNote) => {
+            setShowCheckin(false);
+            setCheckinDone(true);
+            setSessionMood(mood);
+            fetchDaily(mood, energy, contextNote);
+          }}
+          onSkip={() => {
+            setShowCheckin(false);
+            setCheckinDone(true);
+          }}
+        />
+      )}
+
     <main className="px-5 pt-12 pb-6 space-y-5">
       <header className="flex items-center justify-between">
         <div>
@@ -155,7 +190,15 @@ function Home() {
 
       <GlassPanel glow className="p-6">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read · today</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read · today</p>
+            {sessionMood && (
+              <span className="text-[9px] uppercase tracking-[0.24em] text-[#C9A84C]/80 border border-[#C9A84C]/30 rounded-full px-2 py-0.5">
+                {sessionMood}
+              </span>
+            )}
+          </div>
+
           {daily?.isNew && (
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />

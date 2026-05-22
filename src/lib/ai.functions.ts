@@ -305,8 +305,15 @@ Signal 04 (what they never say out loud but always wonder): ${data.signal_04}`;
 // ============================================================
 export const generateDailyRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: { mood?: string; energy?: number; happened?: string }) =>
+    z.object({
+      mood: z.string().optional(),
+      energy: z.number().optional(),
+      happened: z.string().optional(),
+    }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
 
     const today = new Date().toISOString().slice(0, 10);
     const { data: existing } = await supabase
@@ -377,8 +384,15 @@ ${yesterdayLine}
 
 User goal: ${profile?.main_goal ?? "—"}
 Recent scans:\n${scanLines}
-Repeated patterns:\n${patternLines}`
+Repeated patterns:\n${patternLines}
+${data?.mood ? `
+Current session context:
+- Mood: ${data.mood}
+- Energy level: ${data.energy ?? 3}/5
+- What happened: ${data.happened ?? "nothing noted"}
+Factor this into the read and the move. A user who is anxious needs a different read than one who is sharp. A user with low energy needs a different move than one who is charged.` : ""}`
     );
+
 
     let parsed: { read: string; mission: string; early?: boolean };
     try {
