@@ -107,6 +107,47 @@ export type Database = {
         }
         Relationships: []
       }
+      mirror_feed: {
+        Row: {
+          body: string | null
+          created_at: string
+          headline: string
+          id: string
+          read: boolean | null
+          scan_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          headline: string
+          id?: string
+          read?: boolean | null
+          scan_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          headline?: string
+          id?: string
+          read?: boolean | null
+          scan_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mirror_feed_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mirror_memory: {
         Row: {
           created_at: string
