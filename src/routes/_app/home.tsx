@@ -12,6 +12,8 @@ import { GlassPanel } from "@/components/GlassPanel";
 import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { MirrorScore } from "@/components/MirrorScore";
+import { MoodCheckin, useTodayCheckin } from "@/components/MoodCheckin";
+
 
 export const Route = createFileRoute("/_app/home")({ component: Home });
 
