@@ -115,28 +115,31 @@ function Scan() {
       </header>
 
       <div className="space-y-3">
-        {/* Hero scan — text conversation */}
-        {(() => {
-          const hero = SCAN_TYPES.find(s => s.id === "text");
-          if (!hero) return null;
-          return (
-            <Link to="/scan" search={{ type: "text" }}
+        {/* Hero scans — featured two */}
+        <div className="grid grid-cols-1 gap-2">
+          {SCAN_TYPES.filter(s => ["other", "text"].includes(s.id)).map(s => (
+            <Link key={s.id} to="/scan" search={{ type: s.id }}
               className="block bg-glass ring-hairline rounded-2xl p-5 border border-[#C9A84C]/20 active:scale-[0.99] transition-transform glow-gold">
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 rounded-2xl bg-[#C9A84C]/10 flex items-center justify-center shrink-0">
-                  <hero.icon className="h-5 w-5 text-[#C9A84C]" strokeWidth={1.5} />
+                  <s.icon className="h-5 w-5 text-[#C9A84C]" strokeWidth={1.5} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-medium">{hero.title}</h3>
-                    <span className="text-[9px] uppercase tracking-[0.2em] text-[#C9A84C] px-1.5 py-0.5 rounded-full border border-[#C9A84C]/30">Most used</span>
+                    <h3 className="text-base font-medium">{s.title}</h3>
+                    {s.id === "other" && (
+                      <span className="text-[9px] uppercase tracking-[0.2em] text-[#C9A84C] px-1.5 py-0.5 rounded-full border border-[#C9A84C]/30">New</span>
+                    )}
+                    {s.id === "text" && (
+                      <span className="text-[9px] uppercase tracking-[0.2em] text-[#C9A84C] px-1.5 py-0.5 rounded-full border border-[#C9A84C]/30">Most used</span>
+                    )}
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{hero.desc}</p>
+                  <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
                 </div>
               </div>
             </Link>
-          );
-        })()}
+          ))}
+        </div>
 
         {/* Elite scans — 2 column grid */}
         <div>
