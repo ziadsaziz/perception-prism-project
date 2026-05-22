@@ -335,6 +335,7 @@ function Home() {
           </div>
         </section>
       )}
+      <StreakCard />
       <MirrorFeed />
       <MirrorMemory />
 
