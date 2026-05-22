@@ -187,41 +187,117 @@ function Scan() {
   );
 }
 
+type InputMode = "paste" | "builder" | "screenshot";
+
+type Message = {
+  id: string;
+  sender: "me" | "them";
+  text: string;
+};
+
 function TextScan() {
-  const { canScan, plan, scansRemaining } = useSubscription();
+  const { canScan, plan } = useSubscription();
   const fn = useServerFn(analyzeTextConversation);
+  const extractFn = useServerFn(extractConversationFromScreenshot);
+
+  const [mode, setMode] = useState<InputMode>("paste");
   const [text, setText] = useState("");
   const [note, setNote] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMsg, setNewMsg] = useState("");
+  const [newSender, setNewSender] = useState<"me" | "them">("them");
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [stage, setStage] = useState(0);
   const [result, setResult] = useState<any>(null);
   const [showCard, setShowCard] = useState(false);
   const [cardScore, setCardScore] = useState(0);
 
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith("image/")) { toast.error("Please upload an image."); return; }
+    if (file.size > 8 * 1024 * 1024) { toast.error("Image must be under 8MB."); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setImagePreview(result);
+      setImageBase64(result.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const extractFromScreenshot = async () => {
+    if (!imageBase64) return;
+    setExtracting(true);
+    try {
+      const result = await extractFn({ data: { image_base64: imageBase64 } });
+      setText((result as any).text ?? "");
+      setMode("paste");
+      toast.success("Conversation extracted. Review and edit if needed.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not extract conversation.");
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const addMessage = () => {
+    if (!newMsg.trim()) return;
+    setMessages(prev => [...prev, {
+      id: Math.random().toString(36).slice(2),
+      sender: newSender,
+      text: newMsg.trim(),
+    }]);
+    setNewMsg("");
+    setNewSender(s => s === "them" ? "me" : "them");
+  };
+
+  const removeMessage = (id: string) => {
+    setMessages(prev => prev.filter(m => m.id !== id));
+  };
+
+  const toggleSender = (id: string) => {
+    setMessages(prev => prev.map(m =>
+      m.id === id ? { ...m, sender: m.sender === "me" ? "them" : "me" } : m
+    ));
+  };
+
+  const buildConversationText = () => {
+    return messages.map(m => `${m.sender === "me" ? "Me" : "Them"}: ${m.text}`).join("\n");
+  };
+
+  const getInputText = () => {
+    if (mode === "builder") return buildConversationText();
+    return text;
+  };
+
+  const canRun = () => {
+    if (mode === "builder") return messages.length >= 2;
+    return text.trim().length >= 10;
+  };
 
   const run = async () => {
-    if (text.trim().length < 10) { toast.error("Mirror needs at least a few lines."); return; }
+    const inputText = getInputText();
+    if (!canRun()) { toast.error("Add more to the conversation first."); return; }
     setLoading(true); setResult(null); setStage(0);
-    const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, SCAN_STAGES.text.length - 1)), 900);
     try {
-      const r = await fn({ data: { conversation: text, context_note: note } });
+      const r = await fn({ data: { conversation: inputText, context_note: note } });
       setResult(r.result);
       haptic(12);
-      // Show mirror card after scan completes
-      if (r.result?.scores?.perception) {
-        const ms = r.result?.scores ? Math.min(1000, Math.round((
-          (r.result.scores.perception ?? 50) * 0.20 +
-          (r.result.scores.confidence ?? 50) * 0.15 +
-          (r.result.scores.attraction ?? 50) * 0.13 +
-          (r.result.scores.authority ?? 50) * 0.12 +
-          (r.result.scores.approachability ?? 50) * 0.10 +
-          (r.result.scores.authenticity ?? 50) * 0.12 +
-          (r.result.scores.emotional_control ?? 50) * 0.10 +
-          (r.result.scores.mystery ?? 50) * 0.08
-        ) * 10)) : 0;
-        setCardScore(ms);
-        setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
-      }
+      const ms = r.result?.scores ? Math.min(1000, Math.round((
+        (r.result.scores.perception ?? 50) * 0.20 +
+        (r.result.scores.confidence ?? 50) * 0.15 +
+        (r.result.scores.attraction ?? 50) * 0.13 +
+        (r.result.scores.authority ?? 50) * 0.12 +
+        (r.result.scores.approachability ?? 50) * 0.10 +
+        (r.result.scores.authenticity ?? 50) * 0.12 +
+        (r.result.scores.emotional_control ?? 50) * 0.10 +
+        (r.result.scores.mystery ?? 50) * 0.08
+      ) * 10)) : 0;
+      setCardScore(ms);
+      setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
     } finally { clearInterval(t); setLoading(false); }
@@ -231,7 +307,7 @@ function TextScan() {
     <>
       <TextResult
         result={result}
-        onReset={() => { setResult(null); setText(""); setNote(""); setShowCard(false); }}
+        onReset={() => { setResult(null); setText(""); setMessages([]); setImageBase64(null); setImagePreview(null); setShowCard(false); }}
         onShare={() => setShowCard(true)}
       />
       {showCard && result.read && (
@@ -251,61 +327,261 @@ function TextScan() {
       </Link>
       <header>
         <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Text · Conversation</p>
-        <h1 className="font-display text-3xl text-gradient mt-1">What was actually said?</h1>
-        <p className="mt-2 text-xs text-muted-foreground">Paste the messages. Use "Me:" and "Them:" so Mirror can read the dynamic.</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">What really happened?</h1>
+        <p className="mt-2 text-xs text-muted-foreground">Paste, build, or screenshot a conversation. Mirror reads what they actually felt.</p>
       </header>
 
       {loading ? (
         <GlassPanel glow className="p-8 text-center">
           <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
-          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{STAGES[stage]}</p>
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{SCAN_STAGES.text[stage]}</p>
           <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading</p>
         </GlassPanel>
       ) : (
         <>
           {!canScan && <UpgradePrompt reason="scan_limit" currentPlan={plan} />}
-
           {canScan && (
             <>
-              <textarea value={text} onChange={e => setText(e.target.value)} rows={10} maxLength={8000}
-                onFocus={e => e.target.placeholder = ""}
-                placeholder={`Me: hey, are we still on for tonight?\nThem: yeah maybe, I'll let you know\nMe: ok lmk asap...`}
-                className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none" />
-              <input value={note} onChange={e => setNote(e.target.value)} maxLength={500}
-                placeholder="One line of context (optional)"
-                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30" />
-              <div className="space-y-2">
-                {text.length > 0 && text.length < 80 && (
-                  <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
-                    Mirror reads sharper with more context
-                  </p>
-                )}
-                {text.length > 0 && (
-                  <p className="text-center text-[10px] text-muted-foreground/40">
-                    {text.length} / 8000
-                  </p>
-                )}
+              {/* Mode selector */}
+              <div className="flex gap-2">
+                {([
+                  { key: "paste", label: "Paste" },
+                  { key: "builder", label: "Build" },
+                  { key: "screenshot", label: "Screenshot" },
+                ] as const).map(m => (
+                  <button
+                    key={m.key}
+                    onClick={() => setMode(m.key)}
+                    className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                      mode === m.key
+                        ? "bg-foreground text-background"
+                        : "bg-glass ring-hairline text-muted-foreground"
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* PASTE MODE */}
+              {mode === "paste" && (
+                <div className="space-y-2">
+                  <textarea
+                    value={text}
+                    onChange={e => setText(e.target.value)}
+                    rows={10}
+                    maxLength={4000}
+                    placeholder={`Paste the conversation here.\n\nTip: Format it like this for the sharpest read:\n\nMe: hey are you free tonight?\nThem: maybe, why?\nMe: wanted to talk\nThem: about what`}
+                    className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+                  />
+                  {text.length > 0 && (
+                    <p className="text-center text-[10px] text-muted-foreground/40">{text.length} / 4000</p>
+                  )}
+                  {text.length > 0 && text.length < 80 && (
+                    <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                      Mirror reads sharper with more context
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* BUILDER MODE */}
+              {mode === "builder" && (
+                <div className="space-y-3">
+                  {messages.length > 0 && (
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {messages.map((m) => (
+                        <div
+                          key={m.id}
+                          className={`flex items-start gap-2 ${m.sender === "me" ? "flex-row-reverse" : ""}`}
+                        >
+                          <div
+                            className={`flex-1 rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed max-w-[80%] ${
+                              m.sender === "me"
+                                ? "bg-white/[0.12] text-white ml-auto"
+                                : "bg-white/[0.05] text-white/80"
+                            }`}
+                          >
+                            <p className={`text-[9px] uppercase tracking-[0.2em] mb-1 ${
+                              m.sender === "me" ? "text-[#C9A84C]/60 text-right" : "text-white/30"
+                            }`}>
+                              {m.sender === "me" ? "Me" : "Them"}
+                            </p>
+                            {m.text}
+                          </div>
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <button
+                              onClick={() => toggleSender(m.id)}
+                              className="text-[8px] uppercase tracking-[0.15em] text-white/20 hover:text-white/50 transition-colors"
+                            >
+                              flip
+                            </button>
+                            <button
+                              onClick={() => removeMessage(m.id)}
+                              className="text-[8px] uppercase tracking-[0.15em] text-red-400/30 hover:text-red-400/70 transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {messages.length === 0 && (
+                    <div className="bg-glass ring-hairline rounded-2xl p-5 text-center space-y-1">
+                      <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Build the conversation</p>
+                      <p className="text-[12px] text-muted-foreground/60">Add messages one by one below</p>
+                    </div>
+                  )}
+
+                  <div className="bg-glass ring-hairline rounded-2xl p-3 space-y-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setNewSender("me")}
+                        className={`px-3 py-1.5 rounded-full text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                          newSender === "me"
+                            ? "bg-[#C9A84C] text-black"
+                            : "bg-white/[0.06] text-muted-foreground"
+                        }`}
+                      >
+                        Me
+                      </button>
+                      <button
+                        onClick={() => setNewSender("them")}
+                        className={`px-3 py-1.5 rounded-full text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                          newSender === "them"
+                            ? "bg-white/20 text-white"
+                            : "bg-white/[0.06] text-muted-foreground"
+                        }`}
+                      >
+                        Them
+                      </button>
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40 self-center ml-1">
+                        is saying:
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={newMsg}
+                        onChange={e => setNewMsg(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") addMessage(); }}
+                        placeholder="Type message and press Enter…"
+                        className="flex-1 bg-transparent text-[13px] text-white placeholder:text-white/20 focus:outline-none"
+                      />
+                      <button
+                        onClick={addMessage}
+                        disabled={!newMsg.trim()}
+                        className="text-[10px] uppercase tracking-[0.2em] text-accent disabled:opacity-30"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+
+                  {messages.length >= 2 && (
+                    <p className="text-center text-[10px] text-muted-foreground/40">
+                      {messages.length} messages · Tap "flip" to switch sender
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* SCREENSHOT MODE */}
+              {mode === "screenshot" && (
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="screenshot-upload"
+                    className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+                  />
+
+                  {imagePreview ? (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="Screenshot"
+                          className="w-full max-h-64 object-cover rounded-2xl"
+                        />
+                        <button
+                          onClick={() => { setImageBase64(null); setImagePreview(null); }}
+                          className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/70 flex items-center justify-center text-white text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={extractFromScreenshot}
+                        disabled={extracting}
+                        className="w-full rounded-full bg-foreground text-background py-3.5 text-[11px] uppercase tracking-[0.24em] disabled:opacity-40"
+                      >
+                        {extracting ? "Extracting conversation…" : "Extract conversation"}
+                      </button>
+
+                      {extracting && (
+                        <p className="text-center text-[11px] text-muted-foreground animate-pulse">
+                          Mirror is reading your screenshot…
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <label
+                      htmlFor="screenshot-upload"
+                      className="block w-full border-2 border-dashed border-white/[0.12] rounded-2xl p-10 text-center cursor-pointer hover:border-[#C9A84C]/40 transition-colors"
+                    >
+                      <div className="space-y-3">
+                        <div className="h-14 w-14 rounded-2xl bg-white/[0.04] mx-auto flex items-center justify-center">
+                          <ImageIcon className="h-6 w-6 text-white/30" strokeWidth={1.5} />
+                        </div>
+                        <div>
+                          <p className="text-[14px] text-white/60">Upload a screenshot</p>
+                          <p className="text-[11px] text-white/30 mt-1 leading-relaxed">
+                            iMessage, WhatsApp, Instagram DMs,<br />Snapchat, Tinder, any platform
+                          </p>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-white/20 mt-2">JPG, PNG · Max 8MB</p>
+                        </div>
+                      </div>
+                    </label>
+                  )}
+
+                  <GlassPanel className="p-4">
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground leading-relaxed">
+                      Mirror extracts the conversation from your screenshot and analyzes it. The image is never stored.
+                    </p>
+                  </GlassPanel>
+                </div>
+              )}
+
+              {/* Context note */}
+              <input
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                maxLength={500}
+                placeholder="Any context? Who is this, what's the situation… (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+              />
+
+              {mode !== "screenshot" && (
                 <button
                   onClick={run}
-                  disabled={text.trim().length < 10}
+                  disabled={!canRun()}
                   className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
                 >
                   Read this
                 </button>
-              </div>
+              )}
             </>
-          )}
-
-          {canScan && scansRemaining !== Infinity && (
-            <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
-              {scansRemaining} {scansRemaining === 1 ? "scan" : "scans"} remaining this month
-            </p>
           )}
         </>
       )}
     </main>
   );
 }
+
 
 function TextResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
   return (
