@@ -1838,3 +1838,138 @@ Score trajectory: Perception ${latestScore?.perception_score ?? 50}, Confidence 
 
     return dossierData;
   });
+
+// ============================================================
+// 16. Mirror Predictions
+// ============================================================
+export const generatePredictions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const { count } = await supabase
+      .from("scans")
+      .select("id", { count: "exact" })
+      .eq("user_id", userId);
+
+    if ((count ?? 0) < 3) return { predictions: [], insufficient_data: true };
+
+    const { data: lastPred } = await supabase
+      .from("predictions")
+      .select("created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastPred) {
+      const diff = Date.now() - new Date(lastPred.created_at).getTime();
+      if (diff < 1000 * 60 * 60 * 24 * 7) {
+        const { data: existing } = await supabase
+          .from("predictions")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        return { predictions: existing ?? [], insufficient_data: false };
+      }
+    }
+
+    const [{ data: profile }, { data: patterns }, { data: memory }, { data: scores }, { data: scans }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("patterns").select("*").eq("user_id", userId).order("frequency", { ascending: false }).limit(5),
+      supabase.from("mirror_memory").select("memory_text").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+      supabase.from("perception_scores").select("mirror_score, confidence_score, perception_score").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+      supabase.from("scans").select("scan_type, ai_summary").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+    ]);
+
+    const patternLines = (patterns ?? []).map((p: any) => `${p.pattern_name} (${p.frequency}x): ${p.pattern_description}`).join("\n");
+    const memoryLines = (memory ?? []).map((m: any) => m.memory_text).join("\n");
+    const scanLines = (scans ?? []).map((s: any) => `[${s.scan_type}] ${s.ai_summary}`).join("\n");
+    const scoreTrajectory = (scores ?? []).map((s: any) => s.mirror_score).join(" → ");
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `Based on this user's behavioral patterns, generate 3 specific predictions about what will happen in their near future if current patterns continue unchanged. These must be grounded in observable behavioral evidence — not guesses. Specific, calibrated, uncomfortable because they are likely true.
+
+Return STRICT JSON:
+{
+  "predictions": [
+    {
+      "prediction": "What Mirror predicts will happen. One sharp specific sentence. Max 20 words.",
+      "reasoning": "2-3 lines explaining exactly why Mirror is predicting this — grounded in specific patterns observed.",
+      "category": "one of: dating, social, career, communication, self-perception",
+      "timeframe": "one of: This week, Within 2 weeks, Within a month, Within 3 months"
+    }
+  ]
+}
+
+Rules:
+- Each prediction must be anchored in a specific observed pattern
+- At least one prediction should be positive — something good that will happen if they stay consistent
+- At least one should be a warning — something that will cost them if they don't shift
+- Timeframes must be realistic — do not predict things years away
+- Never predict health, financial, or safety outcomes
+- Never be vague — "you will struggle with communication" is not a prediction. "The next time you're in a high-stakes conversation you will over-explain and lose leverage" is.
+
+User patterns:
+${patternLines}
+
+Mirror memory:
+${memoryLines}
+
+Recent scans:
+${scanLines}
+
+Score trajectory: ${scoreTrajectory}
+Goal: ${profile?.main_goal ?? "—"}`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { return { predictions: [], insufficient_data: false }; }
+
+    const items = parsed?.predictions ?? [];
+    if (!items.length) return { predictions: [], insufficient_data: false };
+
+    const inserted = await supabase
+      .from("predictions")
+      .insert(items.map((p: any) => ({
+        user_id: userId,
+        prediction: p.prediction,
+        reasoning: p.reasoning,
+        category: p.category,
+        timeframe: p.timeframe,
+      })))
+      .select();
+
+    await createNotification(
+      supabase, userId,
+      "milestone",
+      "Mirror made 3 predictions about you.",
+      "Based on your patterns — open Mirror to see what's coming."
+    );
+
+    return { predictions: inserted.data ?? [], insufficient_data: false };
+  });
+
+export const verifyPrediction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { prediction_id: string; outcome: string; outcome_note?: string }) =>
+    z.object({
+      prediction_id: z.string(),
+      outcome: z.enum(["correct", "incorrect", "partially"]),
+      outcome_note: z.string().max(500).optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    await supabase
+      .from("predictions")
+      .update({
+        outcome: data.outcome,
+        outcome_note: data.outcome_note,
+        verified_at: new Date().toISOString(),
+      })
+      .eq("id", data.prediction_id);
+    return { success: true };
+  });
+
