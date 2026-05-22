@@ -1731,6 +1731,7 @@ function SocialResult({ result, onReset, onShare, isTrial = false }: { result: a
         Mirror reads signals, not follower counts
       </p>
     </main>
+    </TrialResultReveal>
   );
 }
 
