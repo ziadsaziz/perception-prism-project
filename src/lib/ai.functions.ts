@@ -623,6 +623,10 @@ ${memoryContext}`
             generateFeedItems({ data: {} } as any).catch(() => {});
           }
         });
+
+        // Update streak
+        await supabase.rpc("update_user_streak", { p_user_id: userId });
+        await checkStreakMilestone(supabase, userId);
       } catch {
         // Background processing failure is non-blocking
       }
