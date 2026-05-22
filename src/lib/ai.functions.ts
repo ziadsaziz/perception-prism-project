@@ -589,6 +589,13 @@ ${memoryContext}`
             }
           }
         }
+
+        // Trigger feed refresh after scan — non-blocking
+        supabase.from("mirror_feed").select("created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle().then(({ data }) => {
+          if (!data || Date.now() - new Date(data.created_at).getTime() > 1000 * 60 * 60 * 2) {
+            generateFeedItems({ data: {} } as any).catch(() => {});
+          }
+        });
       } catch {
         // Background processing failure is non-blocking
       }
