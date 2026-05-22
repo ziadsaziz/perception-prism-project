@@ -8,7 +8,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "openai/gpt-5";
 
-async function callAI(system: string, user: string, json = true): Promise<string> {
+async function callAI(system: string, user: string, json = true, maxTokens = 800): Promise<string> {
   const res = await fetch(GATEWAY, {
     method: "POST",
     headers: {
