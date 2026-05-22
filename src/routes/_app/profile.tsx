@@ -326,7 +326,7 @@ function Profile() {
             </span>
           </button>
           <Link
-            to="/"
+            to="/privacy"
             className="w-full px-4 py-3.5 flex items-center justify-between"
           >
             <div>
