@@ -299,9 +299,12 @@ export type Database = {
           biggest_insecurity: string | null
           comfort_level: string | null
           created_at: string
+          current_streak: number | null
           dating_challenge: string | null
           gender: string | null
           id: string
+          last_active_date: string | null
+          longest_streak: number | null
           main_goal: string | null
           name: string | null
           onboarding_complete: boolean | null
@@ -316,9 +319,12 @@ export type Database = {
           biggest_insecurity?: string | null
           comfort_level?: string | null
           created_at?: string
+          current_streak?: number | null
           dating_challenge?: string | null
           gender?: string | null
           id?: string
+          last_active_date?: string | null
+          longest_streak?: number | null
           main_goal?: string | null
           name?: string | null
           onboarding_complete?: boolean | null
@@ -333,9 +339,12 @@ export type Database = {
           biggest_insecurity?: string | null
           comfort_level?: string | null
           created_at?: string
+          current_streak?: number | null
           dating_challenge?: string | null
           gender?: string | null
           id?: string
+          last_active_date?: string | null
+          longest_streak?: number | null
           main_goal?: string | null
           name?: string | null
           onboarding_complete?: boolean | null
@@ -469,6 +478,7 @@ export type Database = {
         }
         Returns: number
       }
+      update_user_streak: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

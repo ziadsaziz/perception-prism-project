@@ -7,6 +7,7 @@ import { generateDailyRead } from "@/lib/ai.functions";
 import { ScoreRing } from "@/components/ScoreRing";
 import { MirrorMemory } from "@/components/MirrorMemory";
 import { MirrorFeed } from "@/components/MirrorFeed";
+import { StreakCard } from "@/components/StreakCard";
 import { GlassPanel } from "@/components/GlassPanel";
 import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
@@ -334,6 +335,7 @@ function Home() {
           </div>
         </section>
       )}
+      <StreakCard />
       <MirrorFeed />
       <MirrorMemory />
 
