@@ -1290,10 +1290,11 @@ IMPORTANT: If the user provided context above, let it meaningfully shape the rea
 // ============================================================
 export const analyzeSelfie = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { image_base64: string; context_note?: string }) =>
+  .inputValidator((d: { image_base64: string; context_note?: string; is_trial?: boolean }) =>
     z.object({
       image_base64: z.string().min(100),
       context_note: z.string().max(500).optional(),
+      is_trial: z.boolean().optional(),
     }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -1313,9 +1314,9 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         model: MODEL,
-        max_completion_tokens: 800,
+        max_completion_tokens: data.is_trial ? 1200 : 800,
         messages: [
-          { role: "system", content: system },
+          { role: "system", content: data.is_trial ? system + TRIAL_MODE_ADDENDUM : system },
           {
             role: "user",
             content: [
