@@ -1547,9 +1547,18 @@ function SocialScan() {
         </GlassPanel>
       ) : (
         <>
-          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
-          {canAccessElite && (
+          {!canAccessElite && !canTrialSocial && (
+            <UpgradePrompt reason="elite_feature" currentPlan={plan} />
+          )}
+          {(canAccessElite || canTrialSocial) && (
             <>
+              {!canAccessElite && !trialScans.social && (
+                <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3 mb-2">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">Free trial scan</p>
+                  <p className="text-[12px] text-white/60 mt-0.5">You have 1 free Social Profile scan. Mirror Elite unlocks unlimited access.</p>
+                </div>
+              )}
+              <>
               <div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">Platform</p>
                 <div className="flex flex-wrap gap-2">
