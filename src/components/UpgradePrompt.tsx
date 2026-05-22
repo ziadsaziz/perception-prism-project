@@ -11,7 +11,7 @@ interface UpgradePromptProps {
 const COPY = {
   scan_limit: {
     label: "Scan limit reached",
-    heading: "You've used all 3 free scans this month.",
+    heading: "You've used all 20 free scans this month.",
     body: "Mirror Plus gives you unlimited text scans, daily reads, pattern tracking, and your weekly blind spot report.",
     cta: "Unlock Mirror Plus",
     target: "plus",

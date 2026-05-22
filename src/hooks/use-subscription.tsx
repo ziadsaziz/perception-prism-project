@@ -17,7 +17,7 @@ export type SubscriptionState = {
 };
 
 const LIMITS: Record<Plan, number> = {
-  free: 3,
+  free: 20,
   plus: Infinity,
   elite: Infinity,
 };

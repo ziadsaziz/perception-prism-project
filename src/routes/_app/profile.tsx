@@ -227,7 +227,7 @@ function Profile() {
                 {plan === "free"
                   ? bonusScans > 0
                     ? `${scanCount} scans · ${scansRemaining} remaining (${bonusScans} bonus)`
-                    : `${scanCount}/3 scans this month · ${scansRemaining} remaining`
+                    : `${scanCount}/20 scans this month · ${scansRemaining} remaining`
                   : "Unlimited scans"}
               </p>
             </div>
