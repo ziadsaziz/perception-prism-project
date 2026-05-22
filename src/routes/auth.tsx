@@ -6,12 +6,15 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: z.object({ mode: z.enum(["signin", "signup"]).optional() }),
+  validateSearch: z.object({
+    mode: z.enum(["signin", "signup"]).optional(),
+    ref: z.string().optional(),
+  }),
   component: Auth,
 });
 
 function Auth() {
-  const { mode: initMode } = Route.useSearch();
+  const { mode: initMode, ref: referralCode } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">(initMode ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +53,12 @@ function Auth() {
         toast.success("Welcome to Mirror.");
         // If session exists immediately (email confirmation disabled), route directly
         if (data.session) {
+          if (referralCode) {
+            await supabase.rpc("apply_referral", {
+              p_referred_user_id: data.session.user.id,
+              p_referral_code: referralCode.toUpperCase(),
+            });
+          }
           nav({ to: "/onboarding" });
         }
       } else {

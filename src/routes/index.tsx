@@ -153,7 +153,7 @@ function Landing() {
             <span className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">Mirror</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/" className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Privacy</Link>
+            <Link to="/privacy" className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Privacy</Link>
             <Link to="/auth" className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Sign in</Link>
           </div>
         </div>

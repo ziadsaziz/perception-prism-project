@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportMirrorData } from "@/lib/export";
 import { GlassPanel } from "@/components/GlassPanel";
 import { WeeklyReport } from "@/components/WeeklyReport";
+import { ReferralCard } from "@/components/ReferralCard";
 import { toast } from "sonner";
 import { ChevronRight, LogOut, Trash2 } from "lucide-react";
 
@@ -301,6 +302,10 @@ function Profile() {
         {user?.id && <DailyHistory userId={user.id} />}
       </section>
 
+      <section>
+        <ReferralCard />
+      </section>
+
       {/* Privacy */}
       <section>
         <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">Privacy & data</p>
@@ -321,7 +326,7 @@ function Profile() {
             </span>
           </button>
           <Link
-            to="/"
+            to="/privacy"
             className="w-full px-4 py-3.5 flex items-center justify-between"
           >
             <div>

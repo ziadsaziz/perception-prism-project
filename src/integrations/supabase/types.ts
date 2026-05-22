@@ -429,6 +429,7 @@ export type Database = {
           age_range: string | null
           baseline_read: string | null
           biggest_insecurity: string | null
+          bonus_scans: number | null
           comfort_level: string | null
           created_at: string
           current_streak: number | null
@@ -440,6 +441,8 @@ export type Database = {
           main_goal: string | null
           name: string | null
           onboarding_complete: boolean | null
+          referral_code: string | null
+          referred_by: string | null
           social_challenge: string | null
           tone_preference: string | null
           updated_at: string
@@ -449,6 +452,7 @@ export type Database = {
           age_range?: string | null
           baseline_read?: string | null
           biggest_insecurity?: string | null
+          bonus_scans?: number | null
           comfort_level?: string | null
           created_at?: string
           current_streak?: number | null
@@ -460,6 +464,8 @@ export type Database = {
           main_goal?: string | null
           name?: string | null
           onboarding_complete?: boolean | null
+          referral_code?: string | null
+          referred_by?: string | null
           social_challenge?: string | null
           tone_preference?: string | null
           updated_at?: string
@@ -469,6 +475,7 @@ export type Database = {
           age_range?: string | null
           baseline_read?: string | null
           biggest_insecurity?: string | null
+          bonus_scans?: number | null
           comfort_level?: string | null
           created_at?: string
           current_streak?: number | null
@@ -480,10 +487,39 @@ export type Database = {
           main_goal?: string | null
           name?: string | null
           onboarding_complete?: boolean | null
+          referral_code?: string | null
+          referred_by?: string | null
           social_challenge?: string | null
           tone_preference?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          bonus_granted: boolean | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Insert: {
+          bonus_granted?: boolean | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Update: {
+          bonus_granted?: boolean | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_user_id?: string
+          referrer_user_id?: string
         }
         Relationships: []
       }
@@ -597,6 +633,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_referral: {
+        Args: { p_referral_code: string; p_referred_user_id: string }
+        Returns: boolean
+      }
       calculate_mirror_score: {
         Args: {
           approachability: number
@@ -610,6 +650,7 @@ export type Database = {
         }
         Returns: number
       }
+      generate_referral_code: { Args: { p_user_id: string }; Returns: string }
       refresh_platform_benchmarks: { Args: never; Returns: undefined }
       update_user_streak: { Args: { p_user_id: string }; Returns: undefined }
     }
