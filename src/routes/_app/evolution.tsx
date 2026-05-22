@@ -265,6 +265,13 @@ function Evolution() {
               </div>
             </div>
           )}
+
+          <div className="space-y-2 pt-2">
+            <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">
+              How you compare
+            </p>
+            <Benchmarks />
+          </div>
         </>
       )}
     </main>
