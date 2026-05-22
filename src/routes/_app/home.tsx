@@ -90,10 +90,13 @@ function Home() {
     })();
   }, [user]);
 
-  const fetchDaily = async () => {
+  const fetchDaily = async (mood?: string, energy?: number, happened?: string) => {
     setLoadingRead(true);
-    try { setDaily(await dailyFn({} as any)); } finally { setLoadingRead(false); }
+    try {
+      setDaily(await dailyFn({ data: { mood, energy, happened } } as any));
+    } finally { setLoadingRead(false); }
   };
+
 
   useEffect(() => {
     if (user) fetchDaily();
