@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision, analyzeSocialProfile, analyzeSelfie, analyzeVoice, analyzeOtherPerson, extractConversationFromScreenshot } from "@/lib/ai.functions";
