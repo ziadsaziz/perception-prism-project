@@ -151,7 +151,7 @@ function Home() {
           }}
         />
       )}
-      {showTutorial && (
+      {showTutorial && !showCheckin && checkinDone !== false && (
         <OnboardingTutorial
           onComplete={() => setShowTutorial(false)}
         />
