@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision, analyzeSocialProfile, analyzeSelfie, analyzeVoice, analyzeOtherPerson } from "@/lib/ai.functions";
+import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision, analyzeSocialProfile, analyzeSelfie, analyzeVoice, analyzeOtherPerson, extractConversationFromScreenshot } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
