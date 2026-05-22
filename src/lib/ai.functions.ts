@@ -54,6 +54,31 @@ async function createNotification(
   }
 }
 
+async function checkStreakMilestone(supabase: any, userId: string) {
+  const { data } = await supabase
+    .from("profiles")
+    .select("current_streak")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const streak = data?.current_streak ?? 0;
+  const milestones = [3, 7, 14, 21, 30, 60, 100];
+
+  if (milestones.includes(streak)) {
+    const msgs: Record<number, [string, string]> = {
+      3:   ["3-day streak.", "Three consecutive days. Mirror is starting to see patterns."],
+      7:   ["7-day streak.", "One week. Most people quit before this. You didn't."],
+      14:  ["14-day streak.", "Two weeks. Your Mirror profile is the sharpest it's ever been."],
+      21:  ["21-day streak.", "21 days. This is a habit now. Mirror knows how you move."],
+      30:  ["30 days.", "One month in. Mirror knows you better than most people in your life."],
+      60:  ["60-day streak.", "Two months. You're in the top 1% of Mirror users."],
+      100: ["100 days.", "Mirror has a complete picture of who you are. This is rare."],
+    };
+    const [title, body] = msgs[streak] ?? ["Streak milestone.", "Keep going."];
+    await createNotification(supabase, userId, "milestone", title, body);
+  }
+}
+
 function computeMirrorScore(scores: any): number {
   if (!scores) return 0;
   return Math.min(1000, Math.round((
