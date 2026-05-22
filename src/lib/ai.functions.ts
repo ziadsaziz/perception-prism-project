@@ -35,6 +35,67 @@ async function callAI(system: string, user: string, json = true): Promise<string
   return data.choices?.[0]?.message?.content ?? "";
 }
 
+async function extractTextFromImage(imageBase64: string): Promise<string> {
+  const res = await fetch(GATEWAY, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 800,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Extract all the text from this conversation screenshot. Format it exactly like this:
+
+Them: [their message]
+Me: [my message]
+Them: [their message]
+
+Rules:
+- Preserve the exact order of messages
+- Label each message as either "Me:" or "Them:"
+- If you cannot tell who sent which message, use "Person 1:" and "Person 2:"
+- Include timestamps only if they are clearly visible and relevant
+- Do not add any commentary or explanation — only the extracted conversation
+- If this is not a conversation screenshot, say: NOT_A_CONVERSATION`,
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${imageBase64}`,
+                detail: "high",
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) throw new Error("Screenshot extraction failed.");
+  const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const text = out.choices?.[0]?.message?.content ?? "";
+  if (text.includes("NOT_A_CONVERSATION")) throw new Error("This doesn't look like a conversation screenshot.");
+  return text;
+}
+
+export const extractConversationFromScreenshot = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { image_base64: string }) =>
+    z.object({ image_base64: z.string().min(100) }).parse(d))
+  .handler(async ({ data }) => {
+    const text = await extractTextFromImage(data.image_base64);
+    return { text };
+  });
+
+
+
 async function createNotification(
   supabase: any,
   userId: string,
