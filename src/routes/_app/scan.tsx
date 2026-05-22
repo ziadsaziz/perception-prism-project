@@ -2790,6 +2790,53 @@ function OtherPersonResult({ result, onReset, onShare }: { result: any; onReset:
         Mirror reads signals, not people
       </p>
     </main>
+    </TrialResultReveal>
+  );
+}
+
+function TrialResultReveal({ children, isTrial }: { children: React.ReactNode; isTrial: boolean }) {
+  const [visible, setVisible] = useState(!isTrial);
+
+  useEffect(() => {
+    if (!isTrial) return;
+    const timer = setTimeout(() => setVisible(true), 400);
+    return () => clearTimeout(timer);
+  }, [isTrial]);
+
+  if (!isTrial) return <>{children}</>;
+
+  return (
+    <div className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+      {children}
+    </div>
+  );
+}
+
+function TrialCompleteFlash({ visible, onDone }: { visible: boolean; onDone: () => void }) {
+  useEffect(() => {
+    if (!visible) return;
+    haptic([10, 80, 10, 80, 20]);
+    const t = setTimeout(onDone, 2200);
+    return () => clearTimeout(t);
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center animate-fade-up">
+      <div className="space-y-4 text-center px-8">
+        <div className="h-16 w-16 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/40 flex items-center justify-center mx-auto">
+          <span className="text-[#C9A84C] text-2xl">◆</span>
+        </div>
+        <p className="text-[10px] uppercase tracking-[0.48em] text-[#C9A84C]">Mirror read complete</p>
+        <p className="font-display text-[28px] leading-tight text-white">
+          This is what Elite<br />looks like.
+        </p>
+        <p className="text-[13px] text-white/50 leading-relaxed max-w-[260px] mx-auto">
+          Every scan. At this depth. Unlimited.
+        </p>
+      </div>
+    </div>
   );
 }
 
