@@ -345,6 +345,19 @@ function Profile() {
         <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">Account</p>
         <GlassPanel className="divide-y divide-border/40">
           <button
+            onClick={async () => {
+              if (!user) return;
+              await supabase
+                .from("profiles")
+                .update({ tutorial_completed: false })
+                .eq("user_id", user.id);
+              toast.success("Tutorial reset. Reopen Mirror to see it.");
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+          >
+            <span className="text-[13px] text-white/60">Replay tutorial</span>
+          </button>
+          <button
             onClick={async () => { await signOut(); }}
             className="w-full px-4 py-3.5 flex items-center justify-between text-left"
           >
