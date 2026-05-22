@@ -95,7 +95,7 @@ function Landing() {
 
       <DemoScan />
 
-      <section className="px-6 py-12 space-y-4">
+      <section className="px-6 py-6 space-y-3">
         <p className="text-center text-[10px] uppercase tracking-[0.32em] text-muted-foreground">What people say</p>
         <div className="space-y-3">
           {[
