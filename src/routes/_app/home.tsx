@@ -334,7 +334,9 @@ function Home() {
           </div>
         </section>
       )}
+      <MirrorFeed />
       <MirrorMemory />
+
     </main>
     </>
   );
