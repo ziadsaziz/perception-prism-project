@@ -41,9 +41,11 @@ export type Database = {
       daily_checkins: {
         Row: {
           ai_reflection: string | null
+          checkin_completed: boolean | null
           confidence_level: number | null
           created_at: string
           date: string | null
+          energy_level: number | null
           id: string
           mood: string | null
           move_completed: boolean | null
@@ -53,9 +55,11 @@ export type Database = {
         }
         Insert: {
           ai_reflection?: string | null
+          checkin_completed?: boolean | null
           confidence_level?: number | null
           created_at?: string
           date?: string | null
+          energy_level?: number | null
           id?: string
           mood?: string | null
           move_completed?: boolean | null
@@ -65,9 +69,11 @@ export type Database = {
         }
         Update: {
           ai_reflection?: string | null
+          checkin_completed?: boolean | null
           confidence_level?: number | null
           created_at?: string
           date?: string | null
+          energy_level?: number | null
           id?: string
           mood?: string | null
           move_completed?: boolean | null
