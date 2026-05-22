@@ -58,7 +58,7 @@ function Landing() {
         </div>
       </section>
 
-      <section className="px-6 py-16 space-y-10">
+      <section className="px-6 pt-8 pb-6 space-y-6">
         <div className="text-center space-y-2">
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">How it works</p>
           <h2 className="font-display text-3xl text-gradient">Three steps. One truth.</h2>
