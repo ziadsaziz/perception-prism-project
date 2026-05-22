@@ -1487,15 +1487,21 @@ function SocialScan() {
   const [result, setResult] = useState<any>(null);
   const [showCard, setShowCard] = useState(false);
   const [cardScore, setCardScore] = useState(0);
+  const [showTrialFlash, setShowTrialFlash] = useState(false);
+  const wasTrialRef = useRef(false);
 
   const run = async () => {
     if (bio.trim().length < 1) { toast.error("Paste your bio first."); return; }
     setLoading(true); setResult(null); setStage(0);
     const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
-      const r = await fn({ data: { bio, platform, username, follower_count: followerCount, post_description: postDescription, context_note: note } });
+      wasTrialRef.current = !trialScans.social;
+      const r = await fn({ data: { bio, platform, username, follower_count: followerCount, post_description: postDescription, context_note: note, is_trial: !trialScans.social } });
       setResult(r.result);
       haptic(12);
+      if (wasTrialRef.current) {
+        setShowTrialFlash(true);
+      }
       if (r.result?.scores?.perception) {
         const ms = r.result?.scores ? Math.min(1000, Math.round((
           (r.result.scores.perception ?? 50) * 0.20 +
@@ -1517,7 +1523,7 @@ function SocialScan() {
 
   if (result) return (
     <>
-      <SocialResult result={result} onReset={() => { setResult(null); setBio(""); setShowCard(false); }} onShare={() => setShowCard(true)} />
+      <SocialResult result={result} onReset={() => { setResult(null); setBio(""); setShowCard(false); }} onShare={() => setShowCard(true)} isTrial={wasTrialRef.current} />
       {showCard && result.read && (
         <MirrorCard
           read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
@@ -1525,6 +1531,7 @@ function SocialScan() {
           onClose={() => setShowCard(false)}
         />
       )}
+      <TrialCompleteFlash visible={showTrialFlash} onDone={() => setShowTrialFlash(false)} />
     </>
   );
 
