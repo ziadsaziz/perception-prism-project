@@ -1357,6 +1357,12 @@ Context from user: ${data.context_note ?? "none"}`
       score_json: parsed.scores ?? null,
     }).select().single();
 
+    // Mark selfie trial as used
+    await supabase
+      .from("profiles")
+      .update({ trial_selfie_used: true })
+      .eq("user_id", userId);
+
     if (parsed.scores) {
       await supabase.from("perception_scores").insert({
         user_id: userId,
