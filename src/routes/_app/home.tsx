@@ -39,6 +39,21 @@ function Home() {
   const [profileChecked, setProfileChecked] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showInstall, setShowInstall] = useState(false);
+  const { checkinDone, checkinData, setCheckinDone } = useTodayCheckin();
+  const [showCheckin, setShowCheckin] = useState(false);
+  const [sessionMood, setSessionMood] = useState<string | null>(checkinData?.mood ?? null);
+
+  useEffect(() => {
+    if (checkinData?.mood && !sessionMood) setSessionMood(checkinData.mood);
+  }, [checkinData, sessionMood]);
+
+  useEffect(() => {
+    if (checkinDone === false && profileChecked) {
+      const timer = setTimeout(() => setShowCheckin(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [checkinDone, profileChecked]);
+
 
   useEffect(() => {
     if (!user) return;
