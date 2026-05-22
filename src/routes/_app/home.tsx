@@ -43,6 +43,7 @@ function Home() {
   const { checkinDone, checkinData, setCheckinDone } = useTodayCheckin();
   const [showCheckin, setShowCheckin] = useState(false);
   const [sessionMood, setSessionMood] = useState<string | null>(checkinData?.mood ?? null);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
     if (checkinData?.mood && !sessionMood) setSessionMood(checkinData.mood);
