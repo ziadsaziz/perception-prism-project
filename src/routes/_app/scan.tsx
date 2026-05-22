@@ -1818,9 +1818,18 @@ function SelfieScan() {
         </GlassPanel>
       ) : (
         <>
-          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
-          {canAccessElite && (
+          {!canAccessElite && !canTrialSelfie && (
+            <UpgradePrompt reason="elite_feature" currentPlan={plan} />
+          )}
+          {(canAccessElite || canTrialSelfie) && (
             <>
+              {!canAccessElite && !trialScans.selfie && (
+                <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3 mb-2">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">Free trial scan</p>
+                  <p className="text-[12px] text-white/60 mt-0.5">You have 1 free Selfie scan. Mirror Elite unlocks unlimited access.</p>
+                </div>
+              )}
+              <>
               <input
                 ref={fileRef}
                 type="file"
