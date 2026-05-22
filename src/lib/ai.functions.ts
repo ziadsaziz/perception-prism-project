@@ -1716,3 +1716,125 @@ ${data.input_text}
 
     return { scan, result: parsed };
   });
+
+// ============================================================
+// 15. Mirror Dossier Generator
+// ============================================================
+export const generateDossier = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const { data: existing } = await supabase
+      .from("dossier")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existing) {
+      const diff = Date.now() - new Date(existing.generated_at).getTime();
+      if (diff < 1000 * 60 * 60 * 24 * 7) return existing;
+    }
+
+    const [
+      { data: profile },
+      { data: scans },
+      { data: patterns },
+      { data: scores },
+      { data: memory },
+      { data: weeklyReports },
+    ] = await Promise.all([
+      supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+      supabase.from("scans").select("scan_type, ai_summary, result_json, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+      supabase.from("patterns").select("*").eq("user_id", userId).order("frequency", { ascending: false }),
+      supabase.from("perception_scores").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+      supabase.from("mirror_memory").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+      supabase.from("weekly_reports").select("dominant_pattern, blind_spot, full_report").eq("user_id", userId).order("created_at", { ascending: false }).limit(4),
+    ]);
+
+    const scanCount = scans?.length ?? 0;
+    const latestScore: any = scores?.[0];
+    const mirrorScore = latestScore?.mirror_score ?? 0;
+    const classLevel = mirrorScore >= 700 ? "ELITE CLEARANCE" :
+      mirrorScore >= 500 ? "ENHANCED ACCESS" :
+      scanCount >= 5 ? "STANDARD ACCESS" : "BASIC ACCESS";
+
+    const scanLines = (scans ?? []).map((s: any) => `[${s.scan_type}] ${s.ai_summary ?? ""}`).join("\n");
+    const patternLines = (patterns ?? []).map((p: any) => `${p.pattern_name} (${p.frequency}x): ${p.pattern_description}`).join("\n");
+    const memoryLines = (memory ?? []).map((m: any) => m.memory_text).join("\n");
+    const weeklyLines = (weeklyReports ?? []).map((w: any) => w.dominant_pattern ?? "").join("\n");
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `Generate a classified Mirror Dossier — a comprehensive behavioral intelligence profile on this user. This is the most complete read Mirror has ever delivered on them. It is built from everything Mirror has observed. It should feel like a classified intelligence brief — specific, surgical, uncomfortably accurate.
+
+This is NOT a report. It is a DOSSIER. The language should feel like something the user was never supposed to see about themselves.
+
+Return STRICT JSON:
+{
+  "core_signal": "The single most defining thing about how this person comes across. 1-2 sentences. The one thing Mirror keeps seeing no matter what situation they're in.",
+  "dominant_pattern": "The behavioral pattern that shows up most consistently across all their scans. Name it precisely. 2-3 sentences.",
+  "recurring_blind_spot": "The thing this person cannot see about themselves that keeps costing them. Specific. 1-2 sentences.",
+  "perception_trajectory": "How their perception has shifted over the time Mirror has been watching. Are they improving? Regressing? Plateauing? 1-2 sentences.",
+  "social_archetype": "One of: The Performer, The Controller, The Withdrawer, The Seeker, The Challenger, The Protector, The Mirror, The Ghost, The Architect, The Empath. Pick the one that fits most precisely.",
+  "archetype_description": "2-3 lines explaining exactly why Mirror assigned this archetype — grounded in specific behavioral evidence.",
+  "relationship_pattern": "How this person shows up in relationships — romantic, professional, social. What do they do consistently that shapes every connection. 2-3 sentences.",
+  "strength_profile": "What this person genuinely does well perceptually. Not manufactured positivity — real strengths Mirror has observed. 2-3 sentences.",
+  "risk_profile": "The behavioral risks that could cost this person significantly if unchecked. 1-2 sentences. Calm and specific.",
+  "full_assessment": "4-6 paragraphs. The complete Mirror assessment. Written like a classified intelligence brief. Covers: how they operate, what drives them, what they project vs what they feel, where they are right now, and what Mirror predicts if current patterns continue. End with one precise move that would change the trajectory."
+}
+
+User data:
+Name: ${profile?.name ?? "—"}
+Goal: ${profile?.main_goal ?? "—"}
+Mirror Score: ${mirrorScore}
+Total scans: ${scanCount}
+Current streak: ${(profile as any)?.current_streak ?? 0} days
+
+Recent scans:
+${scanLines}
+
+Detected patterns:
+${patternLines}
+
+Mirror Memory:
+${memoryLines}
+
+Weekly report patterns:
+${weeklyLines}
+
+Score trajectory: Perception ${latestScore?.perception_score ?? 50}, Confidence ${latestScore?.confidence_score ?? 50}, Attraction ${latestScore?.attraction_score ?? 50}, Authority ${latestScore?.authority_score ?? 50}`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch {
+      return existing ?? null;
+    }
+
+    const dossierData = {
+      user_id: userId,
+      core_signal: parsed.core_signal,
+      dominant_pattern: parsed.dominant_pattern,
+      recurring_blind_spot: parsed.recurring_blind_spot,
+      perception_trajectory: parsed.perception_trajectory,
+      social_archetype: parsed.social_archetype,
+      archetype_description: parsed.archetype_description,
+      relationship_pattern: parsed.relationship_pattern,
+      strength_profile: parsed.strength_profile,
+      risk_profile: parsed.risk_profile,
+      full_assessment: parsed.full_assessment,
+      classification_level: classLevel,
+      generated_at: new Date().toISOString(),
+    };
+
+    await supabase.from("dossier").upsert(dossierData, { onConflict: "user_id" });
+
+    await createNotification(
+      supabase, userId,
+      "milestone",
+      "Your Mirror Dossier is ready.",
+      "Mirror has compiled a complete behavioral intelligence profile on you."
+    );
+
+    return dossierData;
+  });

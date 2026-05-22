@@ -159,6 +159,16 @@ function Profile() {
             <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground mb-1.5">Main goal</p>
             <p className="text-sm text-muted-foreground">{profile?.main_goal ?? "—"}</p>
           </div>
+
+          <Link to="/dossier" className="block px-4 py-3.5 active:bg-white/[0.02] transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-[#C9A84C] mb-1.5">Mirror Dossier</p>
+                <p className="text-sm text-foreground/80">Your full behavioral intelligence profile</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </Link>
         </GlassPanel>
       </section>
 
