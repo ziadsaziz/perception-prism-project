@@ -1182,6 +1182,7 @@ export const analyzeSocialProfile = createServerFn({ method: "POST" })
     follower_count?: string;
     post_description?: string;
     context_note?: string;
+    is_trial?: boolean;
   }) =>
     z.object({
       bio: z.string().min(1).max(2000),
@@ -1190,6 +1191,7 @@ export const analyzeSocialProfile = createServerFn({ method: "POST" })
       follower_count: z.string().max(50).optional(),
       post_description: z.string().max(1000).optional(),
       context_note: z.string().max(500).optional(),
+      is_trial: z.boolean().optional(),
     }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -1201,7 +1203,9 @@ export const analyzeSocialProfile = createServerFn({ method: "POST" })
     const memoryContext = (memory ?? []).map(m => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
 
     const content = await callAI(
-      voiceFor(profile?.tone_preference ?? "Direct"),
+      data.is_trial
+        ? voiceFor(profile?.tone_preference ?? "Direct") + TRIAL_MODE_ADDENDUM
+        : voiceFor(profile?.tone_preference ?? "Direct"),
       `You are reading a social media profile. Your job is to tell the user exactly how their profile lands on a stranger who visits it for the first time — in under 10 seconds. Not what they intended. What is actually felt.
 
 Return STRICT JSON:
