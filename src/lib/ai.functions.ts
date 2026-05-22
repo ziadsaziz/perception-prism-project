@@ -384,8 +384,15 @@ ${yesterdayLine}
 
 User goal: ${profile?.main_goal ?? "—"}
 Recent scans:\n${scanLines}
-Repeated patterns:\n${patternLines}`
+Repeated patterns:\n${patternLines}
+${data?.mood ? `
+Current session context:
+- Mood: ${data.mood}
+- Energy level: ${data.energy ?? 3}/5
+- What happened: ${data.happened ?? "nothing noted"}
+Factor this into the read and the move. A user who is anxious needs a different read than one who is sharp. A user with low energy needs a different move than one who is charged.` : ""}`
     );
+
 
     let parsed: { read: string; mission: string; early?: boolean };
     try {
