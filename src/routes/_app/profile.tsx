@@ -302,6 +302,10 @@ function Profile() {
         {user?.id && <DailyHistory userId={user.id} />}
       </section>
 
+      <section>
+        <ReferralCard />
+      </section>
+
       {/* Privacy */}
       <section>
         <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1 mb-2">Privacy & data</p>
