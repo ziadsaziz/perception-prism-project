@@ -1646,3 +1646,73 @@ ${memoryLines}`
 
     return { generated: true, count: items.length };
   });
+
+// ============================================================
+// 14. Mirror for Someone Else
+// ============================================================
+export const analyzeOtherPerson = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    input_text: string;
+    person_description?: string;
+    relationship?: string;
+    context_note?: string;
+  }) =>
+    z.object({
+      input_text: z.string().min(10).max(4000),
+      person_description: z.string().max(500).optional(),
+      relationship: z.string().max(100).optional(),
+      context_note: z.string().max(500).optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tone_preference")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `You are reading ANOTHER person — not the user asking. The user has shared a conversation, description, or situation involving someone else. Your job is to read that other person's behavior, patterns, emotional state, and how they actually come across. Be surgical, specific, and honest. Never comfort the user asking. Read the other person.
+
+Return STRICT JSON:
+{
+  "read": "ONE sharp line about this person. Max 20 words. What is the dominant signal they are sending?",
+  "what_they_actually_feel": "2-3 lines. What this person is genuinely feeling beneath what they are saying or showing. Behavioral read only — anchor in what was provided.",
+  "their_dominant_pattern": "1-2 lines. The behavioral pattern this person operates from most consistently.",
+  "what_they_want": "1-2 lines. What this person actually wants from this situation or relationship — not what they say they want.",
+  "their_blind_spot": "1-2 lines. The thing this person cannot see about how they are coming across.",
+  "are_they_being_honest": "one of: 'Yes', 'Mostly', 'Selectively', 'No', 'Unclear'",
+  "honesty_reason": "One line explaining the honesty read.",
+  "how_they_see_the_user": "1-2 lines. How this person likely perceives the user asking — what role does the user play in this person's mind.",
+  "the_move": "1-2 lines. Given all of this — what is the single strongest move the user can make right now with this person.",
+  "risk_flag": "Optional. Only if there is a serious red flag in how this person is operating — name it in one line. If nothing alarming, omit.",
+  "summary": "8-10 words for memory"
+}
+
+Who this person is: ${data.person_description ?? "not described"}
+Relationship to the user: ${data.relationship ?? "not specified"}
+Context: ${data.context_note ?? "none"}
+What the user shared:
+"""
+${data.input_text}
+"""`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch {
+      parsed = { read: content.slice(0, 200), summary: "other person scan" };
+    }
+
+    const { data: scan } = await supabase.from("scans").insert({
+      user_id: userId,
+      scan_type: "other_person",
+      input_text: data.input_text.slice(0, 4000),
+      ai_summary: parsed.summary ?? parsed.read ?? null,
+      result_json: parsed,
+      score_json: null,
+    }).select().single();
+
+    return { scan, result: parsed };
+  });
