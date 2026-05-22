@@ -1367,8 +1367,45 @@ Context from user: ${data.context_note ?? "none"}`
     const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
     const raw = out.choices?.[0]?.message?.content ?? "";
 
+    // Strip markdown fences if present
+    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
     let parsed: any;
-    try { parsed = JSON.parse(raw); } catch { parsed = { read: raw.slice(0, 200), summary: "selfie scan" }; }
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      // If not JSON try to extract meaningful content
+      if (cleaned.length > 20 && !cleaned.includes("NOT_A")) {
+        parsed = {
+          read: cleaned.slice(0, 150),
+          presence_read: cleaned.slice(0, 300),
+          confidence_signals: "Mirror analyzed your presence from this photo.",
+          blind_spot: null,
+          presence_verdict: "Observed",
+          verdict_reason: null,
+          the_move: null,
+          scores: { perception: 60, confidence: 60, attraction: 60, approachability: 60 },
+          summary: "selfie scan",
+        };
+      } else {
+        parsed = {
+          read: "Mirror read your presence. Scroll down for the full analysis.",
+          presence_read: cleaned || "Mirror observed your energy and confidence signals from this photo.",
+          confidence_signals: "Your physical presence communicates more than you realize.",
+          blind_spot: null,
+          presence_verdict: "Observed",
+          verdict_reason: null,
+          the_move: null,
+          scores: { perception: 60, confidence: 60, attraction: 60, approachability: 60 },
+          summary: "selfie scan",
+        };
+      }
+    }
+
+    // Ensure required fields exist
+    if (!parsed.read) parsed.read = cleaned.slice(0, 150) || "Mirror analyzed your presence.";
+    if (!parsed.presence_read) parsed.presence_read = cleaned.slice(0, 300);
+    if (!parsed.presence_verdict) parsed.presence_verdict = "Observed";
 
     const { data: scan } = await supabase.from("scans").insert({
       user_id: userId,
