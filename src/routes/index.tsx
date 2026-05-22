@@ -13,7 +13,7 @@ function Landing() {
 
   return (
     <main className="relative min-h-screen bg-black">
-      <section className="relative min-h-screen flex flex-col px-6 pt-16 pb-10">
+      <section className="relative min-h-screen flex flex-col px-6 pt-16 pb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="h-7 w-7 rounded-full ring-hairline bg-glass flex items-center justify-center">
