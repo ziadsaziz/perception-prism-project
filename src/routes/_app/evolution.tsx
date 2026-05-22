@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassPanel } from "@/components/GlassPanel";
+import { Benchmarks } from "@/components/Benchmarks";
 
 export const Route = createFileRoute("/_app/evolution")({ component: Evolution });
 
@@ -264,6 +265,13 @@ function Evolution() {
               </div>
             </div>
           )}
+
+          <div className="space-y-2 pt-2">
+            <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground px-1">
+              How you compare
+            </p>
+            <Benchmarks />
+          </div>
         </>
       )}
     </main>
