@@ -1985,6 +1985,8 @@ function VoiceScan() {
   const [cardScore, setCardScore] = useState(0);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [speechMetrics, setSpeechMetrics] = useState<any>(null);
+  const [showTrialFlash, setShowTrialFlash] = useState(false);
+  const wasTrialRef = useRef(false);
 
   // Refs
   const recognitionRef = useRef<any>(null);
