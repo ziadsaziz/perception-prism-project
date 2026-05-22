@@ -17,7 +17,7 @@ async function callAI(system: string, user: string, json = true): Promise<string
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 800,
+      max_completion_tokens: 800,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -649,7 +649,7 @@ Use this context to make your responses specific to this user. Reference their a
     const res = await fetch(GATEWAY, {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 600, messages }),
+      body: JSON.stringify({ model: MODEL, max_completion_tokens: 600, messages }),
     });
     if (!res.ok) {
       if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
@@ -1175,7 +1175,7 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 800,
+        max_completion_tokens: 800,
         messages: [
           { role: "system", content: system },
           {
