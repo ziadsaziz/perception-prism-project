@@ -337,6 +337,20 @@ function Home() {
       )}
       <StreakCard />
       <MirrorFeed />
+
+      <Link to="/dossier" className="block bg-glass ring-hairline rounded-2xl p-5 border border-[#C9A84C]/20 active:scale-[0.99] transition-transform glow-gold">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C] mb-1">Mirror Dossier</p>
+            <p className="text-sm text-foreground/90 leading-snug">Your complete behavioral intelligence profile.</p>
+            <p className="mt-1.5 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Open dossier →</p>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-[#C9A84C]/10 flex items-center justify-center shrink-0 text-[#C9A84C] text-xl">
+            ◆
+          </div>
+        </div>
+      </Link>
+
       <MirrorMemory />
 
     </main>
