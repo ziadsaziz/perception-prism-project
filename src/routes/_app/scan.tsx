@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_app/scan")({
 });
 
 const SCAN_TYPES: Array<{ id: string; title: string; desc: string; icon: any; active?: boolean }> = [
+  { id: "other", title: "Read Someone Else", desc: "What they actually feel. What they want. Are they honest.", icon: Users, active: true },
   { id: "text", title: "Text Conversation", desc: "Paste or upload a chat. See what they really felt.", icon: ScanLine, active: true },
   { id: "selfie", title: "Selfie & Presence", desc: "First impression, aura, attraction signals.", icon: ImageIcon, active: true },
   { id: "voice", title: "Voice & Energy", desc: "Speech patterns. How you communicate.", icon: Mic, active: true },
