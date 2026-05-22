@@ -190,7 +190,15 @@ function Home() {
 
       <GlassPanel glow className="p-6">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read · today</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read · today</p>
+            {sessionMood && (
+              <span className="text-[9px] uppercase tracking-[0.24em] text-[#C9A84C]/80 border border-[#C9A84C]/30 rounded-full px-2 py-0.5">
+                {sessionMood}
+              </span>
+            )}
+          </div>
+
           {daily?.isNew && (
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
