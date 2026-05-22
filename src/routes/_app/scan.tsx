@@ -2791,7 +2791,6 @@ function OtherPersonResult({ result, onReset, onShare }: { result: any; onReset:
         Mirror reads signals, not people
       </p>
     </main>
-    </TrialResultReveal>
   );
 }
 
