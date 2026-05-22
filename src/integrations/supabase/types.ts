@@ -349,6 +349,42 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_benchmarks: {
+        Row: {
+          avg_value: number
+          id: string
+          metric: string
+          p25_value: number
+          p50_value: number
+          p75_value: number
+          p90_value: number
+          sample_count: number
+          updated_at: string
+        }
+        Insert: {
+          avg_value: number
+          id?: string
+          metric: string
+          p25_value: number
+          p50_value: number
+          p75_value: number
+          p90_value: number
+          sample_count: number
+          updated_at?: string
+        }
+        Update: {
+          avg_value?: number
+          id?: string
+          metric?: string
+          p25_value?: number
+          p50_value?: number
+          p75_value?: number
+          p90_value?: number
+          sample_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       predictions: {
         Row: {
           category: string
@@ -574,6 +610,7 @@ export type Database = {
         }
         Returns: number
       }
+      refresh_platform_benchmarks: { Args: never; Returns: undefined }
       update_user_streak: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
