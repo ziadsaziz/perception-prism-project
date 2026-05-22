@@ -1464,7 +1464,9 @@ Context: ${data.context_note ?? "none"}
 Transcript:
 """
 ${data.transcript}
-"""`
+"""`,
+      true,
+      data.is_trial ? 1200 : 800
     );
 
     let parsed: any;
