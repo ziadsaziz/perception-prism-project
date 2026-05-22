@@ -2479,9 +2479,18 @@ function MetricPill({ label, value, flag }: { label: string; value: string; flag
   );
 }
 
-function VoiceResult({ result, metrics, onReset, onShare }: { result: any; metrics?: any; onReset: () => void; onShare?: () => void }) {
+function VoiceResult({ result, metrics, onReset, onShare, isTrial = false }: { result: any; metrics?: any; onReset: () => void; onShare?: () => void; isTrial?: boolean }) {
   return (
+    <TrialResultReveal isTrial={isTrial}>
     <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      {isTrial && (
+        <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3 animate-fade-up">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">Trial read · Full power</p>
+          <p className="text-[12px] text-white/60 mt-0.5 leading-relaxed">
+            This is Mirror at maximum depth. Elite subscribers get this every scan.
+          </p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
           <ArrowLeft className="h-3 w-3" /> New scan
