@@ -25,7 +25,7 @@ const TONE_OPTIONS = [
 
 function Profile() {
   const { user, signOut } = useAuth();
-  const { plan, scanCount, scansRemaining } = useSubscription();
+  const { plan, scanCount, scansRemaining, bonusScans } = useSubscription();
   const { upgrade } = Route.useSearch();
 
   const [profile, setProfile] = useState<any>(null);
@@ -222,10 +222,12 @@ function Profile() {
         <GlassPanel glow className="p-5 space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-display text-2xl text-[#C9A84C] capitalize">Mirror {plan}</p>
+              <p className="font-display text-2xl text-[#C9A84C] capitalize">Mirror {plan.charAt(0).toUpperCase() + plan.slice(1)}</p>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {plan === "free"
-                  ? `${scanCount}/3 scans this month · ${scansRemaining} remaining`
+                  ? bonusScans > 0
+                    ? `${scanCount} scans · ${scansRemaining} remaining (${bonusScans} bonus)`
+                    : `${scanCount}/3 scans this month · ${scansRemaining} remaining`
                   : "Unlimited scans"}
               </p>
             </div>
