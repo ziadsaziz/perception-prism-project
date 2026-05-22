@@ -2249,9 +2249,13 @@ Speech behavior metrics (measured by browser):
 
       const fullVocalDescription = [vocalDescription, metricsDescription].filter(Boolean).join("\n");
 
-      const r = await fn({ data: { transcript, vocal_description: fullVocalDescription, context_note: note } });
+      wasTrialRef.current = !trialScans.voice;
+      const r = await fn({ data: { transcript, vocal_description: fullVocalDescription, context_note: note, is_trial: !trialScans.voice } });
       setResult(r.result);
       haptic(12);
+      if (wasTrialRef.current) {
+        setShowTrialFlash(true);
+      }
       if (r.result?.scores?.perception) {
         const ms = r.result?.scores ? Math.min(1000, Math.round((
           (r.result.scores.perception ?? 50) * 0.20 +
