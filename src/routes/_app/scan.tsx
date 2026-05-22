@@ -2200,6 +2200,237 @@ function VoiceResult({ result, metrics, onReset, onShare }: { result: any; metri
   );
 }
 
+const RELATIONSHIP_TYPES = [
+  "Someone I'm dating",
+  "Ex",
+  "Friend",
+  "Colleague",
+  "Boss",
+  "Family member",
+  "Someone I just met",
+  "Public figure",
+];
+
+const HONESTY_COLOR: Record<string, string> = {
+  Yes: "text-green-400",
+  Mostly: "text-[#C9A84C]",
+  Selectively: "text-orange-400",
+  No: "text-red-400",
+  Unclear: "text-white/40",
+};
+
+function OtherPersonScan() {
+  const { canScan } = useSubscription();
+  const fn = useServerFn(analyzeOtherPerson);
+  const [inputText, setInputText] = useState("");
+  const [personDesc, setPersonDesc] = useState("");
+  const [relationship, setRelationship] = useState("");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [result, setResult] = useState<any>(null);
+  const [showCard, setShowCard] = useState(false);
+  const [cardScore, setCardScore] = useState(0);
+
+  const OTHER_STAGES = [
+    "Reading their signals…",
+    "Detecting what they actually feel…",
+    "Finding their dominant pattern…",
+    "Measuring their honesty…",
+    "Building the read…",
+  ];
+
+  const run = async () => {
+    if (inputText.trim().length < 10) {
+      toast.error("Give Mirror something to read.");
+      return;
+    }
+    setLoading(true); setResult(null); setStage(0);
+    const t = setInterval(() => setStage(s => Math.min(s + 1, OTHER_STAGES.length - 1)), 900);
+    try {
+      const r = await fn({ data: { input_text: inputText, person_description: personDesc, relationship, context_note: note } });
+      setResult(r.result);
+      haptic(12);
+      setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
+      setCardScore(650);
+    } catch (e: any) {
+      toast.error(e.message ?? "Scan failed.");
+    } finally { clearInterval(t); setLoading(false); }
+  };
+
+  if (result) return (
+    <>
+      <OtherPersonResult
+        result={result}
+        onReset={() => { setResult(null); setInputText(""); setShowCard(false); }}
+        onShare={() => setShowCard(true)}
+      />
+      {showCard && result.read && (
+        <MirrorCard
+          read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
+          score={cardScore}
+          onClose={() => setShowCard(false)}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4">
+      <Link to="/scan" search={{}} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+        <ArrowLeft className="h-3 w-3" /> All scans
+      </Link>
+      <header>
+        <p className="text-[10px] uppercase tracking-[0.32em] text-accent">Read · Someone Else</p>
+        <h1 className="font-display text-3xl text-gradient mt-1">What are they actually feeling?</h1>
+        <p className="mt-2 text-xs text-muted-foreground">Paste their messages, describe their behavior, or share their profile. Mirror reads them — not you.</p>
+      </header>
+
+      {loading ? (
+        <GlassPanel glow className="p-8 text-center">
+          <Loader2 className="h-6 w-6 mx-auto animate-spin text-accent" />
+          <p className="mt-5 font-display text-xl text-gradient animate-pulse-soft">{OTHER_STAGES[stage]}</p>
+          <p className="mt-2 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Mirror is reading them</p>
+        </GlassPanel>
+      ) : (
+        <>
+          {!canScan && <UpgradePrompt reason="scan_limit" currentPlan="free" />}
+          {canScan && (
+            <>
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Who is this?</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {RELATIONSHIP_TYPES.map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setRelationship(relationship === r ? "" : r)}
+                      className={`rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                        relationship === r
+                          ? "bg-[#C9A84C] text-black"
+                          : "bg-glass ring-hairline text-muted-foreground"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <input
+                value={personDesc}
+                onChange={e => setPersonDesc(e.target.value)}
+                maxLength={500}
+                placeholder="Brief description of them — age, personality, how they usually act… (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+              />
+
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">What they said or did</p>
+                <textarea
+                  value={inputText}
+                  onChange={e => setInputText(e.target.value)}
+                  rows={8}
+                  maxLength={4000}
+                  placeholder={`Paste their messages, describe their behavior, or explain the situation.\n\nThe more Mirror sees, the more accurate the read. Include specific things they said, how they acted, what changed recently.`}
+                  className="w-full bg-glass ring-hairline rounded-2xl p-4 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30 resize-none"
+                />
+                <div className="space-y-1 mt-2">
+                  {inputText.length > 0 && inputText.length < 80 && (
+                    <p className="text-center text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">
+                      Mirror reads sharper with more context
+                    </p>
+                  )}
+                  {inputText.length > 0 && (
+                    <p className="text-center text-[10px] text-muted-foreground/40">
+                      {inputText.length} / 4000
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <input
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                maxLength={500}
+                placeholder="What do you want to understand about them? (optional)"
+                className="w-full bg-glass ring-hairline rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30"
+              />
+
+              <GlassPanel className="p-4">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground leading-relaxed">
+                  Mirror reads behavioral signals — not personal data. What you share stays private and is never stored beyond this scan.
+                </p>
+              </GlassPanel>
+
+              <button
+                onClick={run}
+                disabled={inputText.trim().length < 10}
+                className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold disabled:opacity-30"
+              >
+                Read them
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
+
+function OtherPersonResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
+  return (
+    <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      <div className="flex items-center justify-between">
+        <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ArrowLeft className="h-3 w-3" /> New scan
+        </button>
+        {onShare && (
+          <button onClick={onShare} className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">
+            Share read ↑
+          </button>
+        )}
+      </div>
+
+      {result.are_they_being_honest && (
+        <div className="flex items-center gap-3">
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Honesty read</p>
+            <p className={`mt-0.5 font-display text-[28px] leading-none ${HONESTY_COLOR[result.are_they_being_honest] ?? "text-white"}`}>
+              {result.are_they_being_honest}
+            </p>
+          </div>
+          {result.honesty_reason && (
+            <p className="text-[12px] text-white/50 leading-snug max-w-[220px]">{result.honesty_reason}</p>
+          )}
+        </div>
+      )}
+
+      <p className="text-[10px] uppercase tracking-[0.32em] text-accent">The read</p>
+      <h1 className="font-display text-[26px] leading-tight text-gradient">{result.read}</h1>
+
+      <div className="space-y-2.5">
+        <Insight label="What they actually feel" body={result.what_they_actually_feel} />
+        <Insight label="Their dominant pattern" body={result.their_dominant_pattern} />
+        <Insight label="What they want" body={result.what_they_want} />
+        <Insight label="Their blind spot" body={result.their_blind_spot} />
+        <Insight label="How they see you" body={result.how_they_see_the_user} />
+        <Insight label="Your move" body={result.the_move} accent="ok" />
+      </div>
+
+      {result.risk_flag && (
+        <GlassPanel className="p-4 border border-red-900/40">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-red-400/80 mb-1.5">Risk flag</p>
+          <p className="text-sm text-foreground/85 leading-relaxed">{result.risk_flag}</p>
+        </GlassPanel>
+      )}
+
+      <p className="text-center text-[10px] uppercase tracking-[0.28em] text-muted-foreground/50 pt-2">
+        Mirror reads signals, not people
+      </p>
+    </main>
+  );
+}
+
 function ComingSoon({ type }: { type: string }) {
   const { canAccessElite } = useSubscription();
 
