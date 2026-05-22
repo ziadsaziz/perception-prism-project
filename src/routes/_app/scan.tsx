@@ -2251,8 +2251,13 @@ function OtherPersonScan() {
       const r = await fn({ data: { input_text: inputText, person_description: personDesc, relationship, context_note: note } });
       setResult(r.result);
       haptic(12);
+      // Calculate a meaningful score from honesty read
+      const honestyScores: Record<string, number> = {
+        Yes: 780, Mostly: 650, Selectively: 520, No: 380, Unclear: 500
+      };
+      const honestyScore = honestyScores[r.result?.are_they_being_honest ?? "Unclear"] ?? 500;
+      setCardScore(honestyScore);
       setTimeout(() => { setShowCard(true); haptic([8, 50, 8]); }, 800);
-      setCardScore(650);
     } catch (e: any) {
       toast.error(e.message ?? "Scan failed.");
     } finally { clearInterval(t); setLoading(false); }

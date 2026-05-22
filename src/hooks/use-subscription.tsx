@@ -10,6 +10,7 @@ export type SubscriptionState = {
   scanCount: number;
   scanLimit: number;
   scansRemaining: number;
+  bonusScans: number;
   canScan: boolean;
   canAccessElite: boolean;
   canAccessPlus: boolean;
@@ -67,6 +68,7 @@ export function useSubscription(): SubscriptionState {
     scanCount,
     scanLimit,
     scansRemaining,
+    bonusScans,
     canScan,
     canAccessElite,
     canAccessPlus,
