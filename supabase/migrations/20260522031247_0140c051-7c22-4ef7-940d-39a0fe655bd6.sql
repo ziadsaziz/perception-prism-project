@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.refresh_platform_benchmarks() FROM PUBLIC, anon, authenticated;
