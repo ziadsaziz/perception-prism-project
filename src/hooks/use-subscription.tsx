@@ -14,6 +14,10 @@ export type SubscriptionState = {
   canScan: boolean;
   canAccessElite: boolean;
   canAccessPlus: boolean;
+  trialScans: { selfie: boolean; voice: boolean; social: boolean };
+  canTrialSelfie: boolean;
+  canTrialVoice: boolean;
+  canTrialSocial: boolean;
 };
 
 const LIMITS: Record<Plan, number> = {
@@ -28,6 +32,11 @@ export function useSubscription(): SubscriptionState {
   const [loading, setLoading] = useState(true);
   const [scanCount, setScanCount] = useState(0);
   const [bonusScans, setBonusScans] = useState(0);
+  const [trialScans, setTrialScans] = useState({
+    selfie: false,
+    voice: false,
+    social: false,
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -44,13 +53,19 @@ export function useSubscription(): SubscriptionState {
         .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
       supabase
         .from("profiles")
-        .select("bonus_scans")
+        .select("bonus_scans, trial_selfie_used, trial_voice_used, trial_social_used")
         .eq("user_id", user.id)
         .maybeSingle(),
     ]).then(([sub, scans, profile]) => {
       setPlan((sub.data?.plan as Plan) ?? "free");
       setScanCount(scans.count ?? 0);
-      setBonusScans((profile.data as { bonus_scans?: number } | null)?.bonus_scans ?? 0);
+      const p = profile.data as { bonus_scans?: number; trial_selfie_used?: boolean; trial_voice_used?: boolean; trial_social_used?: boolean } | null;
+      setBonusScans(p?.bonus_scans ?? 0);
+      setTrialScans({
+        selfie: p?.trial_selfie_used ?? false,
+        voice: p?.trial_voice_used ?? false,
+        social: p?.trial_social_used ?? false,
+      });
       setLoading(false);
     });
   }, [user]);
@@ -72,5 +87,9 @@ export function useSubscription(): SubscriptionState {
     canScan,
     canAccessElite,
     canAccessPlus,
+    trialScans,
+    canTrialSelfie: !trialScans.selfie || canAccessElite,
+    canTrialVoice: !trialScans.voice || canAccessElite,
+    canTrialSocial: !trialScans.social || canAccessElite,
   };
 }
