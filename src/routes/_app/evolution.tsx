@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassPanel } from "@/components/GlassPanel";
+import { Benchmarks } from "@/components/Benchmarks";
 
 export const Route = createFileRoute("/_app/evolution")({ component: Evolution });
 
