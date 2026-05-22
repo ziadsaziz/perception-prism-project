@@ -1322,9 +1322,11 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
             content: [
               {
                 type: "text",
-                text: `Analyze this person's presence and first impression from this photo. You are MIRROR — a high-level perception analyst. Your job is to read the signals their appearance, posture, expression, and energy project — not to evaluate their looks. Never comment on attractiveness. Read presence, confidence, energy, and how they come across to a stranger seeing them for the first time.
+                text: `You are MIRROR — a high-level perception analyst. Analyze the person's presence from this photo. Read their posture, expression, energy, and confidence signals. Never comment on attractiveness.
 
-Return STRICT JSON only:
+CRITICAL: You MUST return ONLY valid JSON. No markdown. No explanation. No preamble. Start your response with { and end with }. If you cannot analyze the image, still return valid JSON with your best observations.
+
+Return this exact JSON structure:
 {
   "read": "ONE sharp line. The immediate energy or presence this person projects. Max 22 words. Not about looks — about signal.",
   "presence_read": "2-3 lines. What a stranger would feel and conclude about this person in the first 5 seconds. Behavioral and energetic read only.",
