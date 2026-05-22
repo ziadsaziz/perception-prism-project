@@ -111,7 +111,7 @@ function Landing() {
         </div>
       </section>
 
-      <section className="px-6 py-10 space-y-6">
+      <section className="px-6 py-6 space-y-4">
         <div className="text-center space-y-2">
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">What Mirror reads</p>
           <h2 className="font-display text-2xl text-gradient">Eight ways to see yourself.</h2>
