@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { generateBaselineFromSignals } from "@/lib/ai.functions";
 import { toast } from "sonner";
+import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
 
@@ -85,6 +86,19 @@ function Onboarding() {
   const [processIdx, setProcessIdx] = useState(0);
   const [baseline, setBaseline] = useState<{ read: string; truth: string; blind_spot: string; first_move: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [tutorialDone, setTutorialDone] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("tutorial_completed")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setTutorialDone(data?.tutorial_completed ?? false);
+      });
+  }, [user]);
 
   useEffect(() => {
     if (loading) return;
@@ -184,6 +198,12 @@ function Onboarding() {
   }
 
   return (
+    <>
+      {tutorialDone === null && null}
+      {tutorialDone === false && (
+        <OnboardingTutorial onComplete={() => setTutorialDone(true)} />
+      )}
+      {tutorialDone !== false && (
     <main className="relative min-h-screen bg-black text-white overflow-hidden">
       <Wordmark />
 
@@ -365,6 +385,8 @@ function Onboarding() {
         </Fade>
       )}
     </main>
+      )}
+    </>
   );
 }
 
