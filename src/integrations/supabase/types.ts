@@ -107,6 +107,57 @@ export type Database = {
         }
         Relationships: []
       }
+      dossier: {
+        Row: {
+          archetype_description: string | null
+          classification_level: string | null
+          core_signal: string | null
+          dominant_pattern: string | null
+          full_assessment: string | null
+          generated_at: string
+          id: string
+          perception_trajectory: string | null
+          recurring_blind_spot: string | null
+          relationship_pattern: string | null
+          risk_profile: string | null
+          social_archetype: string | null
+          strength_profile: string | null
+          user_id: string
+        }
+        Insert: {
+          archetype_description?: string | null
+          classification_level?: string | null
+          core_signal?: string | null
+          dominant_pattern?: string | null
+          full_assessment?: string | null
+          generated_at?: string
+          id?: string
+          perception_trajectory?: string | null
+          recurring_blind_spot?: string | null
+          relationship_pattern?: string | null
+          risk_profile?: string | null
+          social_archetype?: string | null
+          strength_profile?: string | null
+          user_id: string
+        }
+        Update: {
+          archetype_description?: string | null
+          classification_level?: string | null
+          core_signal?: string | null
+          dominant_pattern?: string | null
+          full_assessment?: string | null
+          generated_at?: string
+          id?: string
+          perception_trajectory?: string | null
+          recurring_blind_spot?: string | null
+          relationship_pattern?: string | null
+          risk_profile?: string | null
+          social_archetype?: string | null
+          strength_profile?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mirror_feed: {
         Row: {
           body: string | null
