@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportMirrorData } from "@/lib/export";
 import { GlassPanel } from "@/components/GlassPanel";
 import { WeeklyReport } from "@/components/WeeklyReport";
+import { ReferralCard } from "@/components/ReferralCard";
 import { toast } from "sonner";
 import { ChevronRight, LogOut, Trash2 } from "lucide-react";
 
