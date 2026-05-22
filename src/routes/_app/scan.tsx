@@ -1730,7 +1730,7 @@ const PRESENCE_VERDICT_COLOR: Record<string, string> = {
 };
 
 function SelfieScan() {
-  const { canScan, plan, canAccessElite } = useSubscription();
+  const { canScan, plan, canAccessElite, canTrialSelfie, trialScans } = useSubscription();
   const fn = useServerFn(analyzeSelfie);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
