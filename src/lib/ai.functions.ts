@@ -1455,6 +1455,12 @@ ${data.transcript}
       score_json: parsed.scores ?? null,
     }).select().single();
 
+    // Mark voice trial as used
+    await supabase
+      .from("profiles")
+      .update({ trial_voice_used: true })
+      .eq("user_id", userId);
+
     if (parsed.scores) {
       await supabase.from("perception_scores").insert({
         user_id: userId,
