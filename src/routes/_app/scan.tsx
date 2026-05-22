@@ -2288,7 +2288,7 @@ Speech behavior metrics (measured by browser):
 
   if (result) return (
     <>
-      <VoiceResult result={result} metrics={speechMetrics} onReset={reset} onShare={() => setShowCard(true)} />
+      <VoiceResult result={result} metrics={speechMetrics} onReset={reset} onShare={() => setShowCard(true)} isTrial={wasTrialRef.current} />
       {showCard && result.read && (
         <MirrorCard
           read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
@@ -2296,6 +2296,7 @@ Speech behavior metrics (measured by browser):
           onClose={() => setShowCard(false)}
         />
       )}
+      <TrialCompleteFlash visible={showTrialFlash} onDone={() => setShowTrialFlash(false)} />
     </>
   );
 
