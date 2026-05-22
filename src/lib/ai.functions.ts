@@ -395,6 +395,8 @@ Repeated patterns:\n${patternLines}`
       seen: true,
     });
 
+    await supabase.rpc("update_user_streak", { p_user_id: userId });
+
     await createNotification(
       supabase, userId,
       "daily_read",
