@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
@@ -71,17 +72,15 @@ function Dossier() {
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    import("@/integrations/supabase/client").then(({ supabase }) => {
-      supabase
-        .from("dossier")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          setDossier(data);
-          setLoading(false);
-        });
-    });
+    supabase
+      .from("dossier")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setDossier(data);
+        setLoading(false);
+      });
   }, [user]);
 
   if (loading) return (
