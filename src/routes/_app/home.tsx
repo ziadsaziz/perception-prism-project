@@ -50,11 +50,15 @@ function Home() {
   }, [checkinData, sessionMood]);
 
   useEffect(() => {
-    if (checkinDone === false && profileChecked) {
+    if (!profileChecked) return;
+    if (checkinDone === false) {
       const timer = setTimeout(() => setShowCheckin(true), 600);
       return () => clearTimeout(timer);
+    } else if (checkinDone === true && !showCheckin) {
+      // Check-in is done — safe to show tutorial if needed
+      // Tutorial flag is read from profile in the main useEffect
     }
-  }, [checkinDone, profileChecked]);
+  }, [checkinDone, profileChecked, showCheckin]);
 
 
   useEffect(() => {
