@@ -1474,7 +1474,7 @@ const PROFILE_VERDICT_COLOR: Record<string, string> = {
 };
 
 function SocialScan() {
-  const { canScan, plan, canAccessElite } = useSubscription();
+  const { canAccessElite, plan, canTrialSocial, trialScans } = useSubscription();
   const fn = useServerFn(analyzeSocialProfile);
   const [platform, setPlatform] = useState("Instagram");
   const [username, setUsername] = useState("");
@@ -1547,9 +1547,18 @@ function SocialScan() {
         </GlassPanel>
       ) : (
         <>
-          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
-          {canAccessElite && (
+          {!canAccessElite && !canTrialSocial && (
+            <UpgradePrompt reason="elite_feature" currentPlan={plan} />
+          )}
+          {(canAccessElite || canTrialSocial) && (
             <>
+              {!canAccessElite && !trialScans.social && (
+                <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3 mb-2">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">Free trial scan</p>
+                  <p className="text-[12px] text-white/60 mt-0.5">You have 1 free Social Profile scan. Mirror Elite unlocks unlimited access.</p>
+                </div>
+              )}
+              <>
               <div>
                 <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground mb-2">Platform</p>
                 <div className="flex flex-wrap gap-2">
@@ -1638,6 +1647,7 @@ function SocialScan() {
                 </button>
               </div>
             </>
+            </>
           )}
         </>
       )}
@@ -1720,7 +1730,7 @@ const PRESENCE_VERDICT_COLOR: Record<string, string> = {
 };
 
 function SelfieScan() {
-  const { canScan, plan, canAccessElite } = useSubscription();
+  const { canScan, plan, canAccessElite, canTrialSelfie, trialScans } = useSubscription();
   const fn = useServerFn(analyzeSelfie);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -1808,9 +1818,18 @@ function SelfieScan() {
         </GlassPanel>
       ) : (
         <>
-          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
-          {canAccessElite && (
+          {!canAccessElite && !canTrialSelfie && (
+            <UpgradePrompt reason="elite_feature" currentPlan={plan} />
+          )}
+          {(canAccessElite || canTrialSelfie) && (
             <>
+              {!canAccessElite && !trialScans.selfie && (
+                <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3 mb-2">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">Free trial scan</p>
+                  <p className="text-[12px] text-white/60 mt-0.5">You have 1 free Selfie scan. Mirror Elite unlocks unlimited access.</p>
+                </div>
+              )}
+              <>
               <input
                 ref={fileRef}
                 type="file"
@@ -1862,6 +1881,7 @@ function SelfieScan() {
               <button onClick={run} className="w-full rounded-full bg-foreground text-background py-4 text-xs uppercase tracking-[0.24em] glow-gold">
                 Read my presence
               </button>
+            </>
             </>
           )}
         </>
@@ -1935,7 +1955,7 @@ const CONFIDENCE_COLOR: Record<string, string> = {
 };
 
 function VoiceScan() {
-  const { canScan, plan, canAccessElite } = useSubscription();
+  const { canScan, plan, canAccessElite, canTrialVoice, trialScans } = useSubscription();
   const fn = useServerFn(analyzeVoice);
   const [mode, setMode] = useState<"record" | "type">("record");
   const [transcript, setTranscript] = useState("");
@@ -2279,9 +2299,18 @@ Speech behavior metrics (measured by browser):
         </GlassPanel>
       ) : (
         <>
-          {!canAccessElite && <UpgradePrompt reason="elite_feature" currentPlan={plan} />}
-          {canAccessElite && (
+          {!canAccessElite && !canTrialVoice && (
+            <UpgradePrompt reason="elite_feature" currentPlan={plan} />
+          )}
+          {(canAccessElite || canTrialVoice) && (
             <>
+              {!canAccessElite && !trialScans.voice && (
+                <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3 mb-2">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-[#C9A84C]">Free trial scan</p>
+                  <p className="text-[12px] text-white/60 mt-0.5">You have 1 free Voice scan. Mirror Elite unlocks unlimited access.</p>
+                </div>
+              )}
+              <>
               <div className="flex gap-2">
                 <button onClick={() => { setMode("record"); reset(); }}
                   className={`flex-1 rounded-full py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${mode === "record" ? "bg-foreground text-background" : "bg-glass ring-hairline text-muted-foreground"}`}>
@@ -2390,6 +2419,7 @@ Speech behavior metrics (measured by browser):
               >
                 Read my energy
               </button>
+            </>
             </>
           )}
         </>

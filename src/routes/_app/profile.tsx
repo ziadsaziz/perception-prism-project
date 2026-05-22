@@ -245,6 +245,7 @@ function Profile() {
                 name="Plus"
                 price="$9.99"
                 features={[
+                  "20 text scans per month",
                   "Unlimited text scans",
                   "Daily reads & missions",
                   "Pattern tracking",
@@ -258,6 +259,7 @@ function Profile() {
                 price="$24.99"
                 features={[
                   "Everything in Plus",
+                  "Unlimited selfie, voice & social scans",
                   "Voice, selfie, social, dating scans",
                   "Deeper memory & brutally honest mode",
                   "Monthly identity report",
