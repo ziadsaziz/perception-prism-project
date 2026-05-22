@@ -29,7 +29,7 @@ function MiniArc({ score, color }: { score: number; color: string }) {
   );
 }
 
-export function MirrorScoreCompact({ score, prev, readings }: { score: number; prev: number; readings: number }) {
+export function MirrorScoreCompact({ score, prev, readings, percentile = 0 }: { score: number; prev: number; readings: number; percentile?: number }) {
   const delta = score - prev;
   const color = score >= 700 ? "#C9A84C" : score >= 450 ? "rgba(255,255,255,0.6)" : "#8B0000";
 
@@ -54,6 +54,11 @@ export function MirrorScoreCompact({ score, prev, readings }: { score: number; p
           <span style={{ color }}>{TIER(score)}</span>
           <span className="text-muted-foreground/40"> · {readings} {readings === 1 ? "reading" : "readings"}</span>
         </p>
+        {percentile > 0 && (
+          <p className="text-[10px] uppercase tracking-[0.24em] text-[#C9A84C]/80 mt-1">
+            Top {Math.max(1, 100 - percentile)}% of users
+          </p>
+        )}
       </div>
       <Link to="/evolution" className="text-[10px] uppercase tracking-[0.24em] text-accent shrink-0">
         Evolution →
