@@ -17,7 +17,7 @@ async function callAI(system: string, user: string, json = true, maxTokens = 800
     },
     body: JSON.stringify({
       model: MODEL,
-      max_completion_tokens: 800,
+      max_completion_tokens: maxTokens,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
