@@ -1945,7 +1945,7 @@ const CONFIDENCE_COLOR: Record<string, string> = {
 };
 
 function VoiceScan() {
-  const { canScan, plan, canAccessElite } = useSubscription();
+  const { canScan, plan, canAccessElite, canTrialVoice, trialScans } = useSubscription();
   const fn = useServerFn(analyzeVoice);
   const [mode, setMode] = useState<"record" | "type">("record");
   const [transcript, setTranscript] = useState("");
