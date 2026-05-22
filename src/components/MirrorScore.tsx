@@ -89,6 +89,7 @@ export function MirrorScore() {
   const { user } = useAuth();
   const [scores, setScores] = useState<ScoreEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [percentile, setPercentile] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -104,12 +105,32 @@ export function MirrorScore() {
       });
   }, [user]);
 
-  if (loading) return <div className="h-[68px] rounded-2xl glass animate-pulse" />;
-
   const latest = scores[0]?.mirror_score ?? 0;
   const prev = scores[1]?.mirror_score ?? latest;
 
+  useEffect(() => {
+    if (latest === 0) return;
+    supabase
+      .from("platform_benchmarks")
+      .select("*")
+      .eq("metric", "mirror_score")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        const bench = data as { p25_value: number; p50_value: number; p75_value: number; p90_value: number };
+        let pct = 0;
+        if (latest <= bench.p25_value) pct = Math.round((latest / Math.max(1, bench.p25_value)) * 25);
+        else if (latest <= bench.p50_value) pct = Math.round(25 + ((latest - bench.p25_value) / Math.max(1, bench.p50_value - bench.p25_value)) * 25);
+        else if (latest <= bench.p75_value) pct = Math.round(50 + ((latest - bench.p50_value) / Math.max(1, bench.p75_value - bench.p50_value)) * 25);
+        else if (latest <= bench.p90_value) pct = Math.round(75 + ((latest - bench.p75_value) / Math.max(1, bench.p90_value - bench.p75_value)) * 15);
+        else pct = Math.min(99, Math.round(90 + ((latest - bench.p90_value) / Math.max(1, bench.p90_value)) * 9));
+        setPercentile(pct);
+      });
+  }, [latest]);
+
+  if (loading) return <div className="h-[68px] rounded-2xl glass animate-pulse" />;
+
   if (latest === 0) return <MirrorScoreLocked />;
 
-  return <MirrorScoreCompact score={latest} prev={prev} readings={scores.length} />;
+  return <MirrorScoreCompact score={latest} prev={prev} readings={scores.length} percentile={percentile} />;
 }
