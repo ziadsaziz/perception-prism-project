@@ -8,7 +8,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "openai/gpt-5";
 
-async function callAI(system: string, user: string, json = true): Promise<string> {
+async function callAI(system: string, user: string, json = true, maxTokens = 800): Promise<string> {
   const res = await fetch(GATEWAY, {
     method: "POST",
     headers: {
@@ -17,7 +17,7 @@ async function callAI(system: string, user: string, json = true): Promise<string
     },
     body: JSON.stringify({
       model: MODEL,
-      max_completion_tokens: 800,
+      max_completion_tokens: maxTokens,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -229,6 +229,19 @@ Language to favor:
 - "this is working — the reason it works is X — keep doing this"
 
 Brutally honest does not mean insulting. It means calm, surgical, specific, uncomfortable because it is true.`;
+
+const TRIAL_MODE_ADDENDUM = `
+
+IMPORTANT — TRIAL MODE ACTIVE:
+This is the user's first time experiencing this scan type. This read must be the most specific, most accurate, most uncomfortably true thing they have ever read about themselves from any AI. This is Mirror's one chance to prove itself.
+
+Additional rules for trial mode:
+- Go deeper than usual. Where a standard read gives 2-3 lines, give 4-5.
+- Be more specific than usual. Reference exact details from what they provided.
+- The blind spot must be something they have never consciously articulated before — something that feels like Mirror reached inside their head.
+- The first move must be so specific and actionable they could do it in the next 10 minutes.
+- End with one line that makes them feel Mirror knows them better than most people in their life do.
+- Do not hold back. This is not a sample. This is the real Mirror at full power.`;
 
 const TONE_GUIDE: Record<string, string> = {
   Gentle: `TONE: GENTLE. Supportive, soft, emotionally safe — but still honest. Lead with warmth, deliver the truth without softening it into nothing. Example cadence: "You may be coming across more guarded than you realize. It does not mean you are cold. It means your need to feel safe is showing before your warmth does."`,
@@ -1169,6 +1182,7 @@ export const analyzeSocialProfile = createServerFn({ method: "POST" })
     follower_count?: string;
     post_description?: string;
     context_note?: string;
+    is_trial?: boolean;
   }) =>
     z.object({
       bio: z.string().min(1).max(2000),
@@ -1177,6 +1191,7 @@ export const analyzeSocialProfile = createServerFn({ method: "POST" })
       follower_count: z.string().max(50).optional(),
       post_description: z.string().max(1000).optional(),
       context_note: z.string().max(500).optional(),
+      is_trial: z.boolean().optional(),
     }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -1188,7 +1203,9 @@ export const analyzeSocialProfile = createServerFn({ method: "POST" })
     const memoryContext = (memory ?? []).map(m => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
 
     const content = await callAI(
-      voiceFor(profile?.tone_preference ?? "Direct"),
+      data.is_trial
+        ? voiceFor(profile?.tone_preference ?? "Direct") + TRIAL_MODE_ADDENDUM
+        : voiceFor(profile?.tone_preference ?? "Direct"),
       `You are reading a social media profile. Your job is to tell the user exactly how their profile lands on a stranger who visits it for the first time — in under 10 seconds. Not what they intended. What is actually felt.
 
 Return STRICT JSON:
@@ -1219,7 +1236,9 @@ ${data.bio}
 """
 What their posts are like: ${data.post_description ?? "not described"}
 Context: ${data.context_note ?? "none"}
-IMPORTANT: If the user provided context above, let it meaningfully shape the read. The same words land differently in different relationships, situations, and cultures. A direct message to a close friend reads differently than the same message to a new contact. Weight the context heavily when forming the perception read.`
+IMPORTANT: If the user provided context above, let it meaningfully shape the read. The same words land differently in different relationships, situations, and cultures. A direct message to a close friend reads differently than the same message to a new contact. Weight the context heavily when forming the perception read.`,
+      true,
+      data.is_trial ? 1200 : 800
     );
 
     let parsed: any;
@@ -1271,10 +1290,11 @@ IMPORTANT: If the user provided context above, let it meaningfully shape the rea
 // ============================================================
 export const analyzeSelfie = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { image_base64: string; context_note?: string }) =>
+  .inputValidator((d: { image_base64: string; context_note?: string; is_trial?: boolean }) =>
     z.object({
       image_base64: z.string().min(100),
       context_note: z.string().max(500).optional(),
+      is_trial: z.boolean().optional(),
     }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -1294,9 +1314,9 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         model: MODEL,
-        max_completion_tokens: 800,
+        max_completion_tokens: data.is_trial ? 1200 : 800,
         messages: [
-          { role: "system", content: system },
+          { role: "system", content: data.is_trial ? system + TRIAL_MODE_ADDENDUM : system },
           {
             role: "user",
             content: [
@@ -1398,11 +1418,13 @@ export const analyzeVoice = createServerFn({ method: "POST" })
     transcript: string;
     vocal_description?: string;
     context_note?: string;
+    is_trial?: boolean;
   }) =>
     z.object({
       transcript: z.string().min(10).max(5000),
       vocal_description: z.string().max(500).optional(),
       context_note: z.string().max(500).optional(),
+      is_trial: z.boolean().optional(),
     }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -1414,7 +1436,9 @@ export const analyzeVoice = createServerFn({ method: "POST" })
     const memoryContext = (memory ?? []).map((m: any) => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
 
     const content = await callAI(
-      voiceFor(profile?.tone_preference ?? "Direct"),
+      data.is_trial
+        ? voiceFor(profile?.tone_preference ?? "Direct") + TRIAL_MODE_ADDENDUM
+        : voiceFor(profile?.tone_preference ?? "Direct"),
       `You are analyzing someone's voice note transcript and how they sound. Read the energy, confidence, and behavioral signals in how they speak — not just what they say. Look for: trailing sentences, over-explanation, filler words, hedging language, apology patterns, certainty signals, authority signals, and emotional tone.
 
 Return STRICT JSON:
@@ -1440,7 +1464,9 @@ Context: ${data.context_note ?? "none"}
 Transcript:
 """
 ${data.transcript}
-"""`
+"""`,
+      true,
+      data.is_trial ? 1200 : 800
     );
 
     let parsed: any;

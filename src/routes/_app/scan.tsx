@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision, analyzeSocialProfile, analyzeSelfie, analyzeVoice, analyzeOtherPerson, extractConversationFromScreenshot } from "@/lib/ai.functions";
@@ -1487,15 +1487,21 @@ function SocialScan() {
   const [result, setResult] = useState<any>(null);
   const [showCard, setShowCard] = useState(false);
   const [cardScore, setCardScore] = useState(0);
+  const [showTrialFlash, setShowTrialFlash] = useState(false);
+  const wasTrialRef = useRef(false);
 
   const run = async () => {
     if (bio.trim().length < 1) { toast.error("Paste your bio first."); return; }
     setLoading(true); setResult(null); setStage(0);
     const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
-      const r = await fn({ data: { bio, platform, username, follower_count: followerCount, post_description: postDescription, context_note: note } });
+      wasTrialRef.current = !trialScans.social;
+      const r = await fn({ data: { bio, platform, username, follower_count: followerCount, post_description: postDescription, context_note: note, is_trial: !trialScans.social } });
       setResult(r.result);
       haptic(12);
+      if (wasTrialRef.current) {
+        setShowTrialFlash(true);
+      }
       if (r.result?.scores?.perception) {
         const ms = r.result?.scores ? Math.min(1000, Math.round((
           (r.result.scores.perception ?? 50) * 0.20 +
@@ -1517,7 +1523,7 @@ function SocialScan() {
 
   if (result) return (
     <>
-      <SocialResult result={result} onReset={() => { setResult(null); setBio(""); setShowCard(false); }} onShare={() => setShowCard(true)} />
+      <SocialResult result={result} onReset={() => { setResult(null); setBio(""); setShowCard(false); }} onShare={() => setShowCard(true)} isTrial={wasTrialRef.current} />
       {showCard && result.read && (
         <MirrorCard
           read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
@@ -1525,6 +1531,7 @@ function SocialScan() {
           onClose={() => setShowCard(false)}
         />
       )}
+      <TrialCompleteFlash visible={showTrialFlash} onDone={() => setShowTrialFlash(false)} />
     </>
   );
 
@@ -1655,9 +1662,18 @@ function SocialScan() {
   );
 }
 
-function SocialResult({ result, onReset, onShare }: { result: any; onReset: () => void; onShare?: () => void }) {
+function SocialResult({ result, onReset, onShare, isTrial = false }: { result: any; onReset: () => void; onShare?: () => void; isTrial?: boolean }) {
   return (
+    <TrialResultReveal isTrial={isTrial}>
     <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      {isTrial && (
+        <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3 animate-fade-up">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">Trial read · Full power</p>
+          <p className="text-[12px] text-white/60 mt-0.5 leading-relaxed">
+            This is Mirror at maximum depth. Elite subscribers get this every scan.
+          </p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
           <ArrowLeft className="h-3 w-3" /> New scan
@@ -1715,6 +1731,7 @@ function SocialResult({ result, onReset, onShare }: { result: any; onReset: () =
         Mirror reads signals, not follower counts
       </p>
     </main>
+    </TrialResultReveal>
   );
 }
 
@@ -1740,6 +1757,8 @@ function SelfieScan() {
   const [result, setResult] = useState<any>(null);
   const [showCard, setShowCard] = useState(false);
   const [cardScore, setCardScore] = useState(0);
+  const [showTrialFlash, setShowTrialFlash] = useState(false);
+  const wasTrialRef = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
@@ -1759,9 +1778,13 @@ function SelfieScan() {
     setLoading(true); setResult(null); setStage(0);
     const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
-      const r = await fn({ data: { image_base64: imageBase64, context_note: note } });
+      wasTrialRef.current = !trialScans.selfie;
+      const r = await fn({ data: { image_base64: imageBase64, context_note: note, is_trial: !trialScans.selfie } });
       setResult(r.result);
       haptic(12);
+      if (wasTrialRef.current) {
+        setShowTrialFlash(true);
+      }
       if (r.result?.scores?.perception) {
         const ms = r.result?.scores ? Math.min(1000, Math.round((
           (r.result.scores.perception ?? 50) * 0.20 +
@@ -1788,6 +1811,7 @@ function SelfieScan() {
         preview={imagePreview}
         onReset={() => { setResult(null); setImageBase64(null); setImagePreview(null); setShowCard(false); }}
         onShare={() => setShowCard(true)}
+        isTrial={wasTrialRef.current}
       />
       {showCard && result.read && (
         <MirrorCard
@@ -1796,6 +1820,7 @@ function SelfieScan() {
           onClose={() => setShowCard(false)}
         />
       )}
+      <TrialCompleteFlash visible={showTrialFlash} onDone={() => setShowTrialFlash(false)} />
     </>
   );
 
@@ -1890,9 +1915,18 @@ function SelfieScan() {
   );
 }
 
-function SelfieResult({ result, preview, onReset, onShare }: { result: any; preview: string | null; onReset: () => void; onShare?: () => void }) {
+function SelfieResult({ result, preview, onReset, onShare, isTrial = false }: { result: any; preview: string | null; onReset: () => void; onShare?: () => void; isTrial?: boolean }) {
   return (
+    <TrialResultReveal isTrial={isTrial}>
     <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      {isTrial && (
+        <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3 animate-fade-up">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">Trial read · Full power</p>
+          <p className="text-[12px] text-white/60 mt-0.5 leading-relaxed">
+            This is Mirror at maximum depth. Elite subscribers get this every scan.
+          </p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
           <ArrowLeft className="h-3 w-3" /> New scan
@@ -1933,6 +1967,7 @@ function SelfieResult({ result, preview, onReset, onShare }: { result: any; prev
         Mirror reads presence, not appearance
       </p>
     </main>
+    </TrialResultReveal>
   );
 }
 
@@ -1970,6 +2005,8 @@ function VoiceScan() {
   const [cardScore, setCardScore] = useState(0);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [speechMetrics, setSpeechMetrics] = useState<any>(null);
+  const [showTrialFlash, setShowTrialFlash] = useState(false);
+  const wasTrialRef = useRef(false);
 
   // Refs
   const recognitionRef = useRef<any>(null);
@@ -2232,9 +2269,13 @@ Speech behavior metrics (measured by browser):
 
       const fullVocalDescription = [vocalDescription, metricsDescription].filter(Boolean).join("\n");
 
-      const r = await fn({ data: { transcript, vocal_description: fullVocalDescription, context_note: note } });
+      wasTrialRef.current = !trialScans.voice;
+      const r = await fn({ data: { transcript, vocal_description: fullVocalDescription, context_note: note, is_trial: !trialScans.voice } });
       setResult(r.result);
       haptic(12);
+      if (wasTrialRef.current) {
+        setShowTrialFlash(true);
+      }
       if (r.result?.scores?.perception) {
         const ms = r.result?.scores ? Math.min(1000, Math.round((
           (r.result.scores.perception ?? 50) * 0.20 +
@@ -2267,7 +2308,7 @@ Speech behavior metrics (measured by browser):
 
   if (result) return (
     <>
-      <VoiceResult result={result} metrics={speechMetrics} onReset={reset} onShare={() => setShowCard(true)} />
+      <VoiceResult result={result} metrics={speechMetrics} onReset={reset} onShare={() => setShowCard(true)} isTrial={wasTrialRef.current} />
       {showCard && result.read && (
         <MirrorCard
           read={result.read.length > 120 ? result.read.slice(0, 117) + "…" : result.read}
@@ -2275,6 +2316,7 @@ Speech behavior metrics (measured by browser):
           onClose={() => setShowCard(false)}
         />
       )}
+      <TrialCompleteFlash visible={showTrialFlash} onDone={() => setShowTrialFlash(false)} />
     </>
   );
 
@@ -2437,9 +2479,18 @@ function MetricPill({ label, value, flag }: { label: string; value: string; flag
   );
 }
 
-function VoiceResult({ result, metrics, onReset, onShare }: { result: any; metrics?: any; onReset: () => void; onShare?: () => void }) {
+function VoiceResult({ result, metrics, onReset, onShare, isTrial = false }: { result: any; metrics?: any; onReset: () => void; onShare?: () => void; isTrial?: boolean }) {
   return (
+    <TrialResultReveal isTrial={isTrial}>
     <main className="px-5 pt-12 pb-6 space-y-4 animate-fade-up">
+      {isTrial && (
+        <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-2xl px-4 py-3 animate-fade-up">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-[#C9A84C]">Trial read · Full power</p>
+          <p className="text-[12px] text-white/60 mt-0.5 leading-relaxed">
+            This is Mirror at maximum depth. Elite subscribers get this every scan.
+          </p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <button onClick={onReset} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
           <ArrowLeft className="h-3 w-3" /> New scan
@@ -2503,6 +2554,7 @@ function VoiceResult({ result, metrics, onReset, onShare }: { result: any; metri
         Mirror reads delivery, not just words
       </p>
     </main>
+    </TrialResultReveal>
   );
 }
 
@@ -2739,6 +2791,52 @@ function OtherPersonResult({ result, onReset, onShare }: { result: any; onReset:
         Mirror reads signals, not people
       </p>
     </main>
+  );
+}
+
+function TrialResultReveal({ children, isTrial }: { children: React.ReactNode; isTrial: boolean }) {
+  const [visible, setVisible] = useState(!isTrial);
+
+  useEffect(() => {
+    if (!isTrial) return;
+    const timer = setTimeout(() => setVisible(true), 400);
+    return () => clearTimeout(timer);
+  }, [isTrial]);
+
+  if (!isTrial) return <>{children}</>;
+
+  return (
+    <div className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+      {children}
+    </div>
+  );
+}
+
+function TrialCompleteFlash({ visible, onDone }: { visible: boolean; onDone: () => void }) {
+  useEffect(() => {
+    if (!visible) return;
+    haptic([10, 80, 10, 80, 20]);
+    const t = setTimeout(onDone, 2200);
+    return () => clearTimeout(t);
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center animate-fade-up">
+      <div className="space-y-4 text-center px-8">
+        <div className="h-16 w-16 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/40 flex items-center justify-center mx-auto">
+          <span className="text-[#C9A84C] text-2xl">◆</span>
+        </div>
+        <p className="text-[10px] uppercase tracking-[0.48em] text-[#C9A84C]">Mirror read complete</p>
+        <p className="font-display text-[28px] leading-tight text-white">
+          This is what Elite<br />looks like.
+        </p>
+        <p className="text-[13px] text-white/50 leading-relaxed max-w-[260px] mx-auto">
+          Every scan. At this depth. Unlimited.
+        </p>
+      </div>
+    </div>
   );
 }
 
