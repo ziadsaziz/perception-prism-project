@@ -13,7 +13,6 @@ import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight } from
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { MirrorScore } from "@/components/MirrorScore";
 import { MoodCheckin, useTodayCheckin } from "@/components/MoodCheckin";
-import { OnboardingTutorial } from "@/components/OnboardingTutorial";
 
 
 export const Route = createFileRoute("/_app/home")({ component: Home });
