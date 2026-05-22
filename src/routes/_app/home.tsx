@@ -147,6 +147,11 @@ function Home() {
           }}
         />
       )}
+      {showTutorial && (
+        <OnboardingTutorial
+          onComplete={() => setShowTutorial(false)}
+        />
+      )}
 
     <main className="px-5 pt-12 pb-6 space-y-5">
       <header className="flex items-center justify-between">
