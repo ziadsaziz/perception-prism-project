@@ -305,8 +305,15 @@ Signal 04 (what they never say out loud but always wonder): ${data.signal_04}`;
 // ============================================================
 export const generateDailyRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: { mood?: string; energy?: number; happened?: string }) =>
+    z.object({
+      mood: z.string().optional(),
+      energy: z.number().optional(),
+      happened: z.string().optional(),
+    }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
 
     const today = new Date().toISOString().slice(0, 10);
     const { data: existing } = await supabase
