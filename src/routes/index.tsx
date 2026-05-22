@@ -13,7 +13,7 @@ function Landing() {
 
   return (
     <main className="relative min-h-screen bg-black">
-      <section className="relative min-h-screen flex flex-col px-6 pt-16 pb-10">
+      <section className="relative min-h-screen flex flex-col px-6 pt-16 pb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="h-7 w-7 rounded-full ring-hairline bg-glass flex items-center justify-center">
@@ -33,7 +33,7 @@ function Landing() {
             Most people never know how they actually come across. Mirror studies the signals people feel — but rarely say out loud.
           </p>
 
-          <div className="mt-10 space-y-4">
+          <div className="mt-6 space-y-3">
             <Link
               to="/auth"
               search={{ mode: "signup" }}
@@ -58,7 +58,7 @@ function Landing() {
         </div>
       </section>
 
-      <section className="px-6 py-16 space-y-10">
+      <section className="px-6 pt-8 pb-6 space-y-6">
         <div className="text-center space-y-2">
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">How it works</p>
           <h2 className="font-display text-3xl text-gradient">Three steps. One truth.</h2>
@@ -82,8 +82,8 @@ function Landing() {
               body: "Sharp. Specific. Yours. Not a personality type. Not generic advice. A read on exactly how you're coming across — and what to do about it today.",
             },
           ].map((item) => (
-            <div key={item.step} className="bg-glass ring-hairline rounded-2xl p-5 flex gap-4">
-              <span className="font-display text-[32px] leading-none text-[#C9A84C]/30 shrink-0">{item.step}</span>
+            <div key={item.step} className="bg-glass ring-hairline rounded-2xl p-4 flex gap-4">
+              <span className="font-display text-[24px] leading-none text-[#C9A84C]/30 shrink-0 mt-0.5">{item.step}</span>
               <div>
                 <p className="font-display text-[18px] leading-snug text-gradient">{item.title}</p>
                 <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">{item.body}</p>
@@ -95,7 +95,7 @@ function Landing() {
 
       <DemoScan />
 
-      <section className="px-6 py-12 space-y-4">
+      <section className="px-6 py-6 space-y-3">
         <p className="text-center text-[10px] uppercase tracking-[0.32em] text-muted-foreground">What people say</p>
         <div className="space-y-3">
           {[
@@ -111,7 +111,7 @@ function Landing() {
         </div>
       </section>
 
-      <section className="px-6 py-10 space-y-6">
+      <section className="px-6 py-6 space-y-4">
         <div className="text-center space-y-2">
           <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">What Mirror reads</p>
           <h2 className="font-display text-2xl text-gradient">Eight ways to see yourself.</h2>
