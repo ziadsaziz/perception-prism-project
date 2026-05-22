@@ -82,8 +82,8 @@ function Landing() {
               body: "Sharp. Specific. Yours. Not a personality type. Not generic advice. A read on exactly how you're coming across — and what to do about it today.",
             },
           ].map((item) => (
-            <div key={item.step} className="bg-glass ring-hairline rounded-2xl p-5 flex gap-4">
-              <span className="font-display text-[32px] leading-none text-[#C9A84C]/30 shrink-0">{item.step}</span>
+            <div key={item.step} className="bg-glass ring-hairline rounded-2xl p-4 flex gap-4">
+              <span className="font-display text-[24px] leading-none text-[#C9A84C]/30 shrink-0 mt-0.5">{item.step}</span>
               <div>
                 <p className="font-display text-[18px] leading-snug text-gradient">{item.title}</p>
                 <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">{item.body}</p>
