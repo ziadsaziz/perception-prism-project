@@ -6,7 +6,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: z.object({ mode: z.enum(["signin", "signup"]).optional() }),
+  validateSearch: z.object({
+    mode: z.enum(["signin", "signup"]).optional(),
+    ref: z.string().optional(),
+  }),
   component: Auth,
 });
 
