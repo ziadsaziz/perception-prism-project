@@ -2,13 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
-import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision, analyzeSocialProfile, analyzeSelfie, analyzeVoice } from "@/lib/ai.functions";
+import { analyzeTextConversation, analyzePost, analyzeEmotionalPattern, analyzeDatingDynamic, analyzeDecision, analyzeSocialProfile, analyzeSelfie, analyzeVoice, analyzeOtherPerson } from "@/lib/ai.functions";
 import { GlassPanel } from "@/components/GlassPanel";
 import { MirrorCard } from "@/components/MirrorCard";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useSubscription } from "@/hooks/use-subscription";
 import { toast } from "sonner";
-import { ScanLine, Image as ImageIcon, Mic, Globe, FileText, Heart, Brain, Compass, Loader2, ArrowLeft } from "lucide-react";
+import { ScanLine, Image as ImageIcon, Mic, Globe, FileText, Heart, Brain, Compass, Loader2, ArrowLeft, Users } from "lucide-react";
 
 function haptic(pattern: number | number[] = 10) {
   try { navigator.vibrate?.(pattern); } catch {}
