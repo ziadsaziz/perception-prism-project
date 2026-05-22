@@ -53,6 +53,12 @@ function Auth() {
         toast.success("Welcome to Mirror.");
         // If session exists immediately (email confirmation disabled), route directly
         if (data.session) {
+          if (referralCode) {
+            await supabase.rpc("apply_referral", {
+              p_referred_user_id: data.session.user.id,
+              p_referral_code: referralCode.toUpperCase(),
+            });
+          }
           nav({ to: "/onboarding" });
         }
       } else {
