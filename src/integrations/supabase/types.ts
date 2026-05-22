@@ -343,6 +343,45 @@ export type Database = {
         }
         Relationships: []
       }
+      predictions: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          outcome: string | null
+          outcome_note: string | null
+          prediction: string
+          reasoning: string | null
+          timeframe: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          outcome?: string | null
+          outcome_note?: string | null
+          prediction: string
+          reasoning?: string | null
+          timeframe: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          outcome?: string | null
+          outcome_note?: string | null
+          prediction?: string
+          reasoning?: string | null
+          timeframe?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age_range: string | null
