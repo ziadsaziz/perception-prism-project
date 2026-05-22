@@ -15,6 +15,7 @@ import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppScanRouteImport } from './routes/_app/scan'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppPredictionsRouteImport } from './routes/_app/predictions'
 import { Route as AppPatternsRouteImport } from './routes/_app/patterns'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppEvolutionRouteImport } from './routes/_app/evolution'
@@ -48,6 +49,11 @@ const AppScanRoute = AppScanRouteImport.update({
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppPredictionsRoute = AppPredictionsRouteImport.update({
+  id: '/predictions',
+  path: '/predictions',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppPatternsRoute = AppPatternsRouteImport.update({
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/evolution': typeof AppEvolutionRoute
   '/home': typeof AppHomeRoute
   '/patterns': typeof AppPatternsRoute
+  '/predictions': typeof AppPredictionsRoute
   '/profile': typeof AppProfileRoute
   '/scan': typeof AppScanRoute
 }
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/evolution': typeof AppEvolutionRoute
   '/home': typeof AppHomeRoute
   '/patterns': typeof AppPatternsRoute
+  '/predictions': typeof AppPredictionsRoute
   '/profile': typeof AppProfileRoute
   '/scan': typeof AppScanRoute
 }
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/_app/evolution': typeof AppEvolutionRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/patterns': typeof AppPatternsRoute
+  '/_app/predictions': typeof AppPredictionsRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/scan': typeof AppScanRoute
 }
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/evolution'
     | '/home'
     | '/patterns'
+    | '/predictions'
     | '/profile'
     | '/scan'
   fileRoutesByTo: FileRoutesByTo
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/evolution'
     | '/home'
     | '/patterns'
+    | '/predictions'
     | '/profile'
     | '/scan'
   id:
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/_app/evolution'
     | '/_app/home'
     | '/_app/patterns'
+    | '/_app/predictions'
     | '/_app/profile'
     | '/_app/scan'
   fileRoutesById: FileRoutesById
@@ -205,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/predictions': {
+      id: '/_app/predictions'
+      path: '/predictions'
+      fullPath: '/predictions'
+      preLoaderRoute: typeof AppPredictionsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/patterns': {
       id: '/_app/patterns'
       path: '/patterns'
@@ -249,6 +268,7 @@ interface AppRouteRouteChildren {
   AppEvolutionRoute: typeof AppEvolutionRoute
   AppHomeRoute: typeof AppHomeRoute
   AppPatternsRoute: typeof AppPatternsRoute
+  AppPredictionsRoute: typeof AppPredictionsRoute
   AppProfileRoute: typeof AppProfileRoute
   AppScanRoute: typeof AppScanRoute
 }
@@ -259,6 +279,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppEvolutionRoute: AppEvolutionRoute,
   AppHomeRoute: AppHomeRoute,
   AppPatternsRoute: AppPatternsRoute,
+  AppPredictionsRoute: AppPredictionsRoute,
   AppProfileRoute: AppProfileRoute,
   AppScanRoute: AppScanRoute,
 }
