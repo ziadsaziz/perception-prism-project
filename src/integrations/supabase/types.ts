@@ -445,6 +445,7 @@ export type Database = {
           referred_by: string | null
           social_challenge: string | null
           tone_preference: string | null
+          tutorial_completed: boolean | null
           updated_at: string
           user_id: string
         }
@@ -468,6 +469,7 @@ export type Database = {
           referred_by?: string | null
           social_challenge?: string | null
           tone_preference?: string | null
+          tutorial_completed?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -491,6 +493,7 @@ export type Database = {
           referred_by?: string | null
           social_challenge?: string | null
           tone_preference?: string | null
+          tutorial_completed?: boolean | null
           updated_at?: string
           user_id?: string
         }
