@@ -1967,6 +1967,7 @@ function SelfieResult({ result, preview, onReset, onShare, isTrial = false }: { 
         Mirror reads presence, not appearance
       </p>
     </main>
+    </TrialResultReveal>
   );
 }
 
