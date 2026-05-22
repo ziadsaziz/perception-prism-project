@@ -259,6 +259,7 @@ function Profile() {
                 price="$24.99"
                 features={[
                   "Everything in Plus",
+                  "Unlimited selfie, voice & social scans",
                   "Voice, selfie, social, dating scans",
                   "Deeper memory & brutally honest mode",
                   "Monthly identity report",
