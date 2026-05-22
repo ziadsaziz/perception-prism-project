@@ -126,6 +126,21 @@ function Home() {
           }}
         />
       )}
+      {showCheckin && (
+        <MoodCheckin
+          onComplete={(mood, energy, contextNote) => {
+            setShowCheckin(false);
+            setCheckinDone(true);
+            setSessionMood(mood);
+            fetchDaily(mood, energy, contextNote);
+          }}
+          onSkip={() => {
+            setShowCheckin(false);
+            setCheckinDone(true);
+          }}
+        />
+      )}
+
     <main className="px-5 pt-12 pb-6 space-y-5">
       <header className="flex items-center justify-between">
         <div>
