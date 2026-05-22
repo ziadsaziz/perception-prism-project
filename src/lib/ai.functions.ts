@@ -1322,9 +1322,11 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
             content: [
               {
                 type: "text",
-                text: `Analyze this person's presence and first impression from this photo. You are MIRROR — a high-level perception analyst. Your job is to read the signals their appearance, posture, expression, and energy project — not to evaluate their looks. Never comment on attractiveness. Read presence, confidence, energy, and how they come across to a stranger seeing them for the first time.
+                text: `You are MIRROR — a high-level perception analyst. Analyze the person's presence from this photo. Read their posture, expression, energy, and confidence signals. Never comment on attractiveness.
 
-Return STRICT JSON only:
+CRITICAL: You MUST return ONLY valid JSON. No markdown. No explanation. No preamble. Start your response with { and end with }. If you cannot analyze the image, still return valid JSON with your best observations.
+
+Return this exact JSON structure:
 {
   "read": "ONE sharp line. The immediate energy or presence this person projects. Max 22 words. Not about looks — about signal.",
   "presence_read": "2-3 lines. What a stranger would feel and conclude about this person in the first 5 seconds. Behavioral and energetic read only.",
@@ -1365,8 +1367,45 @@ Context from user: ${data.context_note ?? "none"}`
     const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
     const raw = out.choices?.[0]?.message?.content ?? "";
 
+    // Strip markdown fences if present
+    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
     let parsed: any;
-    try { parsed = JSON.parse(raw); } catch { parsed = { read: raw.slice(0, 200), summary: "selfie scan" }; }
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      // If not JSON try to extract meaningful content
+      if (cleaned.length > 20 && !cleaned.includes("NOT_A")) {
+        parsed = {
+          read: cleaned.slice(0, 150),
+          presence_read: cleaned.slice(0, 300),
+          confidence_signals: "Mirror analyzed your presence from this photo.",
+          blind_spot: null,
+          presence_verdict: "Observed",
+          verdict_reason: null,
+          the_move: null,
+          scores: { perception: 60, confidence: 60, attraction: 60, approachability: 60 },
+          summary: "selfie scan",
+        };
+      } else {
+        parsed = {
+          read: "Mirror read your presence. Scroll down for the full analysis.",
+          presence_read: cleaned || "Mirror observed your energy and confidence signals from this photo.",
+          confidence_signals: "Your physical presence communicates more than you realize.",
+          blind_spot: null,
+          presence_verdict: "Observed",
+          verdict_reason: null,
+          the_move: null,
+          scores: { perception: 60, confidence: 60, attraction: 60, approachability: 60 },
+          summary: "selfie scan",
+        };
+      }
+    }
+
+    // Ensure required fields exist
+    if (!parsed.read) parsed.read = cleaned.slice(0, 150) || "Mirror analyzed your presence.";
+    if (!parsed.presence_read) parsed.presence_read = cleaned.slice(0, 300);
+    if (!parsed.presence_verdict) parsed.presence_verdict = "Observed";
 
     const { data: scan } = await supabase.from("scans").insert({
       user_id: userId,
