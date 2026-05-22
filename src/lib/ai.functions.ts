@@ -1520,3 +1520,98 @@ Perception score change this week: ${scoreDelta > 0 ? "+" : ""}${scoreDelta} poi
 
     return { ...report, the_week_read: parsed.the_week_read, next_move: parsed.next_move };
   });
+
+// ============================================================
+// 13. Mirror Feed Generator
+// ============================================================
+export const generateFeedItems = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+
+    const { data: lastFeed } = await supabase
+      .from("mirror_feed")
+      .select("created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastFeed) {
+      const diff = Date.now() - new Date(lastFeed.created_at).getTime();
+      if (diff < 1000 * 60 * 60 * 2) return { generated: false };
+    }
+
+    const [{ data: profile }, { data: scans }, { data: patterns }, { data: scores }, { data: memory }] = await Promise.all([
+      supabase.from("profiles").select("name, main_goal, tone_preference").eq("user_id", userId).maybeSingle(),
+      supabase.from("scans").select("scan_type, ai_summary, result_json, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+      supabase.from("patterns").select("pattern_name, pattern_description, frequency").eq("user_id", userId).order("frequency", { ascending: false }).limit(3),
+      supabase.from("perception_scores").select("mirror_score, confidence_score, perception_score").eq("user_id", userId).order("created_at", { ascending: false }).limit(3),
+      supabase.from("mirror_memory").select("memory_text").eq("user_id", userId).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    const scanLines = (scans ?? []).map((s: any) => `- [${s.scan_type}] ${s.ai_summary ?? ""}`).join("\n") || "(no scans yet)";
+    const patternLines = (patterns ?? []).map((p: any) => `- ${p.pattern_name}: ${p.pattern_description}`).join("\n") || "(none)";
+    const memoryLines = (memory ?? []).map((m: any) => `- ${m.memory_text}`).join("\n") || "(none)";
+    const latestScore = scores?.[0]?.mirror_score ?? 0;
+    const prevScore = scores?.[1]?.mirror_score ?? latestScore;
+    const scoreDelta = latestScore - prevScore;
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `Generate 4 short Mirror Feed items for this user. These are micro-observations that appear in a social-media-style feed. Each one should feel like Mirror has been quietly watching and just noticed something worth saying. They must be specific to this user's data — never generic.
+
+Feed item types:
+- "observation" — a short sharp behavioral observation based on scan history
+- "pattern_update" — something new Mirror noticed about a recurring pattern  
+- "score_signal" — a read on what a score shift means behaviorally
+- "blind_spot_flash" — a quick one-liner about something the user keeps missing
+- "strength_signal" — something that is genuinely working — confirm it specifically
+
+Rules:
+- Each headline is ONE sharp line. Max 15 words. Must stop a scroll.
+- Each body is 1-2 sentences MAX. Behavioral language. Specific. Never generic.
+- Vary the types — no two consecutive items of the same type
+- At least one must be positive/confirming if the data supports it
+- Must feel like they were written about THIS specific user, not anyone
+
+Return STRICT JSON:
+{
+  "items": [
+    {
+      "type": "observation",
+      "headline": "sharp one-liner",
+      "body": "1-2 sentences of specific behavioral read"
+    }
+  ]
+}
+
+User data:
+Name: ${profile?.name ?? "—"}
+Goal: ${profile?.main_goal ?? "—"}
+Mirror Score: ${latestScore} (${scoreDelta >= 0 ? "+" : ""}${scoreDelta} recent shift)
+Recent scans:
+${scanLines}
+Patterns Mirror detected:
+${patternLines}
+What Mirror remembers:
+${memoryLines}`
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { return { generated: false }; }
+
+    const items = parsed?.items ?? [];
+    if (!items.length) return { generated: false };
+
+    await supabase.from("mirror_feed").insert(
+      items.map((item: any) => ({
+        user_id: userId,
+        type: item.type,
+        headline: item.headline,
+        body: item.body,
+      }))
+    );
+
+    return { generated: true, count: items.length };
+  });
