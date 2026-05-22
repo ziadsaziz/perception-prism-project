@@ -14,7 +14,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function Auth() {
-  const { mode: initMode } = Route.useSearch();
+  const { mode: initMode, ref: referralCode } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">(initMode ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
