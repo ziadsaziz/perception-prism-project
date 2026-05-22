@@ -33,7 +33,7 @@ function Landing() {
             Most people never know how they actually come across. Mirror studies the signals people feel — but rarely say out loud.
           </p>
 
-          <div className="mt-10 space-y-4">
+          <div className="mt-6 space-y-3">
             <Link
               to="/auth"
               search={{ mode: "signup" }}
