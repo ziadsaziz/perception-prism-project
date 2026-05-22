@@ -1418,11 +1418,13 @@ export const analyzeVoice = createServerFn({ method: "POST" })
     transcript: string;
     vocal_description?: string;
     context_note?: string;
+    is_trial?: boolean;
   }) =>
     z.object({
       transcript: z.string().min(10).max(5000),
       vocal_description: z.string().max(500).optional(),
       context_note: z.string().max(500).optional(),
+      is_trial: z.boolean().optional(),
     }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -1434,7 +1436,9 @@ export const analyzeVoice = createServerFn({ method: "POST" })
     const memoryContext = (memory ?? []).map((m: any) => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
 
     const content = await callAI(
-      voiceFor(profile?.tone_preference ?? "Direct"),
+      data.is_trial
+        ? voiceFor(profile?.tone_preference ?? "Direct") + TRIAL_MODE_ADDENDUM
+        : voiceFor(profile?.tone_preference ?? "Direct"),
       `You are analyzing someone's voice note transcript and how they sound. Read the energy, confidence, and behavioral signals in how they speak — not just what they say. Look for: trailing sentences, over-explanation, filler words, hedging language, apology patterns, certainty signals, authority signals, and emotional tone.
 
 Return STRICT JSON:
