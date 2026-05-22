@@ -61,7 +61,7 @@ function Home() {
     if (!user) return;
     (async () => {
       const [p, s, pat, scansData, ls] = await Promise.all([
-        supabase.from("profiles").select("name, main_goal, tone_preference, onboarding_complete").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("name, main_goal, tone_preference, onboarding_complete, tutorial_completed").eq("user_id", user.id).maybeSingle(),
         supabase.from("perception_scores").select("perception_score, confidence_score, attraction_score, authority_score, approachability_score, authenticity_score, emotional_control_score, mystery_score").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("patterns").select("pattern_name, pattern_description").eq("user_id", user.id).order("last_seen", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("scans").select("id, scan_type, ai_summary, result_json, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
