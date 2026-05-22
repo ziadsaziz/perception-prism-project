@@ -1882,6 +1882,7 @@ function SelfieScan() {
                 Read my presence
               </button>
             </>
+            </>
           )}
         </>
       )}
