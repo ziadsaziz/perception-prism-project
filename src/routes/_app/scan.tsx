@@ -2554,6 +2554,7 @@ function VoiceResult({ result, metrics, onReset, onShare, isTrial = false }: { r
         Mirror reads delivery, not just words
       </p>
     </main>
+    </TrialResultReveal>
   );
 }
 
