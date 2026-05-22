@@ -99,8 +99,17 @@ function ScanHistoryCard({ scan }: { scan: any }) {
   const [expanded, setExpanded] = useState(false);
   const result = scan.result_json;
 
+  const formatInput = (input: string, type: string) => {
+    if (!input || input === "[image scan]") return null;
+    return input;
+  };
+
+  const inputText = formatInput(scan.input_text, scan.scan_type);
+  const isImageScan = scan.input_text === "[image scan]";
+
   return (
     <div className="bg-glass ring-hairline rounded-2xl overflow-hidden">
+      {/* Header — always visible */}
       <button
         onClick={() => setExpanded(e => !e)}
         className="w-full text-left p-4"
@@ -110,49 +119,83 @@ function ScanHistoryCard({ scan }: { scan: any }) {
             {scan.scan_type.replace(/_/g, " ")}
           </p>
           <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50">
-            {new Date(scan.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            {new Date(scan.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
           </p>
         </div>
         <p className="mt-1.5 text-sm text-foreground/85 leading-relaxed line-clamp-2">
           {result?.read ?? scan.ai_summary ?? "—"}
         </p>
-        {!expanded && (
-          <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40">
-            Tap to expand
-          </p>
-        )}
+        <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40">
+          {expanded ? "Collapse ↑" : "See full read ↓"}
+        </p>
       </button>
 
-      {expanded && result && (
-        <div className="px-4 pb-4 space-y-3 border-t border-border/30 pt-3">
-          {result.truth && (
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground mb-1">The truth</p>
-              <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{result.truth}</p>
+      {/* Expanded content */}
+      {expanded && (
+        <div className="border-t border-border/30 space-y-0">
+
+          {/* Original input */}
+          {(inputText || isImageScan) && (
+            <div className="px-4 py-3 border-b border-border/20">
+              <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground mb-2">
+                {isImageScan ? "Scan type" : "What you submitted"}
+              </p>
+              {isImageScan ? (
+                <p className="text-[12px] text-white/50 italic">Image / photo scan</p>
+              ) : (
+                <div className="bg-black/30 rounded-xl px-3 py-2.5 max-h-40 overflow-y-auto">
+                  <p className="text-[12px] text-white/60 leading-relaxed whitespace-pre-wrap font-mono">
+                    {inputText}
+                  </p>
+                </div>
+              )}
             </div>
           )}
-          {result.what_it_signals && (
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground mb-1">What it signals</p>
-              <p className="text-sm text-foreground/80 leading-relaxed">{result.what_it_signals}</p>
+
+          {/* The Read */}
+          {result?.read && (
+            <div className="px-4 py-3 border-b border-border/20">
+              <p className="text-[9px] uppercase tracking-[0.28em] text-[#C9A84C] mb-1.5">The read</p>
+              <p className="text-[14px] font-medium text-white leading-snug">{result.read}</p>
             </div>
           )}
-          {result.blind_spot && (
-            <div>
+
+          {/* All result fields — dynamically rendered */}
+          {[
+            { key: "truth", label: "The truth" },
+            { key: "what_it_signals", label: "What it signals" },
+            { key: "what_is_actually_happening", label: "What's happening" },
+            { key: "what_they_actually_feel", label: "What they feel" },
+            { key: "their_dominant_pattern", label: "Their pattern" },
+            { key: "presence_read", label: "Presence read" },
+            { key: "energy_read", label: "Energy read" },
+            { key: "first_impression", label: "First impression" },
+            { key: "how_it_reads_to_others", label: "How it reads" },
+            { key: "what_is_working", label: "What's working" },
+          ].filter(f => result?.[f.key]).map(f => (
+            <div key={f.key} className="px-4 py-3 border-b border-border/20">
+              <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground mb-1">{f.label}</p>
+              <p className="text-[13px] text-white/75 leading-relaxed">{result[f.key]}</p>
+            </div>
+          ))}
+
+          {/* Blind spot */}
+          {(result?.blind_spot || result?.their_blind_spot) && (
+            <div className="px-4 py-3 border-b border-border/20 bg-red-950/10">
               <p className="text-[9px] uppercase tracking-[0.28em] text-red-400/70 mb-1">Blind spot</p>
-              <p className="text-sm text-foreground/80 leading-relaxed">{result.blind_spot}</p>
+              <p className="text-[13px] text-white/80 leading-relaxed">
+                {result.blind_spot ?? result.their_blind_spot}
+              </p>
             </div>
           )}
-          {result.the_move && (
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.28em] text-accent mb-1">The move</p>
-              <p className="text-sm text-foreground/90 leading-relaxed">{result.the_move}</p>
-            </div>
-          )}
-          {result.first_move && (
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.28em] text-accent mb-1">The move</p>
-              <p className="text-sm text-foreground/90 leading-relaxed">{result.first_move}</p>
+
+          {/* The move */}
+          {(result?.the_move || result?.first_move) && (
+            <div className="px-4 py-3 bg-[#C9A84C]/5">
+              <p className="text-[9px] uppercase tracking-[0.28em] text-[#C9A84C] mb-1">The move</p>
+              <p className="text-[13px] text-white/90 leading-relaxed">
+                {result.the_move ?? result.first_move}
+              </p>
             </div>
           )}
         </div>
