@@ -1234,6 +1234,12 @@ IMPORTANT: If the user provided context above, let it meaningfully shape the rea
       score_json: parsed.scores ?? null,
     }).select().single();
 
+    // Mark social trial as used
+    await supabase
+      .from("profiles")
+      .update({ trial_social_used: true })
+      .eq("user_id", userId);
+
     if (parsed.scores) {
       await supabase.from("perception_scores").insert({
         user_id: userId,
