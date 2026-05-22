@@ -18,6 +18,7 @@ import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPatternsRouteImport } from './routes/_app/patterns'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppEvolutionRouteImport } from './routes/_app/evolution'
+import { Route as AppDossierRouteImport } from './routes/_app/dossier'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
 
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -64,6 +65,11 @@ const AppEvolutionRoute = AppEvolutionRouteImport.update({
   path: '/evolution',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppDossierRoute = AppDossierRouteImport.update({
+  id: '/dossier',
+  path: '/dossier',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppAdvisorRoute = AppAdvisorRouteImport.update({
   id: '/advisor',
   path: '/advisor',
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/advisor': typeof AppAdvisorRoute
+  '/dossier': typeof AppDossierRoute
   '/evolution': typeof AppEvolutionRoute
   '/home': typeof AppHomeRoute
   '/patterns': typeof AppPatternsRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/advisor': typeof AppAdvisorRoute
+  '/dossier': typeof AppDossierRoute
   '/evolution': typeof AppEvolutionRoute
   '/home': typeof AppHomeRoute
   '/patterns': typeof AppPatternsRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/_app/advisor': typeof AppAdvisorRoute
+  '/_app/dossier': typeof AppDossierRoute
   '/_app/evolution': typeof AppEvolutionRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/patterns': typeof AppPatternsRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/advisor'
+    | '/dossier'
     | '/evolution'
     | '/home'
     | '/patterns'
@@ -123,6 +133,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/advisor'
+    | '/dossier'
     | '/evolution'
     | '/home'
     | '/patterns'
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/_app/advisor'
+    | '/_app/dossier'
     | '/_app/evolution'
     | '/_app/home'
     | '/_app/patterns'
@@ -214,6 +226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEvolutionRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/dossier': {
+      id: '/_app/dossier'
+      path: '/dossier'
+      fullPath: '/dossier'
+      preLoaderRoute: typeof AppDossierRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/advisor': {
       id: '/_app/advisor'
       path: '/advisor'
@@ -226,6 +245,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
+  AppDossierRoute: typeof AppDossierRoute
   AppEvolutionRoute: typeof AppEvolutionRoute
   AppHomeRoute: typeof AppHomeRoute
   AppPatternsRoute: typeof AppPatternsRoute
@@ -235,6 +255,7 @@ interface AppRouteRouteChildren {
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
+  AppDossierRoute: AppDossierRoute,
   AppEvolutionRoute: AppEvolutionRoute,
   AppHomeRoute: AppHomeRoute,
   AppPatternsRoute: AppPatternsRoute,
