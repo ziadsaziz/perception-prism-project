@@ -1747,6 +1747,8 @@ function SelfieScan() {
   const [result, setResult] = useState<any>(null);
   const [showCard, setShowCard] = useState(false);
   const [cardScore, setCardScore] = useState(0);
+  const [showTrialFlash, setShowTrialFlash] = useState(false);
+  const wasTrialRef = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
@@ -1766,9 +1768,13 @@ function SelfieScan() {
     setLoading(true); setResult(null); setStage(0);
     const t = setInterval(() => setStage(s => Math.min(s + 1, STAGES.length - 1)), 900);
     try {
-      const r = await fn({ data: { image_base64: imageBase64, context_note: note } });
+      wasTrialRef.current = !trialScans.selfie;
+      const r = await fn({ data: { image_base64: imageBase64, context_note: note, is_trial: !trialScans.selfie } });
       setResult(r.result);
       haptic(12);
+      if (wasTrialRef.current) {
+        setShowTrialFlash(true);
+      }
       if (r.result?.scores?.perception) {
         const ms = r.result?.scores ? Math.min(1000, Math.round((
           (r.result.scores.perception ?? 50) * 0.20 +
@@ -1795,6 +1801,7 @@ function SelfieScan() {
         preview={imagePreview}
         onReset={() => { setResult(null); setImageBase64(null); setImagePreview(null); setShowCard(false); }}
         onShare={() => setShowCard(true)}
+        isTrial={wasTrialRef.current}
       />
       {showCard && result.read && (
         <MirrorCard
@@ -1803,6 +1810,7 @@ function SelfieScan() {
           onClose={() => setShowCard(false)}
         />
       )}
+      <TrialCompleteFlash visible={showTrialFlash} onDone={() => setShowTrialFlash(false)} />
     </>
   );
 
