@@ -9,7 +9,7 @@ import { MirrorMemory } from "@/components/MirrorMemory";
 import { MirrorFeed } from "@/components/MirrorFeed";
 import { StreakCard } from "@/components/StreakCard";
 import { GlassPanel } from "@/components/GlassPanel";
-import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight } from "lucide-react";
+import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight, Users } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { MirrorScore } from "@/components/MirrorScore";
 import { MoodCheckin, useTodayCheckin } from "@/components/MoodCheckin";
@@ -381,6 +381,22 @@ function Home() {
       )}
       <StreakCard />
       <MirrorFeed />
+
+      <Link
+        to="/contacts"
+        className="block bg-glass ring-hairline rounded-2xl px-5 py-4 border border-white/[0.06] active:scale-[0.99] transition-transform"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.32em] text-muted-foreground">Mirror Contacts</p>
+            <p className="mt-1 text-[13px] text-white/80 leading-snug">Relationship intelligence on the people in your life.</p>
+            <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-accent">Open contacts →</p>
+          </div>
+          <div className="h-10 w-10 rounded-2xl bg-white/[0.04] flex items-center justify-center shrink-0 ml-4">
+            <Users className="h-4 w-4 text-white/30" strokeWidth={1.5} />
+          </div>
+        </div>
+      </Link>
 
       <Link to="/predictions" className="block bg-glass ring-hairline rounded-2xl p-5 border border-[#C9A84C]/20 active:scale-[0.99] transition-transform">
         <div className="flex items-center justify-between gap-4">
