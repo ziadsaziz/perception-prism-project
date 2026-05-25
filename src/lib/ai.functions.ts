@@ -782,7 +782,7 @@ Use this context to make your responses specific to this user. Reference their a
     });
     if (!res.ok) {
       if (res.status === 429 || res.status === 402) {
-        return { reply: "Mirror is taking a beat. Try again in a moment.", source: "fallback" as const };
+        return { reply: "Mirror is taking a beat. Try again in a moment." };
       }
       throw new Error("Mirror could not respond.");
     }
