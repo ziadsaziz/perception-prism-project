@@ -27,8 +27,11 @@ async function callAI(system: string, user: string, json = true, maxTokens = 800
   });
   if (!res.ok) {
     const text = await res.text();
-    if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
-    if (res.status === 402) throw new Error("Mirror is temporarily unavailable. Please try again shortly.");
+    // Degrade silently on capacity / balance issues so the UI doesn't crash.
+    if (res.status === 429 || res.status === 402) {
+      console.warn(`[callAI] gateway ${res.status}: ${text.slice(0, 200)}`);
+      return "";
+    }
     throw new Error(`AI error: ${res.status} ${text.slice(0, 200)}`);
   }
   const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
