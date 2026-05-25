@@ -46,7 +46,7 @@ async function extractTextFromImage(imageBase64: string): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: "openai/gpt-4o",
       max_tokens: 800,
       messages: [
         {
@@ -1317,7 +1317,7 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: "openai/gpt-4o",
         max_tokens: data.is_trial ? 1200 : 800,
         messages: [
           { role: "system", content: data.is_trial ? system + TRIAL_MODE_ADDENDUM : system },
