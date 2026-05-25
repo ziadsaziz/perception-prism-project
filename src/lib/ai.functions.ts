@@ -1363,8 +1363,10 @@ Context from user: ${data.context_note ?? "none"}`
 
     if (!res.ok) {
       const text = await res.text();
-      if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
-      if (res.status === 402) throw new Error("Mirror is temporarily unavailable. Please try again shortly.");
+      if (res.status === 429 || res.status === 402) {
+        console.warn(`[vision] gateway ${res.status}: ${text.slice(0, 200)}`);
+        return { error: "Mirror is taking a beat. Please try again in a moment." } as any;
+      }
       throw new Error(`Vision error: ${res.status} ${text.slice(0, 200)}`);
     }
 
