@@ -1958,7 +1958,11 @@ function SelfieResult({ result, preview, onReset, onShare, isTrial = false }: { 
 
       <div className="space-y-2.5">
         <Insight label="Presence read" body={result.presence_read} />
+        <Insight label="Expression" body={result.expression_read} />
+        <Insight label="Posture" body={result.posture_read} />
         <Insight label="Confidence signals" body={result.confidence_signals} />
+        <Insight label="What you project vs feel" body={result.what_they_project_vs_feel} />
+        <Insight label="Social read" body={result.social_read} />
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The move" body={result.the_move} accent="ok" />
       </div>
@@ -2545,7 +2549,11 @@ function VoiceResult({ result, metrics, onReset, onShare, isTrial = false }: { r
 
       <div className="space-y-2.5">
         <Insight label="Energy read" body={result.energy_read} />
+        <Insight label="Sentence structure" body={result.sentence_structure} />
         <Insight label="Vocal patterns" body={result.vocal_patterns} />
+        <Insight label="Authority read" body={result.authority_read} />
+        <Insight label="Emotional subtext" body={result.emotional_subtext} />
+        <Insight label="What people conclude" body={result.what_people_conclude} />
         <Insight label="Your blind spot" body={result.blind_spot} accent="warn" />
         <Insight label="The move" body={result.the_move} accent="ok" />
       </div>
