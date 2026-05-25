@@ -38,7 +38,7 @@ async function callAI(system: string, user: string, json = true, maxTokens = 800
   return data.choices?.[0]?.message?.content ?? "";
 }
 
-async function extractTextFromImage(imageBase64: string): Promise<string> {
+async function callVision(userText: string, imageBase64: string, mediaType = "image/jpeg", maxTokens = 800): Promise<string> {
   const res = await fetch(GATEWAY, {
     method: "POST",
     headers: {
@@ -46,34 +46,21 @@ async function extractTextFromImage(imageBase64: string): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-4o",
-      max_tokens: 800,
+      model: "google/gemini-2.0-flash",
+      max_tokens: maxTokens,
       messages: [
         {
           role: "user",
           content: [
             {
-              type: "text",
-              text: `Extract all the text from this conversation screenshot. Format it exactly like this:
-
-Them: [their message]
-Me: [my message]
-Them: [their message]
-
-Rules:
-- Preserve the exact order of messages
-- Label each message as either "Me:" or "Them:"
-- If you cannot tell who sent which message, use "Person 1:" and "Person 2:"
-- Include timestamps only if they are clearly visible and relevant
-- Do not add any commentary or explanation — only the extracted conversation
-- If this is not a conversation screenshot, say: NOT_A_CONVERSATION`,
-            },
-            {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
-                detail: "high",
+                url: `data:${mediaType};base64,${imageBase64}`,
               },
+            },
+            {
+              type: "text",
+              text: userText,
             },
           ],
         },
@@ -81,10 +68,40 @@ Rules:
     }),
   });
 
-  if (!res.ok) throw new Error("Screenshot extraction failed.");
+  if (!res.ok) {
+    const errText = await res.text();
+    if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
+    if (res.status === 402) throw new Error("Mirror credits exhausted.");
+    throw new Error(`Vision error: ${res.status} ${errText.slice(0, 300)}`);
+  }
+
   const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-  const text = out.choices?.[0]?.message?.content ?? "";
-  if (text.includes("NOT_A_CONVERSATION")) throw new Error("This doesn't look like a conversation screenshot.");
+  const raw = out.choices?.[0]?.message?.content ?? "";
+  const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  return cleaned;
+}
+
+async function extractTextFromImage(imageBase64: string): Promise<string> {
+  const prompt = `Extract all the text from this conversation screenshot. Format it exactly like this:
+
+Them: [their message]
+Me: [my message]
+Them: [their message]
+
+Rules:
+- Preserve the exact order of messages top to bottom
+- Label each message as either "Me:" or "Them:"
+- If you cannot tell who sent which message, use "Person 1:" and "Person 2:"
+- Include only the message text — no timestamps, no read receipts, no usernames unless needed to distinguish speakers
+- Do not add any commentary, explanation, or preamble — output only the formatted conversation
+- If this is not a conversation screenshot, output exactly: NOT_A_CONVERSATION`;
+
+  const text = await callVision(prompt, imageBase64, "image/jpeg", 800);
+
+  if (text.includes("NOT_A_CONVERSATION")) {
+    throw new Error("This doesn't look like a conversation screenshot.");
+  }
+
   return text;
 }
 
