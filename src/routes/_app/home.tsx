@@ -9,7 +9,7 @@ import { MirrorMemory } from "@/components/MirrorMemory";
 import { MirrorFeed } from "@/components/MirrorFeed";
 import { StreakCard } from "@/components/StreakCard";
 import { GlassPanel } from "@/components/GlassPanel";
-import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight } from "lucide-react";
+import { ScanLine, Image as ImageIcon, Mic, Sparkles, Heart, ChevronRight, Users } from "lucide-react";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { MirrorScore } from "@/components/MirrorScore";
 import { MoodCheckin, useTodayCheckin } from "@/components/MoodCheckin";
