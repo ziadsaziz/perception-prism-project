@@ -23,6 +23,7 @@ import { Route as AppEvolutionRouteImport } from './routes/_app/evolution'
 import { Route as AppDossierRouteImport } from './routes/_app/dossier'
 import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppAdvisorRouteImport } from './routes/_app/advisor'
+import { Route as AppContactsContactIdRouteImport } from './routes/_app/contacts.$contactId'
 
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
@@ -93,6 +94,11 @@ const AppAdvisorRoute = AppAdvisorRouteImport.update({
   path: '/advisor',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppContactsContactIdRoute = AppContactsContactIdRouteImport.update({
+  id: '/$contactId',
+  path: '/$contactId',
+  getParentRoute: () => AppContactsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -100,7 +106,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/privacy': typeof PrivacyRoute
   '/advisor': typeof AppAdvisorRoute
-  '/contacts': typeof AppContactsRoute
+  '/contacts': typeof AppContactsRouteWithChildren
   '/dossier': typeof AppDossierRoute
   '/evolution': typeof AppEvolutionRoute
   '/home': typeof AppHomeRoute
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/predictions': typeof AppPredictionsRoute
   '/profile': typeof AppProfileRoute
   '/scan': typeof AppScanRoute
+  '/contacts/$contactId': typeof AppContactsContactIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -115,7 +122,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/privacy': typeof PrivacyRoute
   '/advisor': typeof AppAdvisorRoute
-  '/contacts': typeof AppContactsRoute
+  '/contacts': typeof AppContactsRouteWithChildren
   '/dossier': typeof AppDossierRoute
   '/evolution': typeof AppEvolutionRoute
   '/home': typeof AppHomeRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/predictions': typeof AppPredictionsRoute
   '/profile': typeof AppProfileRoute
   '/scan': typeof AppScanRoute
+  '/contacts/$contactId': typeof AppContactsContactIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -132,7 +140,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/privacy': typeof PrivacyRoute
   '/_app/advisor': typeof AppAdvisorRoute
-  '/_app/contacts': typeof AppContactsRoute
+  '/_app/contacts': typeof AppContactsRouteWithChildren
   '/_app/dossier': typeof AppDossierRoute
   '/_app/evolution': typeof AppEvolutionRoute
   '/_app/home': typeof AppHomeRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/_app/predictions': typeof AppPredictionsRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/scan': typeof AppScanRoute
+  '/_app/contacts/$contactId': typeof AppContactsContactIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/predictions'
     | '/profile'
     | '/scan'
+    | '/contacts/$contactId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/predictions'
     | '/profile'
     | '/scan'
+    | '/contacts/$contactId'
   id:
     | '__root__'
     | '/'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/_app/predictions'
     | '/_app/profile'
     | '/_app/scan'
+    | '/_app/contacts/$contactId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -298,12 +310,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdvisorRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/contacts/$contactId': {
+      id: '/_app/contacts/$contactId'
+      path: '/$contactId'
+      fullPath: '/contacts/$contactId'
+      preLoaderRoute: typeof AppContactsContactIdRouteImport
+      parentRoute: typeof AppContactsRoute
+    }
   }
 }
 
+interface AppContactsRouteChildren {
+  AppContactsContactIdRoute: typeof AppContactsContactIdRoute
+}
+
+const AppContactsRouteChildren: AppContactsRouteChildren = {
+  AppContactsContactIdRoute: AppContactsContactIdRoute,
+}
+
+const AppContactsRouteWithChildren = AppContactsRoute._addFileChildren(
+  AppContactsRouteChildren,
+)
+
 interface AppRouteRouteChildren {
   AppAdvisorRoute: typeof AppAdvisorRoute
-  AppContactsRoute: typeof AppContactsRoute
+  AppContactsRoute: typeof AppContactsRouteWithChildren
   AppDossierRoute: typeof AppDossierRoute
   AppEvolutionRoute: typeof AppEvolutionRoute
   AppHomeRoute: typeof AppHomeRoute
@@ -315,7 +346,7 @@ interface AppRouteRouteChildren {
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAdvisorRoute: AppAdvisorRoute,
-  AppContactsRoute: AppContactsRoute,
+  AppContactsRoute: AppContactsRouteWithChildren,
   AppDossierRoute: AppDossierRoute,
   AppEvolutionRoute: AppEvolutionRoute,
   AppHomeRoute: AppHomeRoute,
