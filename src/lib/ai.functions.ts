@@ -28,7 +28,7 @@ async function callAI(system: string, user: string, json = true, maxTokens = 800
   if (!res.ok) {
     const text = await res.text();
     if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
-    if (res.status === 402) throw new Error("Mirror credits exhausted. Upgrade or top up.");
+    if (res.status === 402) throw new Error("Mirror is temporarily unavailable. Please try again shortly.");
     throw new Error(`AI error: ${res.status} ${text.slice(0, 200)}`);
   }
   const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -779,7 +779,7 @@ Use this context to make your responses specific to this user. Reference their a
     });
     if (!res.ok) {
       if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
-      if (res.status === 402) throw new Error("Mirror credits exhausted.");
+      if (res.status === 402) throw new Error("Mirror is temporarily unavailable. Please try again shortly.");
       throw new Error("Mirror could not respond.");
     }
     const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -1360,7 +1360,7 @@ Context from user: ${data.context_note ?? "none"}`
     if (!res.ok) {
       const text = await res.text();
       if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
-      if (res.status === 402) throw new Error("Mirror credits exhausted.");
+      if (res.status === 402) throw new Error("Mirror is temporarily unavailable. Please try again shortly.");
       throw new Error(`Vision error: ${res.status} ${text.slice(0, 200)}`);
     }
 
