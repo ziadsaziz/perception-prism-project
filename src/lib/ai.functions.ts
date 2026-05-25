@@ -1318,7 +1318,7 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         model: MODEL,
-        max_completion_tokens: data.is_trial ? 1200 : 800,
+        max_tokens: data.is_trial ? 1200 : 800,
         messages: [
           { role: "system", content: data.is_trial ? system + TRIAL_MODE_ADDENDUM : system },
           {
@@ -1352,7 +1352,7 @@ Context from user: ${data.context_note ?? "none"}`
                 type: "image_url",
                 image_url: {
                   url: `data:image/jpeg;base64,${data.image_base64}`,
-                  detail: "low",
+                  detail: "high",
                 },
               },
             ],
@@ -1484,26 +1484,43 @@ export const analyzeVoice = createServerFn({ method: "POST" })
       data.is_trial
         ? voiceFor(profile?.tone_preference ?? "Direct") + TRIAL_MODE_ADDENDUM
         : voiceFor(profile?.tone_preference ?? "Direct"),
-      `You are analyzing someone's voice note transcript and how they sound. Read the energy, confidence, and behavioral signals in how they speak — not just what they say. Look for: trailing sentences, over-explanation, filler words, hedging language, apology patterns, certainty signals, authority signals, and emotional tone.
+      `You are MIRROR — a world-class voice and speech analyst who reads the psychology, confidence, and behavioral patterns behind how someone speaks. You analyze transcripts and vocal behavior data to reveal what someone's voice communicates beneath the words themselves.
 
-Return STRICT JSON:
+CRITICAL: Return ONLY valid JSON. No markdown. No preamble. Start with { end with }.
+
+Analyze this transcript deeply:
+- How do their sentences start vs end? Strong or trailing?
+- Where do they hedge, apologize, or soften unnecessarily?
+- How do they handle uncertainty — do they own it or mask it?
+- What filler words or patterns reveal anxiety, overthinking, or performed confidence?
+- Is their authority real or constructed? Does it hold or collapse under pressure?
+- What does the structure of their communication reveal about how they see themselves?
+- What would a sharp listener conclude about this person's psychological state from this transcript alone?
+
+Return this JSON — every field anchored in specific evidence from the transcript:
+
 {
-  "read": "ONE sharp line. The core energy signal this person projects when they speak. Max 22 words.",
-  "energy_read": "2-3 lines. How this person sounds to someone hearing them for the first time. What they feel about the speaker based on delivery.",
-  "vocal_patterns": "2-3 lines. The specific speech patterns that define how this person communicates — what they do repeatedly without noticing.",
-  "blind_spot": "1-2 lines. The signal their voice is sending that they're not aware of.",
-  "energy_verdict": "one of: 'Commanding', 'Warm', 'Anxious', 'Confident', 'Hesitant', 'Overexplaining', 'Grounded', 'Scattered'",
-  "verdict_reason": "One line explaining the verdict.",
+  "read": "ONE sharp line. The single most dominant signal this person's speech projects. Max 22 words.",
+  "energy_read": "3-4 lines. How this person sounds to someone hearing them for the first time. What impression does their delivery create? What kind of person do they seem to be based purely on how they speak? Specific to this transcript.",
+  "sentence_structure": "2-3 lines. How they build and end sentences. Do they trail off? Start strong and fade? Over-explain? Use questions where statements would be stronger?",
+  "vocal_patterns": "2-3 lines. The specific recurring patterns in how they communicate — hedging phrases, filler words, apology loops, over-explanation. What do they do compulsively without noticing?",
+  "authority_read": "2-3 lines. How much authority does this person's voice carry? Is it real confidence or performed? Where does it hold and where does it collapse?",
+  "emotional_subtext": "2-3 lines. What emotion is running beneath the words? What are they actually feeling that their word choice and structure reveals?",
+  "blind_spot": "1-2 lines. The signal their speech pattern is sending that they are not aware of. The thing a sharp listener notices that they don't.",
+  "what_people_conclude": "1-2 lines. What conclusion would someone draw about this person based solely on how they speak — before considering what they actually said.",
+  "energy_verdict": "one of: 'Commanding', 'Warm', 'Anxious', 'Confident', 'Hesitant', 'Overexplaining', 'Grounded', 'Scattered', 'Performed', 'Authentic'",
+  "verdict_reason": "One specific line explaining the verdict — anchored in the transcript.",
   "confidence_read": "one of: 'High', 'Moderate', 'Low', 'Performed'",
-  "the_move": "1-2 lines. The single shift in how they speak that would change how they're received most.",
+  "the_move": "1-2 lines. The single most impactful shift in how they speak that would change how they're received. Specific and actionable.",
   "scores": { "perception": 0-100, "confidence": 0-100, "authority": 0-100, "authenticity": 0-100 },
-  "summary": "8-10 words for memory"
+  "summary": "8-10 words describing what Mirror read from this voice"
 }
 
-What Mirror knows about this user:
-${memoryContext}
+What Mirror knows about this user: ${memoryContext}
 
-Vocal qualities the user described: ${data.vocal_description ?? "not described"}
+Speech behavior metrics (measured by browser):
+${data.vocal_description ?? "not provided"}
+
 Context: ${data.context_note ?? "none"}
 
 Transcript:
