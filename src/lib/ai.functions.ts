@@ -2137,3 +2137,317 @@ export const verifyPrediction = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+
+// ============================================================
+// 17. Contact Scan — analyze interaction with a specific person
+// ============================================================
+export const analyzeContactInteraction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    contact_id: string;
+    input_text: string;
+    context_note?: string;
+  }) =>
+    z.object({
+      contact_id: z.string(),
+      input_text: z.string().min(10).max(4000),
+      context_note: z.string().max(500).optional(),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const [{ data: profile }, { data: contact }, { data: dossier }, { data: prevScans }] = await Promise.all([
+      supabase.from("profiles").select("tone_preference").eq("user_id", userId).maybeSingle(),
+      supabase.from("contacts").select("*").eq("id", data.contact_id).eq("user_id", userId).maybeSingle(),
+      supabase.from("contact_dossier").select("*").eq("contact_id", data.contact_id).maybeSingle(),
+      supabase.from("contact_scans").select("summary, their_pattern, mirror_note").eq("contact_id", data.contact_id).order("created_at", { ascending: false }).limit(5),
+    ]);
+
+    if (!contact) throw new Error("Contact not found.");
+
+    const prevContext = (prevScans ?? []).map((s: any) => `- ${s.summary ?? ""}`).join("\n") || "(no prior interactions)";
+    const dossierContext = dossier ? `
+Known patterns: ${dossier.dominant_pattern ?? "emerging"}
+Communication style: ${dossier.communication_style ?? "unknown"}
+Attachment style: ${dossier.attachment_style ?? "unknown"}
+What they want: ${dossier.what_they_want ?? "unclear"}` : "(no dossier yet — this is an early interaction)";
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `You are reading an interaction the user had with a specific person in their life. You have context from previous interactions with this person. Use everything Mirror knows about them to deliver a sharper, more specific read than a generic text scan.
+
+Return STRICT JSON:
+{
+  "read": "ONE sharp line about this specific interaction with this specific person. Max 20 words.",
+  "what_they_actually_feel": "2-3 lines. What this person is genuinely feeling right now — not what they said. Anchor in their established patterns.",
+  "their_pattern_in_this_interaction": "1-2 lines. How their dominant pattern showed up in this specific exchange.",
+  "relationship_shift": "one of: 'Getting closer', 'Pulling away', 'Testing you', 'Stable', 'Confused', 'Disconnecting'",
+  "shift_reason": "One line explaining the shift read.",
+  "what_they_want_right_now": "1-2 lines. What this person wants from you specifically in this moment.",
+  "your_blind_spot": "1-2 lines. What you cannot see about your own behavior in this interaction.",
+  "the_move": "1-2 lines. The single strongest move with this specific person right now.",
+  "mirror_note": "One sharp observation Mirror wants to remember about this person from this interaction. This gets added to their permanent file.",
+  "their_mood": "one of: 'Open', 'Guarded', 'Distant', 'Warm', 'Anxious', 'Frustrated', 'Testing', 'Genuine'",
+  "summary": "10-15 words summarizing what happened in this interaction"
+}
+
+Contact: ${contact.name}
+Relationship: ${contact.relationship_type}
+Known since: ${contact.known_since ?? "not specified"}
+What the user wants from this relationship: ${contact.what_you_want ?? "not specified"}
+Key facts about this person: ${contact.key_facts ?? "none provided"}
+
+What Mirror knows about ${contact.name}:
+${dossierContext}
+
+Previous interactions:
+${prevContext}
+
+This interaction:
+"""
+${data.input_text}
+"""
+Context: ${data.context_note ?? "none"}`,
+      true
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch {
+      parsed = { read: content.slice(0, 200), summary: "contact interaction" };
+    }
+
+    const { data: contactScan } = await supabase.from("contact_scans").insert({
+      contact_id: data.contact_id,
+      user_id: userId,
+      input_text: data.input_text.slice(0, 4000),
+      summary: parsed.summary ?? parsed.read,
+      their_mood: parsed.their_mood,
+      their_pattern: parsed.their_pattern_in_this_interaction,
+      relationship_shift: parsed.relationship_shift,
+      mirror_note: parsed.mirror_note,
+    }).select().single();
+
+    await supabase.from("scans").insert({
+      user_id: userId,
+      scan_type: "contact_interaction",
+      input_text: data.input_text.slice(0, 4000),
+      ai_summary: parsed.summary ?? parsed.read,
+      result_json: parsed,
+      score_json: null,
+    });
+
+    await supabase.from("contact_dossier").upsert({
+      contact_id: data.contact_id,
+      user_id: userId,
+      scan_count: (dossier?.scan_count ?? 0) + 1,
+      generated_at: new Date().toISOString(),
+    }, { onConflict: "contact_id" });
+
+    if ((dossier?.scan_count ?? 0) + 1 >= 3) {
+      generateContactDossier({ data: { contact_id: data.contact_id } } as any).catch(() => {});
+    }
+
+    return { result: parsed, contact_scan_id: contactScan?.id };
+  });
+
+// ============================================================
+// 18. Contact Dossier Generator
+// ============================================================
+export const generateContactDossier = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { contact_id: string }) =>
+    z.object({ contact_id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const [{ data: contact }, { data: scans }, { data: profile }] = await Promise.all([
+      supabase.from("contacts").select("*").eq("id", data.contact_id).eq("user_id", userId).maybeSingle(),
+      supabase.from("contact_scans").select("*").eq("contact_id", data.contact_id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("profiles").select("tone_preference").eq("user_id", userId).maybeSingle(),
+    ]);
+
+    if (!contact || !scans?.length) return null;
+
+    const scanLines = scans.map((s: any) =>
+      `[${new Date(s.created_at).toLocaleDateString()}] ${s.summary} | Mood: ${s.their_mood} | Shift: ${s.relationship_shift} | Note: ${s.mirror_note}`
+    ).join("\n");
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `You are building a comprehensive behavioral intelligence profile on a specific person based on multiple observed interactions. This is Mirror's running dossier on this person — it gets sharper with every interaction.
+
+Return STRICT JSON:
+{
+  "dominant_pattern": "The single most consistent behavioral pattern this person exhibits. 2-3 lines. Specific and named.",
+  "communication_style": "How this person communicates. What they do, what they avoid, how they express and withhold. 2-3 lines.",
+  "when_interested": "The specific behavioral signals this person shows when they are genuinely interested or invested. 1-2 lines.",
+  "when_pulling_away": "The specific behavioral signals this person shows when they are withdrawing or losing interest. 1-2 lines.",
+  "what_triggers_them": "What consistently causes a negative or defensive reaction in this person. 1-2 lines.",
+  "what_they_respond_to": "What consistently produces positive engagement from this person. 1-2 lines.",
+  "honesty_read": "How honest and consistent this person is in their communication. Are they direct? Do they say one thing and do another? 1-2 lines.",
+  "attachment_style": "one of: 'Secure', 'Anxious', 'Avoidant', 'Fearful-avoidant', 'Unclear'",
+  "what_they_want": "What this person actually wants from this relationship — not what they say. 1-2 lines.",
+  "relationship_trajectory": "one of: 'Growing closer', 'Drifting apart', 'Stable', 'Cyclical', 'Unclear'",
+  "full_profile": "4-5 paragraphs. The complete Mirror profile on this person. Who they are behaviorally. How they operate. What drives them. What they want. What they're afraid of. How they're likely to behave in the future based on observed patterns."
+}
+
+Contact: ${contact.name}
+Relationship to user: ${contact.relationship_type}
+Known since: ${contact.known_since ?? "not specified"}
+Key facts: ${contact.key_facts ?? "none"}
+
+All observed interactions (${scans.length} total):
+${scanLines}`,
+      true,
+      1200
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { return null; }
+
+    await supabase.from("contact_dossier").upsert({
+      contact_id: data.contact_id,
+      user_id: userId,
+      dominant_pattern: parsed.dominant_pattern,
+      communication_style: parsed.communication_style,
+      when_interested: parsed.when_interested,
+      when_pulling_away: parsed.when_pulling_away,
+      what_triggers_them: parsed.what_triggers_them,
+      what_they_respond_to: parsed.what_they_respond_to,
+      honesty_read: parsed.honesty_read,
+      attachment_style: parsed.attachment_style,
+      what_they_want: parsed.what_they_want,
+      relationship_trajectory: parsed.relationship_trajectory,
+      full_profile: parsed.full_profile,
+      scan_count: scans.length,
+      generated_at: new Date().toISOString(),
+    }, { onConflict: "contact_id" });
+
+    return parsed;
+  });
+
+// ============================================================
+// 19. What Would They Think scan
+// ============================================================
+export const whatWouldTheyThink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { contact_id: string; message_or_action: string }) =>
+    z.object({
+      contact_id: z.string(),
+      message_or_action: z.string().min(5).max(2000),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const [{ data: contact }, { data: dossier }, { data: profile }] = await Promise.all([
+      supabase.from("contacts").select("*").eq("id", data.contact_id).eq("user_id", userId).maybeSingle(),
+      supabase.from("contact_dossier").select("*").eq("contact_id", data.contact_id).maybeSingle(),
+      supabase.from("profiles").select("tone_preference").eq("user_id", userId).maybeSingle(),
+    ]);
+
+    if (!contact) throw new Error("Contact not found.");
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `Based on everything Mirror knows about this specific person, predict how they would react to this message or action. Be specific. This is not a guess — it is a behavioral prediction based on observed patterns.
+
+Return STRICT JSON:
+{
+  "their_reaction": "2-3 lines. Exactly how this person would likely react — their emotional response and behavioral response.",
+  "what_they_would_think": "2-3 lines. What they would actually think internally — not what they might say.",
+  "will_it_land": "one of: 'Well', 'Poorly', 'Mixed', 'Depends on timing', 'Better than expected'",
+  "landing_reason": "One line explaining why.",
+  "what_to_change": "Optional. If it could be improved for this specific person, what to adjust. If it's strong as-is, omit.",
+  "the_optimal_version": "Optional. If there's a stronger version that would land better with this person specifically, write it. If the original is optimal, omit.",
+  "confidence": "one of: 'High', 'Moderate', 'Low' — how confident Mirror is given the available data"
+}
+
+Contact: ${contact.name}
+Relationship: ${contact.relationship_type}
+Key facts: ${contact.key_facts ?? "none"}
+
+What Mirror knows about ${contact.name}:
+Dominant pattern: ${dossier?.dominant_pattern ?? "still emerging"}
+Communication style: ${dossier?.communication_style ?? "unknown"}
+What triggers them: ${dossier?.what_triggers_them ?? "unknown"}
+What they respond to: ${dossier?.what_they_respond_to ?? "unknown"}
+Attachment style: ${dossier?.attachment_style ?? "unclear"}
+
+What the user wants to send or do:
+"""
+${data.message_or_action}
+"""`,
+      true
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch {
+      parsed = { their_reaction: content.slice(0, 300), will_it_land: "Unclear", landing_reason: "", confidence: "Low" };
+    }
+
+    return { result: parsed, contact_name: contact.name };
+  });
+
+// ============================================================
+// 20. Generate Contact Predictions
+// ============================================================
+export const generateContactPredictions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { contact_id: string }) =>
+    z.object({ contact_id: z.string() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const [{ data: contact }, { data: dossier }, { data: scans }, { data: profile }] = await Promise.all([
+      supabase.from("contacts").select("*").eq("id", data.contact_id).eq("user_id", userId).maybeSingle(),
+      supabase.from("contact_dossier").select("*").eq("contact_id", data.contact_id).maybeSingle(),
+      supabase.from("contact_scans").select("summary, relationship_shift, their_mood").eq("contact_id", data.contact_id).order("created_at", { ascending: false }).limit(10),
+      supabase.from("profiles").select("tone_preference").eq("user_id", userId).maybeSingle(),
+    ]);
+
+    if (!contact || (scans?.length ?? 0) < 2) {
+      return { predictions: [], insufficient_data: true };
+    }
+
+    const content = await callAI(
+      voiceFor(profile?.tone_preference ?? "Direct"),
+      `Based on everything Mirror knows about this specific person, generate 3 predictions about how they will behave in the near future in their relationship with the user.
+
+Return STRICT JSON:
+{
+  "predictions": [
+    {
+      "prediction": "What Mirror predicts this specific person will do. One sharp sentence. Max 20 words.",
+      "reasoning": "2-3 lines grounded in their observed patterns.",
+      "timeframe": "one of: 'This week', 'Within 2 weeks', 'Within a month'"
+    }
+  ]
+}
+
+Contact: ${contact.name} (${contact.relationship_type})
+Dominant pattern: ${dossier?.dominant_pattern ?? "emerging"}
+Attachment style: ${dossier?.attachment_style ?? "unclear"}
+Relationship trajectory: ${dossier?.relationship_trajectory ?? "unclear"}
+Recent shifts: ${(scans ?? []).map((s: any) => s.relationship_shift).join(", ")}`,
+      true,
+      800
+    );
+
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch { return { predictions: [], insufficient_data: false }; }
+
+    const items = parsed?.predictions ?? [];
+    if (items.length) {
+      await supabase.from("contact_predictions").insert(
+        items.map((p: any) => ({
+          contact_id: data.contact_id,
+          user_id: userId,
+          prediction: p.prediction,
+          reasoning: p.reasoning,
+          timeframe: p.timeframe,
+        }))
+      );
+    }
+
+    return { predictions: items, insufficient_data: false };
+  });
