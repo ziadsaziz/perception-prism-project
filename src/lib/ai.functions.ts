@@ -781,8 +781,9 @@ Use this context to make your responses specific to this user. Reference their a
       body: JSON.stringify({ model: MODEL, max_completion_tokens: 600, messages }),
     });
     if (!res.ok) {
-      if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
-      if (res.status === 402) throw new Error("Mirror is temporarily unavailable. Please try again shortly.");
+      if (res.status === 429 || res.status === 402) {
+        return { reply: "Mirror is taking a beat. Try again in a moment.", source: "fallback" as const };
+      }
       throw new Error("Mirror could not respond.");
     }
     const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
