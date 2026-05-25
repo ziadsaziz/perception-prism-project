@@ -38,6 +38,214 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_dossier: {
+        Row: {
+          attachment_style: string | null
+          communication_style: string | null
+          contact_id: string
+          dominant_pattern: string | null
+          full_profile: string | null
+          generated_at: string
+          honesty_read: string | null
+          id: string
+          relationship_trajectory: string | null
+          scan_count: number | null
+          user_id: string
+          what_they_respond_to: string | null
+          what_they_want: string | null
+          what_triggers_them: string | null
+          when_interested: string | null
+          when_pulling_away: string | null
+        }
+        Insert: {
+          attachment_style?: string | null
+          communication_style?: string | null
+          contact_id: string
+          dominant_pattern?: string | null
+          full_profile?: string | null
+          generated_at?: string
+          honesty_read?: string | null
+          id?: string
+          relationship_trajectory?: string | null
+          scan_count?: number | null
+          user_id: string
+          what_they_respond_to?: string | null
+          what_they_want?: string | null
+          what_triggers_them?: string | null
+          when_interested?: string | null
+          when_pulling_away?: string | null
+        }
+        Update: {
+          attachment_style?: string | null
+          communication_style?: string | null
+          contact_id?: string
+          dominant_pattern?: string | null
+          full_profile?: string | null
+          generated_at?: string
+          honesty_read?: string | null
+          id?: string
+          relationship_trajectory?: string | null
+          scan_count?: number | null
+          user_id?: string
+          what_they_respond_to?: string | null
+          what_they_want?: string | null
+          what_triggers_them?: string | null
+          when_interested?: string | null
+          when_pulling_away?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_dossier_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_predictions: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          outcome: string | null
+          prediction: string
+          reasoning: string | null
+          timeframe: string | null
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          outcome?: string | null
+          prediction: string
+          reasoning?: string | null
+          timeframe?: string | null
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          outcome?: string | null
+          prediction?: string
+          reasoning?: string | null
+          timeframe?: string | null
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_predictions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_scans: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          input_text: string | null
+          mirror_note: string | null
+          relationship_shift: string | null
+          scan_id: string | null
+          summary: string | null
+          their_mood: string | null
+          their_pattern: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          input_text?: string | null
+          mirror_note?: string | null
+          relationship_shift?: string | null
+          scan_id?: string | null
+          summary?: string | null
+          their_mood?: string | null
+          their_pattern?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          input_text?: string | null
+          mirror_note?: string | null
+          relationship_shift?: string | null
+          scan_id?: string | null
+          summary?: string | null
+          their_mood?: string | null
+          their_pattern?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_scans_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_scans_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          archived: boolean | null
+          avatar_color: string | null
+          created_at: string
+          id: string
+          key_facts: string | null
+          known_since: string | null
+          name: string
+          relationship_type: string
+          updated_at: string
+          user_id: string
+          what_you_want: string | null
+        }
+        Insert: {
+          archived?: boolean | null
+          avatar_color?: string | null
+          created_at?: string
+          id?: string
+          key_facts?: string | null
+          known_since?: string | null
+          name: string
+          relationship_type: string
+          updated_at?: string
+          user_id: string
+          what_you_want?: string | null
+        }
+        Update: {
+          archived?: boolean | null
+          avatar_color?: string | null
+          created_at?: string
+          id?: string
+          key_facts?: string | null
+          known_since?: string | null
+          name?: string
+          relationship_type?: string
+          updated_at?: string
+          user_id?: string
+          what_you_want?: string | null
+        }
+        Relationships: []
+      }
       daily_checkins: {
         Row: {
           ai_reflection: string | null
