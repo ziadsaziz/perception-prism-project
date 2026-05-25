@@ -38,7 +38,7 @@ async function callAI(system: string, user: string, json = true, maxTokens = 800
   return data.choices?.[0]?.message?.content ?? "";
 }
 
-async function extractTextFromImage(imageBase64: string): Promise<string> {
+async function callVision(userText: string, imageBase64: string, mediaType = "image/jpeg", maxTokens = 800): Promise<string> {
   const res = await fetch(GATEWAY, {
     method: "POST",
     headers: {
@@ -46,34 +46,21 @@ async function extractTextFromImage(imageBase64: string): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-4o",
-      max_tokens: 800,
+      model: "google/gemini-2.0-flash",
+      max_tokens: maxTokens,
       messages: [
         {
           role: "user",
           content: [
             {
-              type: "text",
-              text: `Extract all the text from this conversation screenshot. Format it exactly like this:
-
-Them: [their message]
-Me: [my message]
-Them: [their message]
-
-Rules:
-- Preserve the exact order of messages
-- Label each message as either "Me:" or "Them:"
-- If you cannot tell who sent which message, use "Person 1:" and "Person 2:"
-- Include timestamps only if they are clearly visible and relevant
-- Do not add any commentary or explanation — only the extracted conversation
-- If this is not a conversation screenshot, say: NOT_A_CONVERSATION`,
-            },
-            {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
-                detail: "high",
+                url: `data:${mediaType};base64,${imageBase64}`,
               },
+            },
+            {
+              type: "text",
+              text: userText,
             },
           ],
         },
@@ -81,10 +68,40 @@ Rules:
     }),
   });
 
-  if (!res.ok) throw new Error("Screenshot extraction failed.");
+  if (!res.ok) {
+    const errText = await res.text();
+    if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
+    if (res.status === 402) throw new Error("Mirror credits exhausted.");
+    throw new Error(`Vision error: ${res.status} ${errText.slice(0, 300)}`);
+  }
+
   const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-  const text = out.choices?.[0]?.message?.content ?? "";
-  if (text.includes("NOT_A_CONVERSATION")) throw new Error("This doesn't look like a conversation screenshot.");
+  const raw = out.choices?.[0]?.message?.content ?? "";
+  const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  return cleaned;
+}
+
+async function extractTextFromImage(imageBase64: string): Promise<string> {
+  const prompt = `Extract all the text from this conversation screenshot. Format it exactly like this:
+
+Them: [their message]
+Me: [my message]
+Them: [their message]
+
+Rules:
+- Preserve the exact order of messages top to bottom
+- Label each message as either "Me:" or "Them:"
+- If you cannot tell who sent which message, use "Person 1:" and "Person 2:"
+- Include only the message text — no timestamps, no read receipts, no usernames unless needed to distinguish speakers
+- Do not add any commentary, explanation, or preamble — output only the formatted conversation
+- If this is not a conversation screenshot, output exactly: NOT_A_CONVERSATION`;
+
+  const text = await callVision(prompt, imageBase64, "image/jpeg", 800);
+
+  if (text.includes("NOT_A_CONVERSATION")) {
+    throw new Error("This doesn't look like a conversation screenshot.");
+  }
+
   return text;
 }
 
@@ -1310,25 +1327,11 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
     const memoryContext = (memory ?? []).map((m: any) => `- ${m.memory_text}`).join("\n") || "(no prior memory)";
     const system = voiceFor(profile?.tone_preference ?? "Direct");
 
-    const res = await fetch(GATEWAY, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o",
-        max_tokens: data.is_trial ? 1200 : 800,
-        messages: [
-          { role: "system", content: data.is_trial ? system + TRIAL_MODE_ADDENDUM : system },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `You are MIRROR — a world-class behavioral intelligence analyst specializing in reading human presence, body language, energy, and psychological signals from photos. Your analysis must be deep, specific, and surgical — not surface level.
+    const prompt = `You are MIRROR — a world-class behavioral intelligence analyst specializing in reading human presence, body language, energy, and psychological signals from photos. Your analysis must be deep, specific, and surgical — not surface level.
 
-CRITICAL INSTRUCTION: Return ONLY a valid JSON object. No markdown. No backticks. No preamble. No explanation outside the JSON. Start immediately with { and end with }.
+${data.is_trial ? TRIAL_MODE_ADDENDUM : ""}
+
+CRITICAL INSTRUCTION: Return ONLY a valid JSON object. No markdown. No backticks. No preamble. No explanation. Start immediately with { and end with }.
 
 Analyze everything visible in this photo:
 - Facial expression: what emotion is being held, suppressed, or performed?
@@ -1341,54 +1344,29 @@ Analyze everything visible in this photo:
 - What signal are they sending without knowing it?
 - What does this photo reveal about how they see themselves?
 
-Return this JSON — every field must be filled with specific observations from THIS photo, not generic statements:
+Return this JSON — every field must be filled with specific observations from THIS photo:
 
 {
   "read": "ONE sharp line. The single most dominant signal this person is projecting. Max 22 words. Behavioral not physical.",
-  "presence_read": "3-4 lines. What a complete stranger would feel and conclude in the first 5 seconds of seeing this person. What is the immediate emotional impact? What kind of person do they assume this is? Specific to what is visible in this photo.",
-  "expression_read": "2-3 lines. What the face is communicating — the emotion being held, what the eyes say, what the jaw and mouth reveal about internal state.",
-  "posture_read": "2-3 lines. What the body position, shoulders, spine, and head angle communicate about confidence, comfort, and self-perception.",
-  "confidence_signals": "2-3 lines. The specific signals that indicate high or low confidence — what in this image reveals how this person feels about themselves right now.",
-  "what_they_project_vs_feel": "2-3 lines. What this person is trying to project vs what they are actually projecting. The gap between the performed version and the real one.",
-  "blind_spot": "1-2 lines. The signal they are sending without knowing it. The thing they would be surprised to hear.",
-  "social_read": "1-2 lines. How this person likely comes across in social or professional settings based on what this image projects.",
+  "presence_read": "3-4 lines. What a complete stranger would feel and conclude in the first 5 seconds. Specific to what is visible.",
+  "expression_read": "2-3 lines. What the face is communicating — the emotion being held, what the eyes say, what the jaw reveals.",
+  "posture_read": "2-3 lines. What the body position, shoulders, spine, and head angle communicate about confidence and self-perception.",
+  "confidence_signals": "2-3 lines. The specific signals that indicate high or low confidence visible in this image.",
+  "what_they_project_vs_feel": "2-3 lines. What this person is trying to project vs what they are actually projecting.",
+  "blind_spot": "1-2 lines. The signal they are sending without knowing it.",
+  "social_read": "1-2 lines. How this person likely comes across in social or professional settings.",
   "presence_verdict": "one of: 'Commanding', 'Warm', 'Guarded', 'Uncertain', 'Magnetic', 'Closed off', 'Approachable', 'Intense', 'Controlled', 'Restless'",
-  "verdict_reason": "One specific line explaining the verdict — anchored in something visible in this photo.",
-  "the_move": "1-2 lines. The single most impactful shift this person could make in how they present themselves. Specific and actionable.",
+  "verdict_reason": "One specific line anchored in something visible in this photo.",
+  "the_move": "1-2 lines. The single most impactful shift this person could make in how they present themselves.",
   "scores": { "perception": 0-100, "confidence": 0-100, "attraction": 0-100, "approachability": 0-100 },
   "summary": "8-10 words describing what Mirror read from this photo"
 }
 
 Context from user: ${data.context_note ?? "none"}
-What Mirror knows about this user: ${memoryContext}`
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:image/jpeg;base64,${data.image_base64}`,
-                  detail: "high",
-                },
-              },
-            ],
-          },
-        ],
-      }),
-    });
+What Mirror knows about this user: ${memoryContext}`;
 
-    if (!res.ok) {
-      const text = await res.text();
-      if (res.status === 429 || res.status === 402) {
-        console.warn(`[vision] gateway ${res.status}: ${text.slice(0, 200)}`);
-        return { error: "Mirror is taking a beat. Please try again in a moment." } as any;
-      }
-      throw new Error(`Vision error: ${res.status} ${text.slice(0, 200)}`);
-    }
-
-    const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const raw = out.choices?.[0]?.message?.content ?? "";
-
-    // Strip markdown fences if present
-    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const raw = await callVision(prompt, data.image_base64, "image/jpeg", data.is_trial ? 1200 : 800);
+    const cleaned = raw;
 
     let parsed: any;
     try {
