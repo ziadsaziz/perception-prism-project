@@ -1326,27 +1326,41 @@ export const analyzeSelfie = createServerFn({ method: "POST" })
             content: [
               {
                 type: "text",
-                text: `You are MIRROR — a high-level perception analyst. Analyze the person's presence from this photo. Read their posture, expression, energy, and confidence signals. Never comment on attractiveness.
+                text: `You are MIRROR — a world-class behavioral intelligence analyst specializing in reading human presence, body language, energy, and psychological signals from photos. Your analysis must be deep, specific, and surgical — not surface level.
 
-CRITICAL: You MUST return ONLY valid JSON. No markdown. No explanation. No preamble. Start your response with { and end with }. If you cannot analyze the image, still return valid JSON with your best observations.
+CRITICAL INSTRUCTION: Return ONLY a valid JSON object. No markdown. No backticks. No preamble. No explanation outside the JSON. Start immediately with { and end with }.
 
-Return this exact JSON structure:
+Analyze everything visible in this photo:
+- Facial expression: what emotion is being held, suppressed, or performed?
+- Eyes: direct or avoidant? Open or guarded? What do they communicate?
+- Jaw and mouth: tension or relaxed? Set or soft?
+- Posture: what does the spine say? Shoulders up or down? Chest open or closed?
+- Head position: tilted, forward, pulled back?
+- Overall energy: what would a stranger feel in the first 3 seconds?
+- What is this person trying to project vs what are they actually projecting?
+- What signal are they sending without knowing it?
+- What does this photo reveal about how they see themselves?
+
+Return this JSON — every field must be filled with specific observations from THIS photo, not generic statements:
+
 {
-  "read": "ONE sharp line. The immediate energy or presence this person projects. Max 22 words. Not about looks — about signal.",
-  "presence_read": "2-3 lines. What a stranger would feel and conclude about this person in the first 5 seconds. Behavioral and energetic read only.",
-  "confidence_signals": "2-3 lines. What their posture, expression, and energy communicate about their internal state.",
-  "blind_spot": "1-2 lines. The signal they're sending without knowing it.",
-  "presence_verdict": "one of: 'Commanding', 'Warm', 'Guarded', 'Uncertain', 'Magnetic', 'Closed off', 'Approachable', 'Intense'",
-  "verdict_reason": "One line explaining the verdict.",
-  "the_move": "1-2 lines. One specific thing they could shift — in how they present themselves — that would change the read.",
+  "read": "ONE sharp line. The single most dominant signal this person is projecting. Max 22 words. Behavioral not physical.",
+  "presence_read": "3-4 lines. What a complete stranger would feel and conclude in the first 5 seconds of seeing this person. What is the immediate emotional impact? What kind of person do they assume this is? Specific to what is visible in this photo.",
+  "expression_read": "2-3 lines. What the face is communicating — the emotion being held, what the eyes say, what the jaw and mouth reveal about internal state.",
+  "posture_read": "2-3 lines. What the body position, shoulders, spine, and head angle communicate about confidence, comfort, and self-perception.",
+  "confidence_signals": "2-3 lines. The specific signals that indicate high or low confidence — what in this image reveals how this person feels about themselves right now.",
+  "what_they_project_vs_feel": "2-3 lines. What this person is trying to project vs what they are actually projecting. The gap between the performed version and the real one.",
+  "blind_spot": "1-2 lines. The signal they are sending without knowing it. The thing they would be surprised to hear.",
+  "social_read": "1-2 lines. How this person likely comes across in social or professional settings based on what this image projects.",
+  "presence_verdict": "one of: 'Commanding', 'Warm', 'Guarded', 'Uncertain', 'Magnetic', 'Closed off', 'Approachable', 'Intense', 'Controlled', 'Restless'",
+  "verdict_reason": "One specific line explaining the verdict — anchored in something visible in this photo.",
+  "the_move": "1-2 lines. The single most impactful shift this person could make in how they present themselves. Specific and actionable.",
   "scores": { "perception": 0-100, "confidence": 0-100, "attraction": 0-100, "approachability": 0-100 },
-  "summary": "8-10 words for memory"
+  "summary": "8-10 words describing what Mirror read from this photo"
 }
 
-What Mirror knows about this user:
-${memoryContext}
-
-Context from user: ${data.context_note ?? "none"}`
+Context from user: ${data.context_note ?? "none"}
+What Mirror knows about this user: ${memoryContext}`
               },
               {
                 type: "image_url",
