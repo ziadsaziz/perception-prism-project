@@ -27,8 +27,11 @@ async function callAI(system: string, user: string, json = true, maxTokens = 800
   });
   if (!res.ok) {
     const text = await res.text();
-    if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
-    if (res.status === 402) throw new Error("Mirror is temporarily unavailable. Please try again shortly.");
+    // Degrade silently on capacity / balance issues so the UI doesn't crash.
+    if (res.status === 429 || res.status === 402) {
+      console.warn(`[callAI] gateway ${res.status}: ${text.slice(0, 200)}`);
+      return "";
+    }
     throw new Error(`AI error: ${res.status} ${text.slice(0, 200)}`);
   }
   const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -778,8 +781,9 @@ Use this context to make your responses specific to this user. Reference their a
       body: JSON.stringify({ model: MODEL, max_completion_tokens: 600, messages }),
     });
     if (!res.ok) {
-      if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
-      if (res.status === 402) throw new Error("Mirror is temporarily unavailable. Please try again shortly.");
+      if (res.status === 429 || res.status === 402) {
+        return { reply: "Mirror is taking a beat. Try again in a moment." };
+      }
       throw new Error("Mirror could not respond.");
     }
     const out = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -1359,8 +1363,10 @@ Context from user: ${data.context_note ?? "none"}`
 
     if (!res.ok) {
       const text = await res.text();
-      if (res.status === 429) throw new Error("Mirror is at capacity. Try again in a moment.");
-      if (res.status === 402) throw new Error("Mirror is temporarily unavailable. Please try again shortly.");
+      if (res.status === 429 || res.status === 402) {
+        console.warn(`[vision] gateway ${res.status}: ${text.slice(0, 200)}`);
+        return { error: "Mirror is taking a beat. Please try again in a moment." } as any;
+      }
       throw new Error(`Vision error: ${res.status} ${text.slice(0, 200)}`);
     }
 
